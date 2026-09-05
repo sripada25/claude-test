@@ -64,7 +64,7 @@ F1 P3 Auth API      F1 P4 SSO
 | ID | Task | Depends | Env | Notes |
 |---|---|---|---|---|
 | T1.1 | ✅ DONE — Migration tooling + reversible baseline | — | ✅ | Merged via PR #2 (2026-09-05). Hand-rolled runner, no third-party migration library |
-| T1.2 | `users` table · `citext` + `pgcrypto` extensions | T1.1 | ✅ | `password_hash` nullable (SSO) |
+| T1.2 | ✅ DONE — `users` table · `citext` + `pgcrypto` extensions | T1.1 | ✅ | Merged via PR #4 (2026-09-05). `password_hash` nullable (SSO) |
 | T1.3 | `profiles` table · enums · `salary_complete` CHECK | T1.2 | ✅ | `years_experience`/`months_experience` (L107), not an enum |
 | T1.4 | `sessions` table + partial index | T1.2 | ✅ | 24h absolute expiry (L118) |
 | T1.5 | `verification_tokens` + `email_log` | T1.2 | ✅ | `attempts` counter; `email_log` doubles as provider quota counter |
