@@ -9,11 +9,9 @@ Feature detail lives in the linked documents — do not duplicate it here.
 
 **Trackr** — a job application tracker. Users log applications, generate tailored cover letters and resumes from a job description plus their profile, and capture what happened on recruiter calls.
 
-Currently specified for implementation: **F1 User Accounts, F2 Application Tracker, F3 AI Generation, F4 Follow-up System.** F5 and F6 are not started. See `docs/PRODUCT-REFERENCE_quarterfinal.md` §3 for the current status of each.
+Currently specified for implementation: **F1 User Accounts, F2 Application Tracker, F3 AI Generation, F4 Follow-up System.** F5 and F6 are not started. See `PRODUCT-REFERENCE_quarterfinal.md` §3 for the current status of each.
 
 ## 2 · DOCUMENT MAP
-
-All of these live under `docs/`.
 
 ⚠️ **Files suffixed `_quarterfinal` are current. Files without that suffix are historical/superseded** — kept in the repo for decision history, never for current specs. If a `_quarterfinal` version exists, use it. Do not read the non-suffixed version for schema, security, or task content.
 

@@ -1,0 +1,84 @@
+# Trackr — local development stack
+#
+# TWO MODES:
+#
+#   docker compose up -d
+#       Postgres + Mailpit only. Run Next.js on the host with `npm run dev`.
+#       This is your daily loop — hot reload is far faster outside a container.
+#
+#   docker compose --profile full up --build
+#       Adds the app in its PRODUCTION container, built from the Dockerfile.
+#       Use before deploying: this exercises the strict CSP, the standalone
+#       build, and missing env vars — all of which `npm run dev` hides.
+#       See SECURITY-CONTROLS.md §12.3.
+#
+# Postgres pinned to 16 — Railway's provisioning default (L088).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: trackr-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: trackr
+      POSTGRES_PASSWORD: localdev_only_not_a_real_secret
+      POSTGRES_DB: trackr_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - trackr_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trackr -d trackr_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Local SMTP server (L072). Catches every outbound mail — nothing leaves
+  # your machine. Read them at http://localhost:8025
+  #
+  # Real SMTP, not console logging: the send path is genuinely exercised, so
+  # T3.5's OTP flow is tested end to end rather than stubbed.
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: trackr-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"   # SMTP   — app sends here
+      - "8025:8025"   # web UI — you read here
+    environment:
+      MP_MAX_MESSAGES: 500
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+
+  # Production container. Does NOT start by default — profile-gated.
+  # Only runs with:  docker compose --profile full up --build
+  app:
+    profiles: ["full"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trackr-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      # Service names, not localhost — inside the Docker network, `localhost`
+      # is the container itself. This is the #1 confusion when running the app
+      # in a container for the first time.
+      DATABASE_URL: postgresql://trackr:localdev_only_not_a_real_secret@postgres:5432/trackr_dev
+      EMAIL_TRANSPORT: mailpit
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      # TRUST_PROXY stays false — no proxy in front here.
+      # Production sets it true. See SECURITY-CONTROLS.md §12.2.
+      TRUST_PROXY: "false"
+    env_file:
+      - .env
+
+volumes:
+  trackr_pgdata:

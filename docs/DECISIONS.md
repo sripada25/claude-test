@@ -1,109 +1,306 @@
-# Trackr — Decision Ledger
+# Trackr — Decision Ledger v3
 
-**Current state only.** Full verbatim exchanges live in `./sessions/`.
-Regenerated each session — always download the newest version.
+Two zoom levels in one document:
+**Part 1** — scan the whole project in 60 seconds.
+**Part 2** — full records for decisions with history worth keeping.
 
-**Repo layout:**
+Verbatim exchanges live in `./sessions/`. Feature detail lives in `FEATURE-A-SPEC.md`.
+
 ```
 docs/
-  DECISIONS.md                    ← this file (rewritten each session)
+  DECISIONS.md              ← this file
+  FEATURE-A-SPEC.md         ← F1 technical spec
   sessions/
-    2026-08-23-stack.md           ← frozen, never rewritten
-    2026-08-24-feature-a.md       ← frozen, never rewritten
+    2026-08-23-stack.md     ← frozen
+    2026-08-24-feature-a.md ← frozen
 ```
-
-Click any `S-xx` to open the exact exchange that produced the decision.
 
 ---
 
-## Approved — Feature A (User Accounts) · 2026-08-24
+# PART 1 — AT A GLANCE
 
-| ID | Decision | Why | Source |
-|----|----------|-----|--------|
-| L039 | Auth self-built (Argon2id + httpOnly session cookies + server-side `sessions` table) | Consistent with L025. **Railway provides no session strategy** — it's infrastructure only. Sessions live in your Postgres + your code, so moving platforms requires **zero rework**; the session table travels in the `pg_dump`. | [S-17](./sessions/2026-08-24-feature-a.md#L32) |
-| L040 | Email verification required — **before first AI generation**, not before signup | Doesn't kill activation, but gates the point where cost and abuse actually live (free generations, 12-day trial) | [S-16](./sessions/2026-08-24-feature-a.md#L14) |
-| L041 | Capture user timezone at signup from browser | Without it every 7-day reminder fires at the wrong local hour for the primary market. Backfill is impossible to do accurately later. | [S-16](./sessions/2026-08-24-feature-a.md#L14) |
-| L044 | A1 — httpOnly cookie + server-side session table, not JWT | Revocable. Logout must actually invalidate server-side. | [S-17](./sessions/2026-08-24-feature-a.md#L32) |
-| L045 | A2 — skills as free-text tags, `text[]`, lowercase-normalized | PRD (p.11, p.13) names `skills` but never specifies storage — `[ASSUMPTION]`. In MVP skills only feed the Gemini prompt, which needs no canonical forms. Controlled vocabulary only pays off for job *matching*, explicitly rejected from MVP (PRD p.14). | [S-18](./sessions/2026-08-24-feature-a.md#L47) |
-| L046 | A3 — `experience_level` as enum: Junior / Mid / Senior / Lead | Feeds prompt construction; free text produces inconsistent generation | [S-16](./sessions/2026-08-24-feature-a.md#L14) |
-| L047 | **A4 — profile is mandatory before app access.** Flow: signup → profile (manual **or** resume upload) → profile complete → app access | Your call. Removes the "gate generation on completeness" complexity entirely — simpler than the original proposal. Trade-off: added signup friction, heavily mitigated by resume upload. | [S-19](./sessions/2026-08-24-feature-a.md#L57) |
-| L048 | A4 — resume auto-fill uses **hybrid pipeline**: `pdf-parse` (deterministic, free) → Gemini Flash for structuring → pre-filled form → **mandatory user review** → save | Script-only parsing gets ~40–60% accuracy across two-column layouts, tables, varied headers. **Cost fear was inverted:** parsing is ~1 call per user *ever* (~1,000 total at 1,000 users) vs generation at ~5,000/month. Parsing is a rounding error. | [S-19](./sessions/2026-08-24-feature-a.md#L57) |
-| L049 | A4 — parse output is **never saved blind**; user review step is mandatory | The review pass, not the mandatoriness, is what actually guarantees no garbage | [S-19](./sessions/2026-08-24-feature-a.md#L57) |
-| L050 | **A5 — two separate email fields:** `users.email` (login identity, re-verification on change) and `profiles.contact_email` (appears on documents, used as Reply-To for recruiters) | Your catch. Registered email ≠ resume email. Most tools conflate these and it bites them later. Directly affects L038. | [S-20](./sessions/2026-08-24-feature-a.md#L73) |
-| L051 | A5 — email is changeable, with re-verification | Basic expected feature | [S-20](./sessions/2026-08-24-feature-a.md#L73) |
-| L052 | A6 — password policy: min 12 chars, no complexity rules, no breach-check in MVP | Length beats symbol-soup | [S-16](./sessions/2026-08-24-feature-a.md#L14) |
-| L053 | L013 — **PRD Phase 0 does not gate the build.** Run WhatsApp validation in parallel with F1/F2. | F1 (accounts) and F2 (tracker) are required in **every** scenario, including a pivot away from call notes. Only F5 (post-call log) is genuinely contingent on the research. | [S-16](./sessions/2026-08-24-feature-a.md#L14) |
+## Architecture & stack
 
-## Approved — Stack
+| ID | Decision | Status |
+|----|----------|--------|
+| L017 | Modular monolith, single deployable | ✅ |
+| L018 | All logic behind JSON APIs; web + mobile are peer clients | ✅ |
+| L020 | React + TypeScript + Tailwind, no component library; web first | ✅ |
+| L021 | Next.js 16 · Node 24 LTS · builder = Railpack (L021a) | ✅ |
+| L043 | Dockerfile at repo root — portable build | ✅ |
+| L030 | Excluded: Kubernetes, Redis, microservices, managed DB, multi-service | ✅ |
 
-| ID | Decision | Why | Source |
-|----|----------|-----|--------|
-| L017 | Modular monolith, single deployable | Rewrites are caused by tangled logic and missing API boundaries, not by monoliths | [S-04](./sessions/2026-08-23-stack.md#s-04--architecture--l017) |
-| L018 | All logic behind JSON APIs; web + mobile are peer clients | The single thing that makes the future mobile app cheap instead of a rewrite | [S-05](./sessions/2026-08-23-stack.md#s-05--api-boundary--l018) |
-| L019 | Railway Hobby hosting | ~$6–12/mo realistic. **Hobby is a minimum spend, not a cap** — usage bills on top | [S-06](./sessions/2026-08-23-stack.md#s-06--hosting--l019) |
-| L020 | React + TypeScript + Tailwind, no component library; web first | Small bundle, no library lock-in | [S-07](./sessions/2026-08-23-stack.md#s-07--frontend--platform-order--l020) |
-| L021 | Next.js on Railway | Auto-detected and built on push. Nothing to install on Railway — push a repo with `package.json` | [S-08](./sessions/2026-08-23-stack.md#s-08--nextjs-on-railway--l021) |
-| L021a | **Correction (2026-08-23):** builder is **Railpack**, not Nixpacks | Railpack replaced Nixpacks on 2026-03-04; Nixpacks is in maintenance mode. Deployment answer unchanged — only the builder's name and internals differ. | [S-15](./sessions/2026-08-23-stack.md#s-15--builder-correction-railpack--l021a-l043) |
-| L022 | Railway managed Postgres | Standard PostgreSQL, not a fork → `pg_dump` works → satisfies L025 | [S-09](./sessions/2026-08-23-stack.md#s-09--database-supabase-portability-backups--l022-l023-l024-l025-l026) |
-| L023 | Supabase **not** used | Its `auth` schema is the one thing that can't cleanly `pg_dump` — contradicts L025 | [S-09](./sessions/2026-08-23-stack.md#s-09--database-supabase-portability-backups--l022-l023-l024-l025-l026) |
-| L025 | Free, complete DB portability is a **standing requirement** | No vendor-specific persistence anywhere in the system | [S-09](./sessions/2026-08-23-stack.md#s-09--database-supabase-portability-backups--l022-l023-l024-l025-l026) |
-| L026 | Backups: nightly `pg_dump` → R2, Phase 1 | Deferred, not skipped. ~20 lines, costs nothing, provider-independent artifact | [S-09](./sessions/2026-08-23-stack.md#s-09--database-supabase-portability-backups--l022-l023-l024-l025-l026) |
-| L027 | Document storage: Cloudflare R2 | Free 10 GB, zero egress fees | [S-10](./sessions/2026-08-23-stack.md#s-10--document-storage--l027) |
-| L030 | **Excluded:** Kubernetes, Redis, microservices, managed DB, multi-service deploys | K8s floor is $60–100/mo before a single user, and solves a problem you don't have | [S-13](./sessions/2026-08-23-stack.md#s-13--kubernetes-and-infrastructure-exclusions--l030) |
+## Hosting, data & portability
 
-## Approved — Workflow
+| ID | Decision | Status |
+|----|----------|--------|
+| L019 | Railway Hobby — **deferred**, see L067 | ⏸ |
+| L022 | Postgres (standard PG — `pg_dump` portable) | ✅ |
+| L023 | Supabase rejected | ✅ |
+| L025 | **Free, complete DB portability — standing requirement** | 🔒 |
+| L026 | Backups: nightly `pg_dump` → R2 | ✅ |
+| L088 | **PostgreSQL 16 in both environments** — Railway's provisioning default | ✅ NEW |
+| L089 | **Backup job runs INSIDE the app container**, not as a separate service | ✅ NEW |
+| L027 | Document storage: Cloudflare R2 | ✅ |
+| L028 | Text canonical in Postgres; PDF client-rendered; R2 on explicit save | ✅ |
+| L062 | Free tier: view/copy only · Pro: PDF download | ✅ |
+| L067 | **Develop locally first; deploy later** | ✅ NEW |
 
-| ID | Decision | Why | Source |
-|----|----------|-----|--------|
-| L015 | Allow-list scoping + version-pinned approval | Deny-lists implicitly permit everything unlisted. Approval binds to a git SHA, so it can't drift or be faked by typing "Approved" | 2026-08-22 |
-| L016 | Ledger updated only on explicit approval, never silently | A drifting ledger is worse than none — it produces false confidence | 2026-08-22 |
+## Identity & access
 
-## Awaiting your confirmation
+| ID | Decision | Status |
+|----|----------|--------|
+| L039 | Self-built auth — Argon2id + server-side sessions | ✅ |
+| L044 | httpOnly cookie + `sessions` table, not JWT | ✅ |
+| L052 | Password: min 12 chars, no complexity rules | ✅ |
+| L068 | **SSO added: Google (MVP) + LinkedIn (after Page exists)** | ✅ NEW |
+| L069 | **Account linking: auto-link on verified email, invalidate unverified password** | ✅ NEW |
+| L070 | **SSO-only users can set a password — never strand a user** | ✅ NEW |
+| L071 | **Verification by OTP, not magic link** | ✅ NEW |
+| L040 | Verification required — gates first AI generation | ✅ |
+| L041 | Timezone captured at signup | ✅ |
+| L050 | Two emails: `users.email` (login) vs `profiles.contact_email` (Reply-To) | ✅ |
+| L051 | Email changeable, with re-verification | ✅ |
 
-| ID | Proposed | Why it matters | Source |
-|----|----------|----------------|--------|
-| L028 | Hybrid storage: text canonical in Postgres, PDF client-rendered, R2 only on explicit save | Text is **43× smaller** than PDF. All-PDF = ~54 GB/yr at 1,000 users | [S-11](./sessions/2026-08-23-stack.md#s-11--sizing-math--l028-l031l037) |
-| L029 | Email provider: Brevo | Railway has **no** email service. Brevo 300/day (~300 users) vs Resend 100/day (~100 users) | [S-12](./sessions/2026-08-23-stack.md#s-12--email-provider--l029) |
-| L043 | **Add a Dockerfile instead of relying on Railpack** | ⚠️ **Conflicts with L025.** Railpack is Railway-exclusive — those builds don't move to another platform. Same lock-in category that got Supabase rejected (L023), just at the build layer. A Dockerfile is auto-detected and takes priority over Railpack, costs one file, and makes the build portable to Hetzner/DO/anywhere. | [S-15](./sessions/2026-08-23-stack.md#s-15--builder-correction-railpack--l021a-l043) |
+## Profile & AI
+
+| ID | Decision | Status |
+|----|----------|--------|
+| L045 | Skills as `text[]`, lowercase-normalized | ✅ |
+| L046 | `experience_level` enum: junior/mid/senior/lead | ✅ |
+| L047 | Profile mandatory before app access | ✅ |
+| L048→L061 | **Revised** — PDF straight to Gemini, no `pdf-parse` | ✅ |
+| L049 | Parse output never saved blind — review mandatory | ✅ |
+| L060 | Provider-agnostic `AIProvider` interface | ✅ |
+| L057 | Gemini **paid** tier before first real user (privacy) | ⚠️ |
+| L059 | Free tier during local development only | ✅ |
+| L058 | AI budget ~$10–30/month at MVP scale | ✅ |
+
+## Follow-up, email & payments
+
+| ID | Decision | Status |
+|----|----------|--------|
+| L038 | Free = draft+copy · Pro = send via Brevo with `Reply-To` | ✅ |
+| L054 | Drafting free, sending Pro | ✅ |
+| L055 | Follow-up drafts don't consume generation quota | ✅ |
+| L029 | Email provider: Brevo | ⚠️ confirm |
+| L072 | **Local email: Mailpit (real SMTP), not console logging** | ✅ NEW |
+| L073 | **Payments developed locally — Stripe CLI + tunnel for webhooks** | ✅ NEW |
+| L036 | Own send-queue required (reminders cluster; Brevo caps at 300/day) | ✅ |
+
+## Privacy & workflow
+
+| ID | Decision | Status |
+|----|----------|--------|
+| L064 | Data minimization baseline | 🔒 |
+| L065 | ⚠️ Free tier vs "maximum privacy" — unresolved tension | ⚠️ |
+| L015 | Allow-list scoping + version-pinned approval | ✅ |
+| L016 | Ledger updated only on explicit approval | ✅ |
+| L053 | PRD Phase 0 does not gate the build | ✅ |
 
 ## Sizing — canonical, do not re-derive
 
-| ID | Conclusion | Source |
-|----|-----------|--------|
-| L031 | ~200 KB DB growth per user per month | [S-11](./sessions/2026-08-23-stack.md#s-11--sizing-math--l028-l031l037) |
-| L032 | 1,000 users / 12 months → ~3.4 GB Postgres incl. indexes | [S-11](./sessions/2026-08-23-stack.md#s-11--sizing-math--l028-l031l037) |
-| L033 | 1,000 users → ~2.5 writes/min, ~9 reads/min — **~0.05% of a small Postgres instance** | [S-11](./sessions/2026-08-23-stack.md#s-11--sizing-math--l028-l031l037) |
-| L034 | **Compute is not the constraint — Gemini Flash's 15 req/min burst is.** Job queue with backoff required, Phase 2 | [S-11](./sessions/2026-08-23-stack.md#s-11--sizing-math--l028-l031l037) |
-| L035 | Email ~30/user/month → Brevo free tier ≈ 300 users | [S-12](./sessions/2026-08-23-stack.md#s-12--email-provider--l029) |
-| L036 | Own send-queue required — reminders cluster, Brevo doesn't auto-queue past 300/day | [S-12](./sessions/2026-08-23-stack.md#s-12--email-provider--l029) |
-| L037 | Resume PDF assumed 150 KB (your range: 100–200 KB) | [S-11](./sessions/2026-08-23-stack.md#s-11--sizing-math--l028-l031l037) |
+| ID | Conclusion |
+|----|-----------|
+| L031 | ~200 KB DB growth per user per month |
+| L032 | 1,000 users / 12 months → ~3.4 GB Postgres |
+| L033 | 1,000 users → ~2.5 writes/min, ~9 reads/min (~0.05% of a small instance) |
+| L034 | **Compute isn't the constraint — Gemini's per-minute burst is** |
+| L035 | ~30 emails/user/month → Brevo free tier ≈ 300 users |
 
-## 🔴 Blocking
+## 🔴 Open
 
-| ID | Question | Blocks | Source |
-|----|----------|--------|--------|
-| L038 | **Follow-up email delivery mechanism.** You said sending is needed. Three options: **(A)** draft + copy — ~0 cost, no risk · **(B)** send via Brevo with `Reply-To:` = user's `contact_email` — ~1 week, no OAuth, no Google review, but deliverability risk from many users on one sending domain · **(C)** Gmail OAuth send-as-user — 3–4 weeks + Google restricted-scope security review, which can be rejected. **Recommend B.** | F4 | [S-21](./sessions/2026-08-24-feature-a.md#L88) |
-| L054 | **Free vs Pro split for follow-up.** Recommend: **drafting free, sending Pro.** Sending costs real money (Brevo volume) and is the higher-value action — cost aligns with revenue, natural upgrade lever. | F4, F6 | [S-21](./sessions/2026-08-24-feature-a.md#L88) |
-| L055 | Does generating a follow-up draft count against the **5/month free generation quota**, or is it a separate allowance? It's a Gemini call either way. | F3, F4 | [S-21](./sessions/2026-08-24-feature-a.md#L88) |
-| L043 | Add a Dockerfile instead of relying on Railpack (see *Awaiting confirmation*) | Deploy | [S-15](./sessions/2026-08-23-stack.md#s-15--builder-correction-railpack--l021a-l043) |
+| ID | Question | Blocks |
+|----|----------|--------|
+| L066 | Verify real Gemini quota in AI Studio console | F3, F4, F5 |
+| L029 | Confirm Brevo | F4 |
+| L074 | **Create LinkedIn company Page — required to create the app at all** | LinkedIn SSO |
+| L082 | **Should Google profile claims (name, photo) pre-fill the profile?** Free data, less friction — but more personal data pulled in | F1 |
+
+## Security — OWASP Top 10:2025 (added 2026-08-25)
+
+| ID | Decision | Status |
+|----|----------|--------|
+| L075 | **OAuth `state` + PKCE required** — without `state`, an attacker can link a victim's session to their own Google account | 🔴 NEW |
+| L076 | **Fail closed everywhere** (A10, new category) — middleware exception ⇒ deny · DB down ⇒ 503 · rate limiter down ⇒ deny · AI timeout ⇒ no quota decrement, no partial save | 🔴 NEW |
+| L077 | **Supply chain** (A03, new category) — `npm ci` only · lockfile committed · verify packages exist before adding (slopsquatting) · base images pinned by digest · Dependabot on | 🔴 NEW |
+| L078 | **Security headers** (A02, now #2) — CSP, HSTS (prod), nosniff, Referrer-Policy, Permissions-Policy; no stack traces to clients | 🔴 NEW |
+| L079 | **Signup must not leak account existence** — same response either way + notify the existing address | 🟠 NEW |
+| L080 | **`security_events` table** (A09) — failed logins, OAuth password invalidation, email changes, OTP lockouts, rate-limit trips. Logging without alerting has minimal value. | 🟠 NEW |
+| L081 | **SSRF decision deferred to F2** — `source_url` must never be fetched server-side, or private IP ranges blocked. SSRF is now folded into A01. | 🟡 NEW |
+| L083 | **Cookies:** `httpOnly` + `SameSite=Lax` always · `Secure` and `__Host-` prefix gated on `NODE_ENV` · **never `Strict`** (breaks OAuth callback) | ✅ NEW |
+
+## Tooling & workflow (added 2026-08-25)
+
+| ID | Decision | Status |
+|----|----------|--------|
+| L084 | **Execution moves to Claude Code.** This interface has no repo access — no branches, PRs, or hooks. Architecture happens here; implementation happens there. | ✅ NEW |
+| L085 | **Next.js *is* the Node app.** Node 24 LTS is the runtime; no separate Express server. One process, one container. | ✅ NEW |
+| L086 | **Document set consolidated 12 → 7** — `CLAUDE.md`, `ARCHITECTURE.md`, `SECURITY.md`, `TESTING.md`, `TASKS.md`, `DECISIONS.md`, `FEATURE-A-SPEC.md`. Reports are per-PR, not standing docs. | ✅ NEW |
+| L087 | **MCP does not reduce token consumption** — it adds capability; each call costs tokens. Scoped context is the actual lever (§24, §37). | ✅ NEW |
 
 ## Superseded
 
-| ID | Was | Superseded by |
-|----|-----|---------------|
-| L002 | Android MVP first, iOS later | L020 — web first |
-| L012 | React Native + Expo | L020 — React web; RN deferred to mobile phase |
-| L007 | "Gemini free tier sufficient" (daily 1,500 limit) | L034 — the 15/min burst is the real constraint |
+| ID | Was | Now |
+|----|-----|-----|
+| L002 | Android MVP first | L020 — web first |
+| L012 | React Native + Expo | L020 — React web |
+| L007 | "Gemini free tier sufficient" | L034 — burst limit is the real constraint |
+| L021 | Nixpacks | L021a — Railpack |
+| L048 | `pdf-parse` → Gemini | L061 — PDF straight to Gemini |
+| L024 | Auth self-built (inferred) | L039 — confirmed |
 
-## Settled from PRD — not to be revisited
+---
+---
 
-`L001` $9.99 US pricing · `L003` no job-search engine in MVP · `L004` no ATS scoring · `L005` no local Qwen 3 · `L006` no iOS call recording in MVP
+# PART 2 — DECISION RECORDS
+
+Only decisions with history worth keeping. Settled-on-first-pass items live in Part 1 alone.
+
+---
+
+### L088 — PostgreSQL version
+
+1. **Initially stated:** *"we can verify with its documentation. so do that and tell me."* — after I claimed the check was impossible without Railway access.
+2. **What changed:** it wasn't impossible. Railway's docs answer it directly: the Postgres plugin offers 14, 15, 16 and 17 at provisioning, **defaulting to 16**. My earlier advice to pin 17 locally was arbitrary — it would have required remembering to override the default on deploy day.
+3. **Going with:** **PostgreSQL 16 in both environments.** `docker-compose.yml` pins `postgres:16-alpine`; accept Railway's default at provisioning. Confirm with `SELECT version();` after provisioning.
+4. **Could change if:** a future feature needs a 17-only capability — nothing in F1–F6 does. At ~0.05% utilisation (L033), version-level performance differences are irrelevant here.
+
+`2026-08-25` · Approved · **Corrects my "impossible to check" claim**
+
+---
+
+### L089 — Backup job placement
+
+1. **Initially stated:** L026 — nightly `pg_dump` → R2, treated as a solved problem.
+2. **What changed:** Railway databases are **private by default**; exposing one creates a TCP Proxy and incurs **network egress billing**. So an external dump either costs money and exposes the database to the internet, or needs a second Railway service — which contradicts L030's one-service rule.
+3. **Going with:** the backup job runs **inside the existing app container** on a schedule, connecting over private networking via `DATABASE_URL`, streaming to R2. No extra service, no egress charge, no public exposure. Railway's native Backups feature is a useful complement, but being platform-specific it doesn't satisfy L025 — `pg_dump` → R2 remains the portable escape hatch.
+4. **Could change if:** backup duration starts affecting request latency in the shared container → move to a dedicated service and accept the cost.
+
+`2026-08-25` · Approved · **Closes a gap in L026**
+
+---
+
+### L017 — Application architecture
+
+1. **Initially stated:** *"monolithic approach is easy at start but once users increase i or other again need to rework from scratch… complete rework on architecture is required"*
+2. **What changed:** the rewrite risk was misdiagnosed. What actually forces rewrites is business logic tangled into UI, no stable API boundary, and no migration discipline — none of which are caused by a monolith. Shopify and GitHub run monoliths at scale.
+3. **Going with:** modular monolith, single deployable, clean internal module boundaries.
+4. **Could change if:** one module becomes a genuine measured bottleneck → extract that module alone (~2 weeks, not a rewrite).
+
+`S-04` · Approved · Never revised
+
+---
+
+### L023 / L039 — Supabase → self-built auth
+
+1. **Initially stated:** *"supabase is coming with authentication"* — considered for the free auth.
+2. **What changed:** Supabase stores identity in its own `auth` schema. That's the one thing `pg_dump` can't cleanly move — a direct conflict with L025, which you'd stated as a hard requirement in the same message.
+3. **Going with:** self-built auth on plain Postgres. Argon2id, httpOnly cookies, server-side `sessions` table. Confirmed explicitly (was inferred as L024, now retired).
+4. **Could change if:** portability stops being a requirement — unlikely, it's marked standing.
+
+`S-09`, `S-17` · Approved
+
+---
+
+### L021 → L021a — Build system
+
+1. **Initially stated:** *"Nextjs supported by railway? do we need to explicitly install it?"*
+2. **What changed:** answered "yes, Nixpacks auto-detects." **You corrected me** — Railway moved to Railpack on 2026-03-04; Nixpacks is in maintenance mode. Verified.
+3. **Going with:** Railpack is the platform default, but **L043 puts a Dockerfile at repo root**, which takes priority and keeps the build portable per L025.
+4. **Could change if:** never meaningfully — a Dockerfile is platform-independent by construction.
+
+`S-08`, `S-15` · Approved · **Revised once — my information was stale**
+
+---
+
+### L047 / L048 → L061 — Profile creation & resume parsing
+
+1. **Initially stated:** *"user must complete his profile via manually filling the form or just uploading the resume… auto filling the form using ai or a script. I wonder ai is costly rather than going with a script."*
+2. **What changed — twice:**
+   - **Cost reasoning was inverted.** Parsing runs *once per user, ever* (~1,000 calls at 1,000 users); generation runs ~5,000/month. Parsing is a rounding error; a script would cost weeks and deliver 40–60% accuracy.
+   - **Then you mentioned screenshot-in-PDF resumes** — which killed my own recommendation. Gemini reads PDFs with native vision, handling scans and images directly. The `pdf-parse` step was unnecessary complexity.
+3. **Going with:** signup → profile (manual **or** resume upload) → mandatory review → complete → app access. PDF goes straight to the AI provider. Native text tokens aren't billed; image pages cost 258 tokens (~$0.00015 for a 2-page scan).
+4. **Could change if:** accuracy proves poor on real resumes → add a deterministic pre-pass. The mandatory review step (L049) makes this low-risk either way.
+
+`S-19`, `S-23` · Approved · **Revised once — your domain knowledge simplified the design**
+
+---
+
+### L038 / L054 / L055 — Follow-up email delivery
+
+1. **Initially stated:** *"Yes app sends notifications when required"* — ambiguous between notifying the user and emailing recruiters.
+2. **What changed:** three options surfaced with very different costs. I also **overstated Option C** — `gmail.send` is a *sensitive* scope needing review and a demo video, not a *restricted* scope needing an annual security assessment (logged as L056).
+3. **Going with:** **A** (draft + copy) free · **B** (Brevo send, `Reply-To:` = `contact_email`) Pro · **C** rejected for MVP — the PRD's value is the drafting, not the transport. Drafts don't consume generation quota.
+4. **Could change if:** users object to the sender domain, or deliverability suffers → revisit C, now known to be cheaper than first stated.
+
+`S-14`, `S-21`, `S-22` · Approved · **Revised once — my error, corrected**
+
+---
+
+### L057 / L059 / L065 — Gemini tier & the privacy tension
+
+1. **Initially stated:** *"as of initial mvp which still not yet have any real users, lets stick with free tier"* — plus, separately, *"maximum data privacy."*
+2. **What changed:** Google's free tier trains on submitted prompts; the paid tier doesn't. Trackr sends resumes — name, phone, address, employment history. That contradicts the PRD's own *Deliberately never* clause: *"Telemetry on application content — User data is private."* Separately, free quotas were cut 50–80% in December 2025 and Google no longer publishes a universal table.
+3. **Going with:** free tier during local development; **paid before the first real user uploads a real resume** — a launch-day line, not a scale threshold. ~$10–30/month.
+4. **Could change if:** you keep the free tier *and* disclose training in the privacy policy — legitimate, but the PRD's privacy claim must then be rewritten. **The tension is recorded, not resolved.**
+
+`S-22`, `S-23` · Approved with caveat
+
+---
+
+### L067 — Local-first development
+
+1. **Initially stated:** Railway Hobby from the outset (L019).
+2. **What changed:** infrastructure access became uncertain. Separately, **I was wrong that payments require deployment** — Stripe's CLI forwards webhooks to `localhost`, and a tunnel does the same for Razorpay. Local development is fully viable.
+3. **Going with:** build locally in Docker — Postgres, Next.js, Mailpit. Deploy when infrastructure is available. **No code rewrite at deploy** — the Dockerfile (L043) guarantees an identical image, and `pg_dump` moves the data (L025).
+4. **Could change if:** nothing blocks it. Deployment is a config change, by design.
+
+`2026-08-25` · Approved · **Corrects my earlier overstatement**
+
+---
+
+### L068 / L069 / L070 — SSO
+
+1. **Initially stated:** SSO was **rejected** for MVP — I'd advised it added OAuth complexity for little value.
+2. **What changed:** you asked for Google + LinkedIn on both signup and login. Also: **LinkedIn requires a verified company Page to create the app at all** — so it can't be deferred to staging as assumed; it blocks local testing too. Google permits `localhost` redirect URIs freely.
+3. **Going with:** Google in MVP. LinkedIn once the Page exists (L074). **Linking rule:** auto-link when the provider asserts a verified email; if the existing account is *unverified*, link but invalidate its password and force a reset — this closes an account-takeover hole. SSO-only users can set a password and hold both methods.
+4. **Could change if:** LinkedIn's Page requirement proves burdensome → ship Google only. Google alone covers most signups.
+
+**Schema impact:** `users.password_hash` becomes nullable · new `oauth_accounts` table (`user_id`, `provider`, `provider_user_id`, `UNIQUE(provider, provider_user_id)`) · a user with neither password nor linked OAuth account must be impossible.
+
+`2026-08-25` · Approved · **Reverses my earlier recommendation**
+
+---
+
+### L071 — Verification: OTP over magic link
+
+1. **Initially stated:** *"verification link working principle is different compared to otp. so you can think and suggest me."*
+2. **What changed:** magic links have an underrated failure mode — email security scanners pre-fetch links and consume single-use tokens before the user clicks. They also break across devices. OTP works identically on web and the planned mobile client (L020) with no deep-link handling.
+3. **Going with:** 6-digit numeric OTP · `crypto.randomInt` (**never `Math.random`**) · stored hashed · 10-minute expiry · max 5 attempts then invalidate · max 3 resends/hour · single use. **Distinguish "expired — resend" from "incorrect — N attempts left."** Applies to both password and SSO signups.
+4. **Could change if:** OTP entry friction hurts conversion → offer both, link plus code, in the same email.
+
+**Schema impact:** `verification_tokens` gains an `attempts` counter · new `email_log` table (recipient, purpose, `sent_at`, provider message ID, `failed_at`) — gives send tracking *and* doubles as the Brevo quota counter for L036.
+
+`2026-08-25` · Approved
+
+---
+
+### L072 / L073 — Local development environment
+
+1. **Initially stated:** my `.env.example` proposed `EMAIL_TRANSPORT=console`.
+2. **What changed:** you pointed out local SMTP servers exist and the send logic shouldn't be skipped. Correct — console logging bypasses the code path you most need to test.
+3. **Going with:** **Mailpit** in Docker — real SMTP on `:1025`, web UI on `:8025`. Code sends normally; only the transport env var changes at deploy. **Payments:** Stripe test mode + Stripe CLI webhook forwarding; Razorpay test mode + tunnel. Dummy transactions end to end; real keys swapped at deploy.
+4. **Could change if:** nothing. This is standard practice.
+
+`2026-08-25` · Approved
 
 ---
 
 ## Update protocol
 
-- **This file** is rewritten each session. Download the newest.
-- **Session logs** are frozen on write and never touched again — so verbatim quotes stay accurate rather than decaying into paraphrase over a long conversation.
-- Nothing is logged as `Approved` without your explicit word. Inferred items sit in *Awaiting confirmation* until you say so.
+- **Part 1** is the scan layer — one line per decision, always current.
+- **Part 2** carries history only where a decision moved. Settled-first-time items stay in Part 1.
+- Nothing enters as `Approved` without your explicit word. Inferred items are marked pending.
 - Superseded entries are marked, never deleted.
+- Session logs freeze on write — verbatim quotes stay exact rather than decaying.

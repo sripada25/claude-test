@@ -1,193 +1,328 @@
-# Database
+# DATABASE.md — Trackr
 
-PostgreSQL on Railway, not Supabase. See
-[AGENTS.md](../AGENTS.md) §0, Decision 2 for the reasoning — this is a
-deliberate tradeoff (no free bundled auth/storage) accepted for a
-single-vendor, single-infrastructure-provider setup on Railway.
+PostgreSQL, standard only — no vendor extensions beyond `citext` and `pgcrypto`, both of which exist everywhere. This preserves `pg_dump` portability (L025).
 
-**No tables exist yet.** The schema below is the proposal derived from
-the product specification's data model, translated into concrete
-Postgres DDL. It needs review before the first migration is written —
-this doc is the thing to review, not a fait accompli.
+**Supersedes** `FEATURE-A-SPEC.md` §4, which predates SSO (L068) and OTP (L071).
 
-## Tooling
+---
 
-- **Driver:** `pg` (node-postgres)
-- **Schema / migrations:** Drizzle ORM + Drizzle Kit — TypeScript-native,
-  generates SQL migrations from a typed schema definition, and keeps the
-  schema and the application's types in one place rather than drifting
-  apart. (A lighter alternative, if an ORM is unwanted: `node-pg-migrate`
-  with hand-written SQL migrations. Pick one before Phase 1 — do not mix
-  both.)
-- **Validation at the API boundary:** Zod, matched to the Drizzle schema
-  types where practical
+# 1 · RULES
 
-## Rules
+1. **Every schema change is a migration.** Never modify the database by hand — local and production must be reproducible from the same files.
+2. **Every migration is reversible.** Write the `down` before you're confident about the `up`.
+3. **Invariants belong in the database** where they can be expressed — `NOT NULL`, `UNIQUE`, `CHECK`, `FOREIGN KEY`. Application validation is a second layer, not the only one.
+4. **Every index needs a stated reason.** Unjustified indexes cost writes.
+5. **`user_id` is never taken from client input.** See `DATABASE-SECURITY.md`.
+6. Timestamps are `TIMESTAMPTZ`, always. Never `TIMESTAMP`.
+7. Primary keys are UUID via `gen_random_uuid()` — no sequential IDs exposed to clients.
 
-- Every schema change is a migration. Never manually modify the
-  production schema outside of one.
-- Every migration has: the migration itself, a rollback strategy where
-  practical, test coverage, and a written explanation of data impact.
-- Foreign keys where a relationship exists.
-- Unique constraints for identities and business invariants (e.g. one
-  `(provider, provider_user_id)` pair per `auth_identities` row).
-- Indexes based on actual query patterns — not speculative indexing on
-  every column.
-- UTC timestamps throughout (`timestamptz`, not `timestamp`).
-- Never store plaintext passwords or plaintext payment secrets.
-- Never store OAuth client secrets in the database or in source — they
-  are environment variables, see `docs/ENVIRONMENT.md`.
-- Prefer immutable records for security-sensitive events (e.g. an
-  append-only login-attempt log) rather than rows that get overwritten.
+---
 
-## Proposed schema
+# 2 · SCHEMA
 
 ```sql
--- users: one row per person, independent of how they log in
+CREATE EXTENSION IF NOT EXISTS citext;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+```
+
+## 2.1 · users
+
+```sql
 CREATE TABLE users (
-  id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  email               text NOT NULL UNIQUE,
-  name                text,
-  skills              text[],
-  experience_level    text,
-  target_role         text,
-  salary_expectation  text,
-  location_preference text,
-  created_at          timestamptz NOT NULL DEFAULT now(),
-  updated_at          timestamptz NOT NULL DEFAULT now()
-);
-
--- auth_identities: one or more login methods per user
-CREATE TABLE auth_identities (
-  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id           uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  provider          text NOT NULL,              -- 'local' | 'google'
-  provider_user_id  text,                        -- google_sub; null for local
-  password_hash     text,                        -- argon2id; null unless provider = 'local'
-  created_at        timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (provider, provider_user_id),
-  UNIQUE (user_id, provider)
-);
-
--- applications: the primary object everything else connects to
-CREATE TABLE applications (
-  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id      uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  company      text NOT NULL,
-  role         text NOT NULL,
-  jd_text      text,
-  date_applied date,
-  status       text NOT NULL DEFAULT 'saved',   -- saved|applied|assessment|interview|offer|rejected
-  source_url   text,
-  created_at   timestamptz NOT NULL DEFAULT now(),
-  updated_at   timestamptz NOT NULL DEFAULT now()
-);
-CREATE INDEX idx_applications_user_id ON applications(user_id);
-CREATE INDEX idx_applications_status ON applications(user_id, status);
-
--- documents: a generated resume or cover letter for one application
-CREATE TABLE documents (
-  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  application_id uuid NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
-  kind           text NOT NULL,                  -- 'cover_letter' | 'resume'
-  file_path      text NOT NULL,                  -- storage location, see note below
-  jd_snapshot    text,                            -- JD text at generation time
-  generated_at   timestamptz NOT NULL DEFAULT now()
-);
-CREATE INDEX idx_documents_application_id ON documents(application_id);
-
--- call_logs: written by either client (web quick-log or Android recording pipeline)
-CREATE TABLE call_logs (
-  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  application_id    uuid NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
-  transcript_text   text,
-  extracted_facts   jsonb,                        -- {salary, contact_name, next_step, follow_up_date}
-  recording_deleted boolean NOT NULL DEFAULT true, -- true immediately for the web quick-log
-  source            text NOT NULL,                 -- 'web_manual' | 'android_recording'
-  created_at        timestamptz NOT NULL DEFAULT now()
-);
-CREATE INDEX idx_call_logs_application_id ON call_logs(application_id);
-
--- reminders
-CREATE TABLE reminders (
-  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  application_id uuid NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
-  due_date       date NOT NULL,
-  type           text NOT NULL,                   -- 'follow_up' | 'interview_prep' | 'offer_deadline'
-  status         text NOT NULL DEFAULT 'pending',  -- pending|sent|dismissed|snoozed
-  created_at     timestamptz NOT NULL DEFAULT now()
-);
-CREATE INDEX idx_reminders_due ON reminders(due_date, status);
-
--- subscriptions: billing state, one active row per user
-CREATE TABLE subscriptions (
-  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id          uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  tier             text NOT NULL DEFAULT 'free',   -- 'free' | 'pro'
-  billing_cycle    text,                            -- 'monthly' | 'annual'
-  payment_provider text,                            -- 'razorpay' | 'stripe'
-  renewal_date     date,
-  created_at       timestamptz NOT NULL DEFAULT now(),
-  updated_at       timestamptz NOT NULL DEFAULT now()
-);
-CREATE UNIQUE INDEX idx_subscriptions_user_id ON subscriptions(user_id);
-
--- payments: see docs/PAYMENTS.md for the full internal payment model
-CREATE TABLE payments (
-  id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id            uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  provider           text NOT NULL,                 -- 'razorpay' | 'stripe'
-  provider_payment_id text,
-  provider_order_id  text,
-  amount             integer NOT NULL,               -- smallest currency unit (paise/cents)
-  currency           text NOT NULL,
-  status             text NOT NULL,                  -- 'created'|'succeeded'|'failed'|'refunded'
-  created_at         timestamptz NOT NULL DEFAULT now(),
-  updated_at         timestamptz NOT NULL DEFAULT now()
-);
-CREATE INDEX idx_payments_user_id ON payments(user_id);
-CREATE UNIQUE INDEX idx_payments_provider_payment_id
-  ON payments(provider, provider_payment_id) WHERE provider_payment_id IS NOT NULL;
-
--- generation_usage: enforces the free-tier monthly limit server-side
-CREATE TABLE generation_usage (
-  user_id     uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  month       date NOT NULL,                        -- first-of-month marker
-  count       integer NOT NULL DEFAULT 0,
-  PRIMARY KEY (user_id, month)
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email             CITEXT NOT NULL UNIQUE,
+  password_hash     TEXT,                    -- NULLABLE: SSO-only users have none (L068)
+  email_verified_at TIMESTAMPTZ,
+  timezone          TEXT NOT NULL,           -- IANA, e.g. 'Asia/Kolkata' (L041)
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ```
 
-**Note on `documents.file_path`:** the product spec assumed Supabase
-Storage for resume/cover-letter PDFs. Since Supabase is out of scope
-(Decision 2), pick a concrete file storage approach before Phase 2 —
-options include Railway's volume storage or an S3-compatible bucket —
-and record the decision here. Treat this as an open item, not a silent
-default.
+`citext` blocks accounts differing only by case. `password_hash` became nullable when SSO was added — enforcement that a user has *at least one* credential is in §3.
 
-## Row-level ownership
+## 2.2 · profiles
 
-Postgres on Railway does not give you Supabase's row-level security
-policies for free. Ownership checks (`WHERE user_id = $currentUser`)
-must be enforced explicitly in the repository/service layer on every
-query that touches user-scoped data — this is now application code's
-responsibility, not the database's. Write a test for this per table
-that holds user-owned data, not just for the ones that feel sensitive.
+```sql
+CREATE TYPE experience_level AS ENUM ('junior','mid','senior','lead');
+CREATE TYPE salary_period    AS ENUM ('monthly','annual');
+CREATE TYPE profile_source   AS ENUM ('manual','resume_upload','sso_prefill');
 
-## Backup policy
+CREATE TABLE profiles (
+  user_id             UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  full_name           TEXT NOT NULL,
+  contact_email       CITEXT,                -- L050: ≠ login email; Reply-To for recruiters
+  skills              TEXT[] NOT NULL DEFAULT '{}',
+  experience_level    experience_level NOT NULL,
+  target_role         TEXT NOT NULL,
+  salary_amount       NUMERIC(12,2),
+  salary_currency     CHAR(3),
+  salary_period       salary_period,
+  location_preference TEXT,
+  source              profile_source NOT NULL DEFAULT 'manual',
+  completed_at        TIMESTAMPTZ,           -- NULL ⇒ app access blocked (L047)
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
 
-A production application must have a backup strategy before it is
-considered production-ready — do not assume "hosted on Railway" means
-"backed up." Document, before Phase 3 ships:
+  CONSTRAINT salary_complete CHECK (
+    (salary_amount IS NULL AND salary_currency IS NULL AND salary_period IS NULL)
+    OR
+    (salary_amount IS NOT NULL AND salary_currency IS NOT NULL AND salary_period IS NOT NULL)
+  )
+);
+```
 
-- Backup frequency
-- Retention period
-- Restore procedure
-- Who is authorized to restore
-- How the restore procedure is tested
+**No `avatar_url` column.** L082: name only. Adding a photo later is one nullable column and one migration — deliberately not pre-built.
 
-For the early prototype this can be a manual process (a scheduled
-`pg_dump` pulled somewhere durable). It should become automated and
-monitored before real user data accumulates — see the portfolio
-project's own research-form data loss for what happens when this step
-is skipped.
+## 2.3 · sessions
+
+```sql
+CREATE TABLE sessions (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL UNIQUE,           -- SHA-256; raw token NEVER stored
+  expires_at TIMESTAMPTZ NOT NULL,
+  revoked_at TIMESTAMPTZ,
+  user_agent TEXT,
+  ip         INET,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_sessions_lookup ON sessions(token_hash) WHERE revoked_at IS NULL;
+CREATE INDEX idx_sessions_user   ON sessions(user_id);
+```
+
+## 2.4 · verification_tokens + email_log
+
+```sql
+CREATE TYPE token_purpose AS ENUM ('verify_email','change_email','password_reset');
+
+CREATE TABLE verification_tokens (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL,                  -- hash of the 6-digit OTP (L071)
+  purpose    token_purpose NOT NULL,
+  new_email  CITEXT,                         -- 'change_email' only
+  attempts   SMALLINT NOT NULL DEFAULT 0,    -- lock at 5 (L071)
+  expires_at TIMESTAMPTZ NOT NULL,           -- issued + 10 minutes
+  used_at    TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_tokens_active ON verification_tokens(user_id, purpose)
+  WHERE used_at IS NULL;
+
+CREATE TABLE email_log (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id             UUID REFERENCES users(id) ON DELETE SET NULL,
+  recipient           CITEXT NOT NULL,
+  purpose             TEXT NOT NULL,
+  provider_message_id TEXT,
+  sent_at             TIMESTAMPTZ,
+  failed_at           TIMESTAMPTZ,
+  error               TEXT,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_email_log_quota ON email_log(sent_at) WHERE sent_at IS NOT NULL;
+```
+
+`email_log` serves two purposes: send tracking, and the daily counter for Brevo's 300/day cap (L036). Body content is **never** stored.
+
+## 2.5 · oauth_accounts + oauth_states
+
+```sql
+CREATE TYPE oauth_provider AS ENUM ('google','linkedin');
+
+CREATE TABLE oauth_accounts (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id          UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  provider         oauth_provider NOT NULL,
+  provider_user_id TEXT NOT NULL,            -- the OIDC 'sub' claim — stable, never the email
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+  UNIQUE (provider, provider_user_id)
+);
+
+CREATE INDEX idx_oauth_user ON oauth_accounts(user_id);
+```
+
+**Key it on `sub`, not email.** Users can change their Google email; `sub` is permanent. Keying on email means an email change orphans the link.
+
+**No tokens stored.** Trackr uses OAuth for identity only, never to call Google APIs on the user's behalf. Nothing to leak, nothing to refresh.
+
+```sql
+-- In-flight OAuth handshakes. Required by SECURITY-CONTROLS.md §1 (gap G1).
+-- Without this, the callback cannot verify `state` and an attacker can link a
+-- victim's session to their own Google account.
+CREATE TABLE oauth_states (
+  state_hash     TEXT PRIMARY KEY,           -- SHA-256; raw value lives only in the cookie
+  provider       oauth_provider NOT NULL,
+  code_verifier  TEXT NOT NULL,              -- PKCE
+  redirect_path  TEXT,                       -- allow-listed internal path only, never a full URL
+  user_id        UUID REFERENCES users(id) ON DELETE CASCADE,  -- set when linking from settings
+  expires_at     TIMESTAMPTZ NOT NULL,       -- issued + 10 minutes
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_oauth_states_expiry ON oauth_states(expires_at);
+```
+
+**Single use — delete the row on consume, don't mark it.** A row that still exists after use is a replay waiting to happen.
+
+`redirect_path` stores an internal path (`/profile`), never a full URL. Accepting a URL here is an open redirect (§1).
+
+## 2.6 · subscriptions + generation_quota
+
+```sql
+CREATE TYPE subscription_tier   AS ENUM ('free','pro');
+CREATE TYPE subscription_status AS ENUM ('trialing','active','past_due','cancelled');
+
+CREATE TABLE subscriptions (
+  user_id            UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  tier               subscription_tier   NOT NULL DEFAULT 'free',
+  status             subscription_status NOT NULL DEFAULT 'trialing',
+  trial_ends_at      TIMESTAMPTZ,
+  current_period_end TIMESTAMPTZ,
+  provider           TEXT,                   -- NULL until F6
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE generation_quota (
+  user_id      UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  period_start DATE NOT NULL,                -- first of calendar month
+  used         INT  NOT NULL DEFAULT 0,
+  PRIMARY KEY (user_id, period_start)
+);
+```
+
+**Why quota is separate from subscription:** the quota cycle is the calendar month; the billing cycle is the subscription anniversary. Merging them resets a 20th-of-the-month subscriber's quota on the 20th.
+
+## 2.7 · auth_attempts + security_events
+
+```sql
+CREATE TABLE auth_attempts (
+  id         BIGSERIAL PRIMARY KEY,
+  identifier TEXT NOT NULL,                  -- IP or email
+  succeeded  BOOLEAN NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_auth_attempts ON auth_attempts(identifier, created_at DESC);
+
+CREATE TABLE security_events (
+  id         BIGSERIAL PRIMARY KEY,
+  event_type TEXT NOT NULL,
+  user_id    UUID REFERENCES users(id) ON DELETE SET NULL,
+  ip         INET,
+  user_agent TEXT,
+  metadata   JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_security_events ON security_events(event_type, created_at DESC);
+CREATE INDEX idx_security_events_user ON security_events(user_id, created_at DESC);
+```
+
+Neither references `users` with a cascade — both must survive account deletion for forensic value, and `auth_attempts` must log attempts against accounts that never existed.
+
+**Event types to emit:** `login_failed` · `login_success` · `rate_limit_tripped` · `otp_failed` · `otp_locked` · `password_invalidated_by_oauth_link` · `email_changed` · `oauth_linked` · `oauth_state_mismatch` · `permission_denied`.
+
+**Never** put passwords, OTPs, tokens, or resume content in `metadata`.
+
+---
+
+# 3 · CROSS-TABLE INVARIANT
+
+**A user must always have at least one usable credential** — a password, or a linked OAuth account. Otherwise they are permanently locked out.
+
+Not expressible as a simple `CHECK` (it spans tables). Enforce in the service layer and verify with a test:
+
+```
+Removing the last OAuth account from a user with password_hash IS NULL
+  ⇒ must be rejected
+Removing a password from a user with no oauth_accounts row
+  ⇒ must be rejected
+```
+
+Same rule in the UI's connected-accounts screen.
+
+---
+
+# 4 · DELETION GRAPH
+
+```
+users
+ ├─ profiles              CASCADE
+ ├─ sessions              CASCADE
+ ├─ verification_tokens   CASCADE
+ ├─ oauth_accounts        CASCADE
+ ├─ oauth_states          CASCADE
+ ├─ subscriptions         CASCADE
+ ├─ generation_quota      CASCADE
+ ├─ email_log             SET NULL   (keep send history, drop the link)
+ └─ security_events       SET NULL   (keep forensic record)
+```
+
+Deleting a user is one transaction and leaves no orphans — required by DPDP (L064). Verified by test #12 in `SECURITY.md`.
+
+---
+
+# 5 · INDEX JUSTIFICATION
+
+| Index | Serves | Frequency |
+|---|---|---|
+| `idx_sessions_lookup` | Session resolution | **Every authenticated request** — highest-frequency query in the system. Partial index keeps it small. |
+| `idx_sessions_user` | "Log out all devices", cascade delete | Low, but an unindexed FK cascade on a growing table is a latent problem |
+| `idx_tokens_active` | Find a user's outstanding OTP | Every verification attempt |
+| `idx_oauth_user` | List linked accounts; cascade | Settings page |
+| `idx_oauth_states_expiry` | Sweep expired handshakes | Periodic cleanup |
+| `idx_auth_attempts` | Rate-limit window count | Every login attempt |
+| `idx_email_log_quota` | Daily Brevo send count | Once per send |
+| `idx_security_events*` | Incident review | Rare, but useless without |
+
+**Not indexed:** `users.email` (the `UNIQUE` constraint already creates one) · `profiles.skills` (no search feature in MVP — add GIN only when one exists).
+
+---
+
+# 6 · MIGRATIONS
+
+Expand/contract for anything touching deployed data:
+
+```
+1. Add the new column as nullable
+2. Deploy code that writes both old and new
+3. Backfill in batches
+4. Deploy code that reads new
+5. Drop the old column
+```
+
+Never in one step on a table with data. Locally this feels like overkill — the habit is what matters once production exists.
+
+**Before writing any migration, ask:** does this lock the table? Does it rewrite it? Can the currently-deployed code still run against both the old and new schema?
+
+---
+
+# 7 · BACKUPS (L026, L089)
+
+Nightly `pg_dump` to Cloudflare R2. Provider-independent artifact — the escape hatch that makes L025 real rather than theoretical.
+
+**The job runs inside the app container** (L089), not as a separate service.
+
+Railway databases are private by default. Exposing one creates a TCP Proxy and
+incurs network egress billing — so an external dump would either cost money and
+put the database on the internet, or require a second service (contradicting
+L030). Running the job in-container uses private networking: no extra service,
+no egress, no public exposure.
+
+Railway's native Backups feature is a useful complement, but it's platform-specific.
+`pg_dump` → R2 is what satisfies L025.
+
+**Rehearse the restore.** A backup that has never been restored is not a backup.
+Do it once against a scratch database before launch.
+
+# 8 · VERSION
+
+**PostgreSQL 16, both environments** (L088). Railway's provisioning default;
+`docker-compose.yml` pins `postgres:16-alpine` to match.

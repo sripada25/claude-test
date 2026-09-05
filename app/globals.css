@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #f5f3ef;
+  --color-surface: #ffffff;
+  --color-surface-2: #efebe3;
+  --color-border: #dbd5c9;
+  --color-border-strong: #c2baa9;
+
+  --color-ink: #1b1b18;
+  --color-ink-2: #54524a;
+  --color-muted: #8b8778;
+
+  --color-primary: #16324f;
+  --color-primary-hover: #0f2439;
+  --color-primary-foreground: #ffffff;
+  --color-primary-soft: #e4eaee;
+
+  --color-accent: #c6602c;
+  --color-accent-hover: #a54e23;
+  --color-accent-foreground: #ffffff;
+  --color-accent-soft: #f5e1d2;
+
+  --color-success: #1f7a4d;
+  --color-success-soft: #deede2;
+  --color-warning: #a6740f;
+  --color-warning-soft: #f2e7ce;
+  --color-danger: #ae3b2c;
+  --color-danger-soft: #f1dfd9;
+  --color-violet: #5b4b8f;
+  --color-violet-soft: #e5e1f1;
+
+  --color-sidebar: #132638;
+  --color-sidebar-2: #1c3a54;
+  --color-sidebar-ink: #c7d3dc;
+  --color-sidebar-muted: #7e93a3;
+
+  --font-display: var(--font-archivo), ui-sans-serif, sans-serif;
+  --font-body: var(--font-ibm-plex-sans), ui-sans-serif, sans-serif;
+  --font-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+}
