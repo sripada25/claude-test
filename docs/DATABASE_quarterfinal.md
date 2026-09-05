@@ -101,7 +101,7 @@ CREATE TABLE profiles (
 );
 ```
 
-> **⚠️ OPEN — blocks this migration.** M02 renders salary as `28,00,000 / year`, one string. If the period is a fixed suffix rather than a control, `salary_period` should be dropped and the CHECK reduced to two columns. **Decide before writing T1.3.**
+**Resolved (L125):** `SCREEN-SPEC-M02.md` §3.5 confirms `salary_period` is a real UI control — a monthly/annual toggle alongside the amount and currency fields, matching this schema exactly. No schema change from the original design.
 
 **No `avatar_url`** — L082 takes the Google name claim only. Adding a photo later is one nullable column.
 

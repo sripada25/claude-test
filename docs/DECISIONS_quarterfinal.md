@@ -1,6 +1,6 @@
 # DECISIONS_quarterfinal.md — Trackr Decision Ledger
 
-**Merges** `DECISIONS.md` (L001–L089) and `DECISIONS-MOCKUP-REVIEW.md` (L090–L112) into one ledger, and adds L113–L124 from work since — F4's post-interview rule, the trust-proxy/P9 resolution, and corrections found along the way.
+**Merges** `DECISIONS.md` (L001–L089) and `DECISIONS-MOCKUP-REVIEW.md` (L090–L112) into one ledger, and adds L113–L125 from work since — F4's post-interview rule, the trust-proxy/P9 resolution, the salary-period resolution, and corrections found along the way.
 
 Both source files are unchanged and remain as historical record. This is the current, complete ledger.
 
@@ -83,6 +83,7 @@ docs/
 | L106 | Gemini structured output mode for extraction | ✅ |
 | L107 | Experience = years + months (SMALLINT ×2). **Enum dropped** | ✅ |
 | ~~L046~~ | ~~`experience_level` enum~~ — **superseded by L107** | ❌ superseded |
+| L125 | Salary period is a real UI control (toggle), not a fixed "/year" suffix — `salary_period` schema unchanged | ✅ NEW |
 
 ## Application tracker (F2)
 
@@ -395,6 +396,17 @@ Full records for **L090–L112** exist in that file and are not reproduced here.
 4. **Could change if:** never — this is inherent to any deployment behind a reverse proxy.
 
 **Full spec:** `P9-IMPLEMENTATION.md` — T7.5.
+
+---
+
+## L125 — Salary period: real control, not a fixed suffix
+
+1. **Initially stated:** `SCREEN-NOTES-M02.md` §3.5 flagged this as open — the mockup renders salary as one string, `28,00,000 / year`, while `DATABASE_quarterfinal.md` §2.2 keeps `salary_period` as a separate enum with a `salary_complete` CHECK requiring amount, currency, and period together or none. Ambiguous whether the mockup implies a third control the designer didn't draw, or whether "/ year" is a fixed suffix and monthly is simply unsupported.
+2. **What changed:** `SCREEN-SPEC-M02.md` §3.5 resolved it while writing the full operational spec — confirmed a period toggle is needed and specified it, reusing the exact selected/unselected pattern already established by `LocationSegmented` (§3.6) rather than inventing a new control style.
+3. **Going with:** `SalaryField` is a three-part composite — currency selector, amount input, and a monthly/annual toggle — matching the schema exactly as originally written. No schema change. The frontend must submit all three together or none, per the `salary_complete` CHECK; a partial triple is a frontend bug, not a state the database should have to reject silently.
+4. **Could change if:** never expected to — this closes the only open item blocking `DATABASE_quarterfinal.md` §2.2's migration (T1.3). The `DATABASE_quarterfinal.md` §2.2 "OPEN — blocks this migration" banner is stale as of this decision and should be removed.
+
+**Full spec:** `SCREEN-SPEC-M02.md` §3.5, "SALARY PERIOD — resolving M02's open item #1".
 
 ---
 
