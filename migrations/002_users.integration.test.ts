@@ -1,6 +1,11 @@
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
+// Per-migration test files assert schema content only (columns, constraints,
+// cascades) - never the runner's down() semantics. down() always reverts
+// "whatever was applied last", so a migration-specific down/up test breaks
+// the moment a later migration exists. That generic, count-agnostic property
+// is covered once in scripts/migrate.integration.test.ts.
 describe("002_users migration (real Postgres)", () => {
   let container: StartedPostgreSqlContainer;
   let migrate: typeof import("../scripts/migrate.ts");
@@ -83,27 +88,5 @@ describe("002_users migration (real Postgres)", () => {
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
     );
     expect(result.rows[0].password_hash).toBeNull();
-  });
-
-  it("down reverts users, then up re-creates it, without touching the baseline extensions", async () => {
-    await migrate.up();
-    await migrate.down();
-
-    const usersExistsAfterDown = await pool.query<{ exists: boolean }>(
-      "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users') AS exists",
-    );
-    expect(usersExistsAfterDown.rows[0].exists).toBe(false);
-
-    const extensionsAfterDown = await pool.query(
-      "SELECT extname FROM pg_extension WHERE extname IN ('citext', 'pgcrypto')",
-    );
-    expect(extensionsAfterDown.rows).toHaveLength(2);
-
-    await migrate.up();
-
-    const usersExistsAfterReapply = await pool.query<{ exists: boolean }>(
-      "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users') AS exists",
-    );
-    expect(usersExistsAfterReapply.rows[0].exists).toBe(true);
   });
 });
