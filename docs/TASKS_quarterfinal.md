@@ -79,7 +79,7 @@ F1 P3 Auth API      F1 P4 SSO
 
 | ID | Task | Depends | Env | Notes |
 |---|---|---|---|---|
-| T2.1 | Argon2id hash/verify module | T1.2 | ✅ | Pure function, fully unit-testable |
+| T2.1 | ✅ DONE — Argon2id hash/verify module | T1.2 | ✅ | Merged via PR #20 (2026-09-06). Pure function, fully unit-testable |
 | T2.2 | Session service — issue/resolve/revoke | T1.4 | ✅ | Token hashed at rest; rotate on login |
 | T2.3 | **Session middleware** — sole identity chokepoint | T2.2 | ✅ | ⚠️ **Fails closed** (L076) — exception ⇒ deny, never pass through |
 | T2.4 | Postgres rate limiter | T1.8 | ✅ | ⚠️ **Client IP via T7.5's `getClientIp()`**, not `req.socket` directly |
