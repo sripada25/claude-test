@@ -83,7 +83,7 @@ F1 P3 Auth API      F1 P4 SSO
 | T2.2 | ✅ DONE — Session service — issue/resolve/revoke | T1.4 | ✅ | Merged via PR #22 (2026-09-06). Token hashed at rest; rotate on login |
 | T2.3 | **Session middleware** — sole identity chokepoint | T2.2 | ✅ | ⚠️ **Fails closed** (L076) — exception ⇒ deny, never pass through |
 | T2.4 | Postgres rate limiter | T1.8 | ✅ | ⚠️ **Client IP via T7.5's `getClientIp()`**, not `req.socket` directly |
-| T2.5 | Security event logger | T1.8 | ✅ | Feeds `security_events` |
+| T2.5 | ✅ DONE — Security event logger | T1.8 | ✅ | Merged via PR #24 (2026-09-06). Feeds `security_events`. Done ahead of T2.3 since T2.3 depends on it |
 | **T7.5** | **Trust-proxy client IP resolution** | T2.4 | 🌐 | Full spec: `P9-IMPLEMENTATION.md`. `TRUST_PROXY` env-gated. **Post-deploy spoof test required** — cannot verify locally |
 
 ⚠️ **T7.5 is listed here, in P2, not in a separate late group** — it's a dependency of T2.4, and every task that logs a client IP depends on it existing first.
