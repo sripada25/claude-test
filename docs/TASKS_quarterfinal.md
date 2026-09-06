@@ -143,7 +143,7 @@ F1 P3 Auth API      F1 P4 SSO
 | ID | Task | Depends | Env | Notes |
 |---|---|---|---|---|
 | T7.1 | Security headers middleware | T2.3 | ⚙️ | CSP `unsafe-eval` local only; HSTS **prod only, never localhost** |
-| T7.2 | CSRF — double-submit + Origin/Referer | T2.3 | ⚙️ | Allowed origin from `NEXT_PUBLIC_APP_URL` |
+| T7.2 | ✅ DONE — CSRF — double-submit + Origin/Referer | T2.3 | ⚙️ | Merged via PR #30 (2026-09-06). Done ahead of T3.1 since it needs this. Allowed origin from `NEXT_PUBLIC_APP_URL` |
 | T7.3 | **Fail-closed audit** | P2, P3, P4 | ✅ | Not a build — an audit that every catch block defaults to denial |
 | T7.4 | Cookie config — `Secure`/`__Host-` gated on `NODE_ENV` | T2.2 | ⚙️ | Never `SameSite=Strict` (breaks OAuth) |
 
