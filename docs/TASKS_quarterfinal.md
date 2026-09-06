@@ -82,7 +82,7 @@ F1 P3 Auth API      F1 P4 SSO
 | T2.1 | ✅ DONE — Argon2id hash/verify module | T1.2 | ✅ | Merged via PR #20 (2026-09-06). Pure function, fully unit-testable |
 | T2.2 | ✅ DONE — Session service — issue/resolve/revoke | T1.4 | ✅ | Merged via PR #22 (2026-09-06). Token hashed at rest; rotate on login |
 | T2.3 | ✅ DONE — **Session middleware** — sole identity chokepoint | T2.2, T2.5 | ✅ | Merged via PR #26 (2026-09-06). Uses `proxy.ts`, not `middleware.ts` (Next.js 16 rename). ⚠️ **Fails closed** (L076) — exception ⇒ deny, never pass through |
-| T2.4 | Postgres rate limiter | T1.8 | ✅ | ⚠️ **Client IP via T7.5's `getClientIp()`**, not `req.socket` directly |
+| T2.4 | ✅ DONE — Postgres rate limiter | T1.8 | ✅ | Merged via PR #28 (2026-09-06). `identifier` is opaque (IP or email) - doesn't need T7.5 itself, that's for whoever resolves the IP at the call site |
 | T2.5 | ✅ DONE — Security event logger | T1.8 | ✅ | Merged via PR #24 (2026-09-06). Feeds `security_events`. Done ahead of T2.3 since T2.3 depends on it |
 | **T7.5** | **Trust-proxy client IP resolution** | T2.4 | 🌐 | Full spec: `P9-IMPLEMENTATION.md`. `TRUST_PROXY` env-gated. **Post-deploy spoof test required** — cannot verify locally |
 
