@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/services/session", () => ({
   resolveSession: vi.fn(),
@@ -21,7 +21,30 @@ function requestTo(path: string, cookie?: string): NextRequest {
   });
 }
 
+function postRequestTo(
+  path: string,
+  options: { sessionCookie?: string; csrfToken?: string; origin?: string } = {},
+): NextRequest {
+  const cookies = [
+    options.sessionCookie ? `session=${options.sessionCookie}` : null,
+    options.csrfToken ? `csrf=${options.csrfToken}` : null,
+  ]
+    .filter(Boolean)
+    .join("; ");
+
+  const headers: Record<string, string> = {};
+  if (cookies) headers.cookie = cookies;
+  if (options.csrfToken) headers["x-csrf-token"] = options.csrfToken;
+  if (options.origin) headers.origin = options.origin;
+
+  return new NextRequest(`http://localhost:3000${path}`, { method: "POST", headers });
+}
+
 describe("proxy", () => {
+  beforeAll(() => {
+    process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
+  });
+
   beforeEach(() => {
     resolveSessionMock.mockReset();
     logSecurityEventMock.mockReset();
@@ -89,5 +112,45 @@ describe("proxy", () => {
 
     const loggedArgs = logSecurityEventMock.mock.calls[0];
     expect(JSON.stringify(loggedArgs)).not.toContain("super-secret-raw-token");
+  });
+
+  it("never CSRF-checks a GET request, even to a protected path with no session", async () => {
+    const response = await proxy(requestTo("/app/board"));
+    expect(response.status).not.toBe(403);
+  });
+
+  it("denies a POST to a public path with no CSRF token at all - 403, not passed through", async () => {
+    const response = await proxy(postRequestTo("/api/auth/login"));
+
+    expect(response.status).toBe(403);
+    expect(resolveSessionMock).not.toHaveBeenCalled();
+  });
+
+  it("denies a POST with a mismatched CSRF token", async () => {
+    const request = new NextRequest("http://localhost:3000/api/auth/login", {
+      method: "POST",
+      headers: {
+        cookie: "csrf=cookie-value",
+        "x-csrf-token": "different-value",
+        origin: "http://localhost:3000",
+      },
+    });
+
+    expect((await proxy(request)).status).toBe(403);
+  });
+
+  it("proceeds past CSRF to the existing session logic when the token and Origin are valid", async () => {
+    resolveSessionMock.mockResolvedValue({ userId: "user-123", sessionId: "session-456" });
+
+    const response = await proxy(
+      postRequestTo("/app/board", {
+        sessionCookie: "valid-raw-token",
+        csrfToken: "matching-token",
+        origin: "http://localhost:3000",
+      }),
+    );
+
+    expect(response.status).not.toBe(403);
+    expect(response.headers.get("x-middleware-request-x-user-id")).toBe("user-123");
   });
 });

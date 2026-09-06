@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getOrSetCsrfCookie, validateCsrf } from "@/lib/security/csrf";
 import { logSecurityEvent } from "@/lib/security/events";
 import { resolveSession } from "@/lib/services/session";
 
@@ -24,29 +25,38 @@ function deny(request: NextRequest): NextResponse {
   return NextResponse.redirect(new URL("/signin", request.url));
 }
 
+function finalize(request: NextRequest, response: NextResponse): NextResponse {
+  getOrSetCsrfCookie(request, response);
+  return response;
+}
+
 export default async function proxy(request: NextRequest): Promise<NextResponse> {
+  if (!validateCsrf(request)) {
+    return finalize(request, NextResponse.json({ error: "Forbidden" }, { status: 403 }));
+  }
+
   const { pathname } = request.nextUrl;
 
   if (isPublicPath(pathname)) {
-    return NextResponse.next();
+    return finalize(request, NextResponse.next());
   }
 
   const rawToken = request.cookies.get(SESSION_COOKIE_NAME)?.value;
 
   if (!rawToken) {
-    return deny(request);
+    return finalize(request, deny(request));
   }
 
   try {
     const resolved = await resolveSession(rawToken);
 
     if (!resolved) {
-      return deny(request);
+      return finalize(request, deny(request));
     }
 
     const headers = new Headers(request.headers);
     headers.set("x-user-id", resolved.userId);
-    return NextResponse.next({ request: { headers } });
+    return finalize(request, NextResponse.next({ request: { headers } }));
   } catch {
     // ip omitted deliberately - see issue #25. Trust-proxy IP resolution
     // (T7.5) is deploy-only and doesn't exist yet; logging a naive,
@@ -54,7 +64,7 @@ export default async function proxy(request: NextRequest): Promise<NextResponse>
     await logSecurityEvent("session_resolution_failed", {
       userAgent: request.headers.get("user-agent") ?? undefined,
     });
-    return deny(request);
+    return finalize(request, deny(request));
   }
 }
 
