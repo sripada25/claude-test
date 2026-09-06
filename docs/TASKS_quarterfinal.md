@@ -68,7 +68,7 @@ F1 P3 Auth API      F1 P4 SSO
 | T1.3 | ✅ DONE — `profiles` table · enums · `salary_complete` CHECK | T1.2 | ✅ | Merged via PR #6 (2026-09-05). `years_experience`/`months_experience` (L107), not an enum |
 | T1.4 | ✅ DONE — `sessions` table + partial index | T1.2 | ✅ | Merged via PR #8 (2026-09-05). 24h absolute expiry (L118) |
 | T1.5 | ✅ DONE — `verification_tokens` + `email_log` | T1.2 | ✅ | Merged via PR #10 (2026-09-06). `attempts` counter; `email_log` doubles as provider quota counter |
-| T1.6 | `oauth_accounts` table | T1.2 | ✅ | Keyed on OIDC `sub`, never email |
+| T1.6 | ✅ DONE — `oauth_accounts` table | T1.2 | ✅ | Merged via PR #12 (2026-09-06). Keyed on OIDC `sub`, never email |
 | T1.9 | `oauth_states` table | T1.2 | ✅ | Required by T4.1 — state/PKCE storage (L075) |
 | T1.7 | `subscriptions` + `generation_quota` | T1.2 | ✅ | `trial_generations_limit` default 40 (L111) |
 | T1.8 | `auth_attempts` + `security_events` | T1.1 | ✅ | Neither cascades from `users` |
