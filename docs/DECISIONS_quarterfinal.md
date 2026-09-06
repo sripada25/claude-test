@@ -65,6 +65,7 @@ docs/
 | L051 | Email changeable, with re-verification | ✅ |
 | L082 | Google SSO pre-fills **name only** — no photo, no other claims | ✅ |
 | L118 | **Session: 24-hour absolute expiry, never sliding** | ✅ NEW |
+| L126 | Session cookie Max-Age: 24h, matching L118 (not the stale 30d in SECURITY_quarterfinal.md §15) | ✅ NEW |
 
 ## Profile & AI
 
@@ -407,6 +408,15 @@ Full records for **L090–L112** exist in that file and are not reproduced here.
 4. **Could change if:** never expected to — this closes the only open item blocking `DATABASE_quarterfinal.md` §2.2's migration (T1.3). The `DATABASE_quarterfinal.md` §2.2 "OPEN — blocks this migration" banner is stale as of this decision and should be removed.
 
 **Full spec:** `SCREEN-SPEC-M02.md` §3.5, "SALARY PERIOD — resolving M02's open item #1".
+
+---
+
+## L126 — Session cookie Max-Age: 24h, not 30d
+
+1. **Initially stated:** `SECURITY_quarterfinal.md` §15's cookies table listed `Max-Age: 30d` for the session cookie, alongside L118's separately-decided 24-hour absolute `expires_at` enforced server-side. Nobody had noticed the two numbers disagreed until building T7.4 (the shared cookie-config module) required picking one concrete value.
+2. **What changed:** compared the two sources. L118 carries explicit security reasoning (absolute expiry caps a stolen token's damage window regardless of activity) and was decided with the tradeoff stated. The 30d figure in the cookie table has no accompanying rationale anywhere - it reads as a generic default that was never reconciled with L118 after the fact.
+3. **Going with:** cookie `Max-Age` is 24 hours, identical to `expires_at`. A cookie that outlives the server-side session it names is a confusing latent bug (looks valid to the browser, silently rejected by the server) even though it isn't an exploitable one - no reason to keep the mismatch once noticed.
+4. **Could change if:** L118 itself changes (e.g. user complaints about daily re-login outweigh the security tradeoff, per L118's own "could change if"). The cookie Max-Age should always track `expires_at` exactly, not drift independently again.
 
 ---
 

@@ -328,7 +328,7 @@ const prompt = `Write a cover letter for this job: ${jobDescription}`;
 | `SameSite` | `Lax` | `Lax` — **not `Strict`** (breaks OAuth) |
 | `Path` | `/` | `/` |
 | Name prefix | plain | `__Host-` |
-| Max-Age | 30d | 30d |
+| Max-Age | 24h | 24h |
 
 **Identical everywhere:** 32 random bytes · stored **hashed** · rotated on login (session fixation) · revoked server-side on logout · validated against `expires_at` and `revoked_at` every request.
 
