@@ -71,7 +71,7 @@ F1 P3 Auth API      F1 P4 SSO
 | T1.6 | ✅ DONE — `oauth_accounts` table | T1.2 | ✅ | Merged via PR #12 (2026-09-06). Keyed on OIDC `sub`, never email |
 | T1.9 | ✅ DONE — `oauth_states` table | T1.6 | ✅ | Merged via PR #14 (2026-09-06). Required by T4.1 — state/PKCE storage (L075). Depends on T1.6, not T1.2 — reuses T1.6's `oauth_provider` enum (corrected while scoping T1.9) |
 | T1.7 | ✅ DONE — `subscriptions` + `generation_quota` | T1.2 | ✅ | Merged via PR #16 (2026-09-06). `trial_generations_limit` default 40 (L111) |
-| T1.8 | `auth_attempts` + `security_events` | T1.1 | ✅ | Neither cascades from `users` |
+| T1.8 | ✅ DONE — `auth_attempts` + `security_events` | T1.2 | ✅ | Merged via PR #18 (2026-09-06). Neither cascades from `users`. Depends on T1.2, not T1.1 — `security_events.user_id` is an FK (corrected while implementing T1.8) |
 
 **Reads:** `DATABASE_quarterfinal.md` §2
 
