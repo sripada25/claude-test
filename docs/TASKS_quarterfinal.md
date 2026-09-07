@@ -169,7 +169,7 @@ F1 P3 Auth API      F1 P4 SSO
 | ID | Task | Depends | Env | Soft-delete criterion |
 |---|---|---|---|---|
 | F2-2.1 | ✅ DONE — `POST /api/applications` | F2-1.1, T2.3 | ✅ | Merged via PR #123 (2026-09-07). Whitelist: company, role, status, jobDescription, source, sourceUrl, dateApplied — confirmed against M04-03/M04-04, not just company/role |
-| F2-2.2 | `GET /api/applications` (search/filter/sort) | F2-2.1 | ✅ | ⚠️ **Must filter `deleted_at IS NULL`** — verified by test |
+| F2-2.2 | ✅ DONE — `GET /api/applications` (search/filter/sort) | F2-2.1 | ✅ | Merged via PR #125 (2026-09-07). `findUserApplications` is the sole read path (§14/G13). Soft-delete isolation verified by test (security test #15). Also computes `followUpDue` server-side (M03-09) |
 | F2-2.3 | `GET /api/applications/:id` | F2-2.1 | ✅ | ⚠️ **Must filter `deleted_at IS NULL`** · ownership from session, never the URL |
 | F2-2.4 | `PATCH /api/applications/:id` | F2-2.1 | ✅ | ⚠️ Filter · writes a timeline event (2s debounce) · **same service function used by drag** |
 | F2-2.5 | `DELETE /api/applications/:id` (soft) | F2-2.1 | ✅ | Only when status is Rejected. Sets `deleted_at` |
