@@ -247,7 +247,7 @@ const planLabel =
 
 ---
 
-## M01-02 · `AuthHeading` ✅
+## M01-02 · `AuthHeading` ✅ DONE — merged via PR #81 (2026-09-07)
 
 🎨 Heading: display `23`/600 · `letterSpacing -0.3` · `$m-ink`
 🎨 Subtitle: body `14`/normal · `lineHeight 1.5` · width `340` · `$m-ink-2`
