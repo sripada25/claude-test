@@ -1,15 +1,9 @@
 "use client";
 
 import { FilterChip } from "@/components/board/FilterChip";
+import { STAGES } from "@/components/board/stages";
 
-const STATUS_OPTIONS: { value: string; label: string }[] = [
-  { value: "saved", label: "Saved" },
-  { value: "applied", label: "Applied" },
-  { value: "assessment", label: "Assess" },
-  { value: "interview", label: "Interview" },
-  { value: "offer", label: "Offer" },
-  { value: "rejected", label: "Rejected" },
-];
+const STATUS_OPTIONS = STAGES.map(({ value, label }) => ({ value, label }));
 
 export function StatusFilter({
   selected,
