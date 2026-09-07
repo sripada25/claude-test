@@ -777,7 +777,7 @@ Drag mechanics, jank analysis, and scale maths: this screen's tasks carry them i
 
 ---
 
-## M03-02 · `SearchInput` ✅
+## M03-02 · `SearchInput` ✅ DONE — merged via PR #145 (2026-09-07)
 
 🎨 fill **`$m-bg`** · stroke `$m-border` 1 · padding `[9,12]` · gap `8` · width `230`
 🎨 Icon `search` `15×15` `$m-muted` · text body `13` `$m-muted` "Search company or role"
