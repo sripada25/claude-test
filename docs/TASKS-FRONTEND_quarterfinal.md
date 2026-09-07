@@ -561,7 +561,7 @@ const planLabel =
 
 **Designer's intent:** *"Skippable, with a consequence. Users can reach the board immediately, but generation is blocked until target role, skills, and experience exist."* · *"Salary currency is explicit rather than inferred from locale — the target user is in India applying to international roles, so the two rarely match."*
 
-## M02-01 · `StepChip` ✅
+## M02-01 · `StepChip` ✅ DONE — merged via PR #103 (2026-09-07)
 
 🎨 **Instance of `M/Tag`** (`Ie19Q`) with fill overridden to **`$m-primary-soft`**
 🎨 Content "STEP 2 OF 2" mono `10.5`/600 · `letterSpacing 0.5`
