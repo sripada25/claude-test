@@ -5,9 +5,9 @@ import { FormEvent, useState } from "react";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { AuthHeading } from "@/components/auth/AuthHeading";
 import { EmailField } from "@/components/auth/EmailField";
-import { Field } from "@/components/ui/Field";
+import { PasswordField } from "@/components/auth/PasswordField";
 
-type AuthMode = "signin" | "signup";
+type AuthMode = "signin" | "signup" | "forgot";
 
 export function SignInScreen() {
   const [mode, setMode] = useState<AuthMode>("signin");
@@ -39,25 +39,11 @@ export function SignInScreen() {
 
         <form className="mt-[26px] flex w-full flex-col gap-4" onSubmit={onSubmit}>
           <EmailField value={email} onChange={setEmail} />
-          <Field
-            id="password"
-            name="password"
-            label="Password"
-            type="password"
-            autoComplete={mode === "signup" ? "new-password" : "current-password"}
-            required
+          <PasswordField
+            mode={mode === "signup" ? "signup" : "signin"}
             value={password}
             onChange={setPassword}
-            labelAction={
-              mode === "signin" ? (
-                <button
-                  type="button"
-                  className="font-body text-[12px] font-medium text-accent hover:text-accent-hover hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                >
-                  Forgot password?
-                </button>
-              ) : undefined
-            }
+            onForgotPassword={() => setMode("forgot")}
           />
           <button
             type="submit"
