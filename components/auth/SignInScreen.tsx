@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { AuthCard } from "@/components/auth/AuthCard";
@@ -13,6 +12,7 @@ import { OrDivider } from "@/components/auth/OrDivider";
 import { OtpInput } from "@/components/auth/OtpInput";
 import { PasswordField } from "@/components/auth/PasswordField";
 import { SignInButton } from "@/components/auth/SignInButton";
+import { TermsNotice } from "@/components/auth/TermsNotice";
 import { CSRF_HEADER_NAME, getCsrfToken } from "@/lib/security/csrf-client";
 
 type AuthMode = "signin" | "signup" | "forgot" | "otp";
@@ -152,23 +152,7 @@ export function SignInScreen() {
           </>
         )}
 
-        <p className="mt-[22px] w-full text-center font-body text-[11.5px] leading-[1.5] text-muted">
-          By continuing you agree to the{" "}
-          <Link
-            href="/terms"
-            className="text-muted underline decoration-border-strong underline-offset-2 hover:text-ink-2"
-          >
-            Terms
-          </Link>{" "}
-          and{" "}
-          <Link
-            href="/privacy"
-            className="text-muted underline decoration-border-strong underline-offset-2 hover:text-ink-2"
-          >
-            Privacy Policy
-          </Link>
-          .
-        </p>
+        <TermsNotice />
       </AuthCard>
     </div>
   );
