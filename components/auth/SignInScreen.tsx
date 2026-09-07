@@ -13,6 +13,7 @@ import { OtpInput } from "@/components/auth/OtpInput";
 import { PasswordField } from "@/components/auth/PasswordField";
 import { SignInButton } from "@/components/auth/SignInButton";
 import { TermsNotice } from "@/components/auth/TermsNotice";
+import { BrandMark } from "@/components/ui/BrandMark";
 import { CSRF_HEADER_NAME, getCsrfToken } from "@/lib/security/csrf-client";
 
 type AuthMode = "signin" | "signup" | "forgot" | "otp";
@@ -119,14 +120,7 @@ export function SignInScreen() {
       className="flex min-h-screen items-center justify-center bg-bg px-5 py-10"
     >
       <AuthCard>
-        <div className="flex items-center gap-[9px]" aria-hidden="true">
-          <span className="grid size-[26px] place-items-center bg-accent font-display text-[13px] font-bold text-white">
-            T
-          </span>
-          <span className="font-display text-[16px] font-bold tracking-[0.2px] text-ink">
-            TRACKR
-          </span>
-        </div>
+        <BrandMark size="md" />
 
         <AuthHeading mode={mode} email={email} />
 
