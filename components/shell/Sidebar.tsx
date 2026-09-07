@@ -1,7 +1,17 @@
 "use client";
 
+import { Bell, Briefcase, FileText, LayoutDashboard, Settings } from "lucide-react";
 import { useEffect } from "react";
+import { NavItem } from "@/components/shell/NavItem";
 import { SidebarBrand } from "@/components/shell/SidebarBrand";
+
+const NAV_ITEMS = [
+  { href: "/app/board", label: "Board", icon: LayoutDashboard },
+  { href: "/app/applications", label: "Applications", icon: Briefcase },
+  { href: "/app/documents", label: "Documents", icon: FileText },
+  { href: "/app/reminders", label: "Reminders", icon: Bell },
+  { href: "/app/settings", label: "Settings", icon: Settings },
+];
 
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   useEffect(() => {
@@ -38,6 +48,11 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
       >
         <div>
           <SidebarBrand onClose={onClose} />
+          <nav className="flex flex-col">
+            {NAV_ITEMS.map((item) => (
+              <NavItem key={item.href} href={item.href} label={item.label} icon={item.icon} />
+            ))}
+          </nav>
         </div>
       </aside>
     </>
