@@ -4,6 +4,7 @@ import {
   findUserApplicationById,
   findUserApplications,
   insertApplication,
+  softDeleteApplication,
   updateApplicationFields,
   type Application,
   type ApplicationListItem,
@@ -291,4 +292,30 @@ export function listApplications(
     : "recent";
 
   return findUserApplications(userId, { q, statuses, sources, sort });
+}
+
+export type DeleteApplicationResult =
+  | { success: true; application: Application }
+  | { success: false; reason: "not_found" | "not_rejected" };
+
+// Soft delete only - available only from the Rejected column
+// (DATABASE_quarterfinal.md §3.1 / M05-03). No timeline event: event_type
+// has no "deleted" value, and the row leaves the timeline UI's reach once
+// it's in trash anyway.
+export async function deleteApplication(userId: string, id: string): Promise<DeleteApplicationResult> {
+  const current = await findUserApplicationById(userId, id);
+  if (!current) {
+    return { success: false, reason: "not_found" };
+  }
+  if (current.status !== "rejected") {
+    return { success: false, reason: "not_rejected" };
+  }
+
+  const deleted = await softDeleteApplication(userId, id);
+  if (!deleted) {
+    // Status or ownership changed between the check above and this write.
+    return { success: false, reason: "not_found" };
+  }
+
+  return { success: true, application: deleted };
 }

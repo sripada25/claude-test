@@ -189,6 +189,22 @@ export async function updateApplicationFields(
   return result.rows[0] ? toApplication(result.rows[0]) : null;
 }
 
+// Only a rejected application can be soft-deleted (DATABASE_quarterfinal.md
+// §3.1 / M05-03's doc) - status = 'rejected' is re-checked here even though
+// the service already checked it, guarding against a race between the two.
+export async function softDeleteApplication(userId: string, id: string): Promise<Application | null> {
+  const result = await pool.query<ApplicationRow>(
+    `UPDATE applications
+     SET deleted_at = now(), updated_at = now()
+     WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL AND status = 'rejected'
+     RETURNING id, user_id, company, role, status, job_description, source, source_url, date_applied,
+               assessment_due_at, interview_at, notes, last_activity_at, created_at, updated_at`,
+    [id, userId],
+  );
+
+  return result.rows[0] ? toApplication(result.rows[0]) : null;
+}
+
 const SORT_CLAUSES: Record<ApplicationSort, string> = {
   recent: "last_activity_at DESC",
   oldest_activity: "last_activity_at ASC",

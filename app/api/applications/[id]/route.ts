@@ -1,5 +1,25 @@
 import { NextResponse } from "next/server";
-import { getApplication, updateApplication } from "@/lib/services/application";
+import { deleteApplication, getApplication, updateApplication } from "@/lib/services/application";
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+): Promise<NextResponse> {
+  const userId = request.headers.get("x-user-id");
+  if (!userId) {
+    return NextResponse.json({ success: false, reason: "unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await params;
+  const result = await deleteApplication(userId, id);
+
+  if (!result.success) {
+    const status = result.reason === "not_found" ? 404 : 400;
+    return NextResponse.json({ success: false, reason: result.reason }, { status });
+  }
+
+  return NextResponse.json(result.application);
+}
 
 export async function PATCH(
   request: Request,
