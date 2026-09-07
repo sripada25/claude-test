@@ -25,6 +25,10 @@ export async function markEmailVerified(userId: string): Promise<void> {
   await pool.query(`UPDATE users SET email_verified_at = now() WHERE id = $1`, [userId]);
 }
 
+export async function updatePasswordHash(userId: string, passwordHash: string): Promise<void> {
+  await pool.query(`UPDATE users SET password_hash = $2 WHERE id = $1`, [userId, passwordHash]);
+}
+
 export async function updateEmail(userId: string, newEmail: string): Promise<void> {
   await pool.query(`UPDATE users SET email = $2, email_verified_at = now() WHERE id = $1`, [
     userId,
