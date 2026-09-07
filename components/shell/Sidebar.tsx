@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { SidebarBrand } from "@/components/shell/SidebarBrand";
 
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   useEffect(() => {
@@ -34,7 +35,11 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
         className={`fixed inset-y-0 left-0 z-50 flex h-screen w-[232px] shrink-0 flex-col justify-between bg-sidebar transition-transform duration-200 lg:static lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
-      />
+      >
+        <div>
+          <SidebarBrand onClose={onClose} />
+        </div>
+      </aside>
     </>
   );
 }
