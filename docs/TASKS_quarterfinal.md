@@ -135,7 +135,7 @@ F1 P3 Auth API      F1 P4 SSO
 
 | ID | Task | Depends | Env | Notes |
 |---|---|---|---|---|
-| T6.1 | `GET /api/subscription` | T1.7, T2.3 | ✅ | Tier, trial days remaining, trial generation count |
+| T6.1 | ✅ DONE — `GET /api/subscription` | T1.7, T2.3 | ✅ | Merged via PR #64 (2026-09-07). Tier, trial days remaining, trial generation count. Done after T6.2 so trial_ends_at is actually populated |
 | T6.2 | ✅ DONE — Trial initialisation at signup | T3.1 | ✅ | Merged via PR #62 (2026-09-07). +12 days, 40-generation cap (L111). Done ahead of T6.1 - also fixed T4.3's Google signup path, which had the same gap |
 
 ## P7 — Cross-cutting security
