@@ -153,6 +153,7 @@ docs/
 | L122 | **Prompt injection (G12)** — structural delimiters + no tools/function-calling on the AI provider | ✅ |
 | L123 | **Soft-delete query discipline (G13)** — every query filters `deleted_at IS NULL` | ✅ |
 | L124 | **Trust-proxy: `TRUST_PROXY` env-gated, spoof-tested post-deploy** — the one control needing environment-specific code | ✅ |
+| L127 | **Nonce-based production CSP forces every page to dynamic rendering** — `await connection()` in every `app/**/page.tsx`, no static optimization/CDN caching going forward | ✅ NEW |
 
 ## Tooling & workflow
 
@@ -417,6 +418,17 @@ Full records for **L090–L112** exist in that file and are not reproduced here.
 2. **What changed:** compared the two sources. L118 carries explicit security reasoning (absolute expiry caps a stolen token's damage window regardless of activity) and was decided with the tradeoff stated. The 30d figure in the cookie table has no accompanying rationale anywhere - it reads as a generic default that was never reconciled with L118 after the fact.
 3. **Going with:** cookie `Max-Age` is 24 hours, identical to `expires_at`. A cookie that outlives the server-side session it names is a confusing latent bug (looks valid to the browser, silently rejected by the server) even though it isn't an exploitable one - no reason to keep the mismatch once noticed.
 4. **Could change if:** L118 itself changes (e.g. user complaints about daily re-login outweigh the security tradeoff, per L118's own "could change if"). The cookie Max-Age should always track `expires_at` exactly, not drift independently again.
+
+---
+
+## L127 — Nonce-based CSP forces dynamic rendering everywhere
+
+1. **Initially stated:** `SECURITY_quarterfinal.md` §5 specifies production `script-src`/`style-src` as `'self'` + nonce, stated as a header-table value with no note on rendering-mode implications. T7.1 built it exactly as literally specified — generate a nonce in `proxy.ts`, forward it and the CSP value via request headers, per Next's own documented middleware pattern.
+2. **What changed:** the issue's own required verification step (`npm run build && npm start` — CSP violations don't surface in dev mode) immediately showed Next's hydration script blocked on every page. Next's CSP guide confirms why: a nonce can only be injected into a *dynamically*-rendered page — a statically-generated page is built once with no per-request value to give it. All 4 pages that existed at the time (`/`, `/signin`, `/privacy`, `/terms`) were static.
+3. **Going with:** every page gets `await connection()` (from `next/server`), forcing dynamic rendering app-wide, rather than weakening the CSP to keep static optimization. Confirmed with the user given the real cost: no static optimization or CDN caching for any page, present or future, without deliberately reintroducing it later (e.g. per-route via Next's experimental SRI/hash-based CSP instead of a nonce, if a specific page's performance ever justifies the tradeoff).
+4. **Could change if:** a future page has a strong performance/caching need that outweighs the strict nonce-based CSP — the fallback path (`next.config.ts`'s static header config + SRI, no nonce) is documented in Next's own guide and was considered, just not chosen here.
+
+**Full spec:** `SECURITY_quarterfinal.md` §5 — T7.1 implementation notes on issue #65.
 
 ---
 
