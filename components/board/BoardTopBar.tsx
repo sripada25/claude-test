@@ -2,13 +2,30 @@
 
 import { Menu } from "lucide-react";
 import { SearchInput } from "@/components/board/SearchInput";
+import { SortControl } from "@/components/board/SortControl";
+import { SourceFilter } from "@/components/board/SourceFilter";
+import { StatusFilter } from "@/components/board/StatusFilter";
 
 export function BoardTopBar({
   onOpenDrawer,
   onQueryChange,
+  statusFilter,
+  onStatusFilterChange,
+  sourceFilter,
+  onSourceFilterChange,
+  hasAnySource,
+  sort,
+  onSortChange,
 }: {
   onOpenDrawer: () => void;
   onQueryChange: (query: string) => void;
+  statusFilter: string[];
+  onStatusFilterChange: (values: string[]) => void;
+  sourceFilter: string[];
+  onSourceFilterChange: (values: string[]) => void;
+  hasAnySource: boolean;
+  sort: string;
+  onSortChange: (value: string) => void;
 }) {
   return (
     <header className="flex h-16 shrink-0 items-center gap-[14px] border-b border-border bg-surface px-7">
@@ -21,6 +38,15 @@ export function BoardTopBar({
         <Menu size={20} />
       </button>
       <SearchInput onQueryChange={onQueryChange} />
+      <div className="hidden items-center gap-[14px] md:flex">
+        <StatusFilter selected={statusFilter} onChange={onStatusFilterChange} />
+        <SourceFilter
+          selected={sourceFilter}
+          onChange={onSourceFilterChange}
+          hasAnySource={hasAnySource}
+        />
+        <SortControl value={sort} onChange={onSortChange} />
+      </div>
     </header>
   );
 }
