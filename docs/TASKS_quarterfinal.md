@@ -160,7 +160,7 @@ F1 P3 Auth API      F1 P4 SSO
 |---|---|---|---|---|
 | F2-1.1 | ✅ DONE — `applications` table | T1.2 | ✅ | Merged via PR #119 (2026-09-07). Only `company`/`role` required (designer's note). `deleted_at` for soft delete (L113). Combined with F2-1.2 and F2-1.5 into one migration (010_applications) |
 | F2-1.2 | ✅ DONE — `source` enum on `applications` | F2-1.1 | ✅ | Merged via PR #119 (2026-09-07), as part of 010_applications. (L110) |
-| F2-1.3 | `application_events` — timeline | F2-1.1 | ✅ | Append-only, never updated |
+| F2-1.3 | ✅ DONE — `application_events` — timeline | F2-1.1 | ✅ | Merged via PR #121 (2026-09-07). Append-only, never updated |
 | F2-1.4 | `documents.jd_snapshot` column | F2-1.1 | ✅ | ⚠️ Blocked — `documents` table doesn't exist yet (F3, not built). NULL = same as current JD (L090) |
 | F2-1.5 | ✅ DONE — `idx_applications_board` composite index | F2-1.1 | ✅ | Merged via PR #119 (2026-09-07), as part of 010_applications. `(user_id, status, last_activity_at DESC) WHERE deleted_at IS NULL` |
 
