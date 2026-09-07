@@ -690,7 +690,7 @@ const planLabel =
 
 ---
 
-## M02-06 · `SalaryField` ✅
+## M02-06 · `SalaryField` ✅ DONE — merged via PR #113 (2026-09-07)
 
 🎨 Label "SALARY EXPECTATION" mono `10.5`/600 · gap `7`
 🎨 Currency: fill **`$m-surface-2`** · stroke `$m-border` 1 · padding `[11,10]` · gap `4` · **width 74** · text body `13`/600 `$m-ink` · icon `chevron-down` `13`
