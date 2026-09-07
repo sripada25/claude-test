@@ -395,7 +395,7 @@ const planLabel =
 
 ---
 
-## M01-07 · `GoogleSSOButton` ⚙️
+## M01-07 · `GoogleSSOButton` ⚙️ DONE — merged via PR #91 (2026-09-07)
 
 ⚠️ 🎨 **Not `M/Button`** (`zO6Ei`) — a distinct treatment.
 
