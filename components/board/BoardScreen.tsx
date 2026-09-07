@@ -14,6 +14,7 @@ interface BoardApplication {
 export function BoardScreen({ initialView }: { initialView: BoardView }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [view, setView] = useState<BoardView>(initialView);
+  const [addDrawerOpen, setAddDrawerOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [sourceFilter, setSourceFilter] = useState<string[]>([]);
@@ -73,6 +74,7 @@ export function BoardScreen({ initialView }: { initialView: BoardView }) {
           onSortChange={setSort}
           view={view}
           onViewChange={setView}
+          onAddApplication={() => setAddDrawerOpen(true)}
         />
         <p role="status" aria-live="polite" className="sr-only">
           {applications.length} results
