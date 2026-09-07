@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ProfileFields, type ProfileFieldsValues } from "@/components/profile/ProfileFields";
 import { ResumeDropzone } from "@/components/profile/ResumeDropzone";
+import { SkillsTagInput } from "@/components/profile/SkillsTagInput";
 import { SkipLink } from "@/components/profile/SkipLink";
 import { StepChip } from "@/components/profile/StepChip";
 import { BrandMark } from "@/components/ui/BrandMark";
@@ -19,6 +20,7 @@ const EMPTY_PROFILE_FORM: ProfileFieldsValues = {
 export function ProfileBuilderScreen() {
   const [extractedProfile, setExtractedProfile] = useState<ExtractedProfile | null>(null);
   const [profileForm, setProfileForm] = useState<ProfileFieldsValues>(EMPTY_PROFILE_FORM);
+  const [skills, setSkills] = useState<string[]>([]);
 
   useEffect(() => {
     if (!extractedProfile) {
@@ -38,6 +40,17 @@ export function ProfileBuilderScreen() {
           ? String(extractedProfile.monthsExperience)
           : current.monthsExperience,
     }));
+
+    setSkills((current) => {
+      const merged = [...current];
+      for (const skill of extractedProfile.skills) {
+        const normalized = skill.trim().toLowerCase();
+        if (normalized && !merged.includes(normalized)) {
+          merged.push(normalized);
+        }
+      }
+      return merged;
+    });
   }, [extractedProfile]);
 
   return (
@@ -56,6 +69,7 @@ export function ProfileBuilderScreen() {
             values={profileForm}
             onChange={(patch) => setProfileForm((current) => ({ ...current, ...patch }))}
           />
+          <SkillsTagInput skills={skills} onChange={setSkills} />
         </div>
       </main>
     </div>
