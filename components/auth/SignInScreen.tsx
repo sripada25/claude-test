@@ -8,11 +8,12 @@ import { AuthHeading } from "@/components/auth/AuthHeading";
 import { EmailField } from "@/components/auth/EmailField";
 import { GoogleSSOButton } from "@/components/auth/GoogleSSOButton";
 import { OrDivider } from "@/components/auth/OrDivider";
+import { OtpInput } from "@/components/auth/OtpInput";
 import { PasswordField } from "@/components/auth/PasswordField";
 import { SignInButton } from "@/components/auth/SignInButton";
 import { CSRF_HEADER_NAME, getCsrfToken } from "@/lib/security/csrf-client";
 
-type AuthMode = "signin" | "signup" | "forgot";
+type AuthMode = "signin" | "signup" | "forgot" | "otp";
 
 export function SignInScreen() {
   const router = useRouter();
@@ -24,6 +25,16 @@ export function SignInScreen() {
 
   const submitLabel = mode === "signin" ? "Sign in" : "Create account";
   const canSubmit = email.trim() !== "" && password.trim() !== "";
+
+  // Shared by a successful login and a successful OTP verification - both
+  // end with a fresh session cookie and the same "where does this user go"
+  // question, which needs a second call since neither response carries
+  // profile.completedAt.
+  async function goToProfileOrBoard() {
+    const profileResponse = await fetch("/api/profile");
+    const profile = profileResponse.ok ? await profileResponse.json() : null;
+    router.push(profile?.completedAt ? "/app/board" : "/app/profile");
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -53,10 +64,7 @@ export function SignInScreen() {
         return;
       }
 
-      const profileResponse = await fetch("/api/profile");
-      const profile = profileResponse.ok ? await profileResponse.json() : null;
-
-      router.push(profile?.completedAt ? "/app/board" : "/app/profile");
+      await goToProfileOrBoard();
     } catch {
       setFormError("That didn't work. Try again.");
     } finally {
@@ -79,7 +87,7 @@ export function SignInScreen() {
           </span>
         </div>
 
-        <AuthHeading mode={mode} />
+        <AuthHeading mode={mode} email={email} />
 
         <form className="mt-[26px] flex w-full flex-col gap-4" onSubmit={onSubmit}>
           <EmailField value={email} onChange={setEmail} />
@@ -89,6 +97,9 @@ export function SignInScreen() {
             onChange={setPassword}
             onForgotPassword={() => setMode("forgot")}
           />
+          {mode === "otp" && (
+            <OtpInput email={email} onVerified={() => void goToProfileOrBoard()} />
+          )}
           {formError && (
             <p role="alert" className="font-body text-[12px] text-danger">
               {formError}
