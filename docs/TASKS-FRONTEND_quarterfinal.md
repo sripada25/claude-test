@@ -822,7 +822,7 @@ Drag mechanics, jank analysis, and scale maths: this screen's tasks carry them i
 
 ---
 
-## M03-04 · `ViewToggle` ✅
+## M03-04 · `ViewToggle` ✅ DONE — merged via PR #149 (2026-09-07)
 
 🎨 Outer: fill `$m-bg` · stroke `$m-border` 1 · padding `3` · gap `2`
 🎨 **Selected:** fill `$m-surface` · stroke `$m-border` 1 · padding `[7,16]` · body `12.5`/600 `$m-ink`
