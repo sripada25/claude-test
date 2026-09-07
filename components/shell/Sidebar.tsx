@@ -49,7 +49,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
       >
         <div>
           <SidebarBrand onClose={onClose} />
-          <nav className="flex flex-col">
+          <nav className="flex flex-col gap-[2px] py-1 lg:px-3">
             {NAV_ITEMS.map((item) => (
               <NavItem key={item.href} href={item.href} label={item.label} icon={item.icon} />
             ))}

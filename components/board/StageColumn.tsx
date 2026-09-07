@@ -18,7 +18,7 @@ export function StageColumn({
     >
       <div className="flex items-center justify-between gap-[7px] px-0.5 pb-2.5">
         <div className="flex items-center gap-[7px]">
-          <span className={`size-[7px] shrink-0 rounded-full ${colorClass}`} aria-hidden="true" />
+          <span className={`size-[7px] shrink-0 ${colorClass}`} aria-hidden="true" />
           <span className="font-body text-[13px] font-semibold text-ink">{label}</span>
         </div>
         <span className="font-mono text-[11.5px] text-muted">{count}</span>

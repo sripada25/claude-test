@@ -10,8 +10,8 @@ export function AddApplicationButton({ onClick }: { onClick: () => void }) {
       aria-label="Add application"
       className="size-11 shrink-0 sm:size-auto sm:justify-start"
     >
+      <Plus size={14} />
       <span className="hidden sm:inline">Add application</span>
-      <Plus size={16} className="sm:hidden" />
     </Button>
   );
 }
