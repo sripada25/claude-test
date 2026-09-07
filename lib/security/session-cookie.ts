@@ -21,6 +21,12 @@ export function sessionCookieOptions(): {
   };
 }
 
+export function getSessionTokenFromRequest(request: Request): string | null {
+  const cookieHeader = request.headers.get("cookie") ?? "";
+  const match = cookieHeader.match(new RegExp(`(?:^|; )${SESSION_COOKIE_NAME}=([^;]+)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 export function clearedSessionCookieOptions(): {
   httpOnly: true;
   secure: boolean;

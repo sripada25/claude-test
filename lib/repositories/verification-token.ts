@@ -5,6 +5,7 @@ export interface VerificationToken {
   userId: string;
   tokenHash: string;
   purpose: string;
+  newEmail: string | null;
   attempts: number;
   expiresAt: Date;
   usedAt: Date | null;
@@ -16,6 +17,7 @@ interface VerificationTokenRow {
   user_id: string;
   token_hash: string;
   purpose: string;
+  new_email: string | null;
   attempts: number;
   expires_at: Date;
   used_at: Date | null;
@@ -28,6 +30,7 @@ function toToken(row: VerificationTokenRow): VerificationToken {
     userId: row.user_id,
     tokenHash: row.token_hash,
     purpose: row.purpose,
+    newEmail: row.new_email,
     attempts: row.attempts,
     expiresAt: row.expires_at,
     usedAt: row.used_at,
@@ -48,12 +51,13 @@ export async function insertToken(params: {
   tokenHash: string;
   purpose: string;
   expiresAt: Date;
+  newEmail?: string;
 }): Promise<VerificationToken> {
   const result = await pool.query<VerificationTokenRow>(
-    `INSERT INTO verification_tokens (user_id, token_hash, purpose, expires_at)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO verification_tokens (user_id, token_hash, purpose, expires_at, new_email)
+     VALUES ($1, $2, $3, $4, $5)
      RETURNING *`,
-    [params.userId, params.tokenHash, params.purpose, params.expiresAt],
+    [params.userId, params.tokenHash, params.purpose, params.expiresAt, params.newEmail ?? null],
   );
   return toToken(result.rows[0]);
 }

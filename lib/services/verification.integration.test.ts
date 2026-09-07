@@ -91,7 +91,10 @@ describe("verification service (real Postgres + Mailpit)", () => {
     await verification.issueOtp(userId, "verify_email", "verify-correct@example.com");
 
     const code = await latestCode();
-    expect(await verification.verifyOtp(userId, "verify_email", code)).toEqual({ success: true });
+    expect(await verification.verifyOtp(userId, "verify_email", code)).toEqual({
+      success: true,
+      newEmail: null,
+    });
   });
 
   it("wrong codes decrement attemptsRemaining and lock on the 5th, even the right code fails after", async () => {
@@ -154,6 +157,7 @@ describe("verification service (real Postgres + Mailpit)", () => {
 
     expect(await verification.verifyOtp(userId, "verify_email", secondCode)).toEqual({
       success: true,
+      newEmail: null,
     });
 
     // First code's token was invalidated by the second issueOtp - a fresh

@@ -22,13 +22,18 @@ function generateCode(): string {
   return randomInt(100000, 1000000).toString();
 }
 
-export async function issueOtp(userId: string, purpose: string, email: string): Promise<void> {
+export async function issueOtp(
+  userId: string,
+  purpose: string,
+  email: string,
+  options: { newEmail?: string } = {},
+): Promise<void> {
   const code = generateCode();
   const tokenHash = hashCode(code);
   const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
 
   await invalidateActiveTokens(userId, purpose);
-  await insertToken({ userId, tokenHash, purpose, expiresAt });
+  await insertToken({ userId, tokenHash, purpose, expiresAt, newEmail: options.newEmail });
 
   await sendEmail({
     to: email,
@@ -47,7 +52,7 @@ export async function issueOtp(userId: string, purpose: string, email: string): 
 }
 
 export type VerifyOtpResult =
-  | { success: true }
+  | { success: true; newEmail: string | null }
   | { success: false; reason: "expired" | "incorrect" | "locked"; attemptsRemaining?: number };
 
 export async function verifyOtp(
@@ -69,7 +74,7 @@ export async function verifyOtp(
 
   if (hashCode(code) === token.tokenHash) {
     await markUsed(token.id);
-    return { success: true };
+    return { success: true, newEmail: token.newEmail };
   }
 
   const attempts = await incrementAttempts(token.id);
