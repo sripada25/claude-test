@@ -94,7 +94,7 @@ F1 P3 Auth API      F1 P4 SSO
 
 | ID | Task | Depends | Env | Notes |
 |---|---|---|---|---|
-| T3.1 | `POST /api/auth/signup` | T2.3 | ✅ | Transactional: `users`+`profiles`+`subscriptions`+`generation_quota` |
+| T3.1 | ✅ DONE — `POST /api/auth/signup` | T2.1, T2.4, T3.5, T7.2 | ✅ | Merged via PR #36 (2026-09-07). Transactional: `users`+`profiles`+`subscriptions`+`generation_quota`. Depends on T3.5 too (issues OTP) - corrected while scoping |
 | T3.2 | `POST /api/auth/login` | T2.3, T2.4 | ✅ | Timing-safe, identical response for unknown-email/wrong-password |
 | T3.3 | `POST /api/auth/logout` | T2.2 | ✅ | Server-side revocation |
 | T3.4 | `GET /api/auth/session` | T2.3 | ✅ | Hydration endpoint |
