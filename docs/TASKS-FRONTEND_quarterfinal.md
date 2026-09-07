@@ -710,7 +710,7 @@ const planLabel =
 
 ---
 
-## M02-07 · `LocationSegmented` ✅
+## M02-07 · `LocationSegmented` ✅ DONE — merged via PR #115 (2026-09-07)
 
 🎨 Label "LOCATION PREFERENCE" · gap `7` · row gap `8` height `38`
 🎨 **Selected:** fill `$m-primary` · stroke `$m-primary` · padding `[8,14]` · text `#FFFFFF` body `12.5`/600
