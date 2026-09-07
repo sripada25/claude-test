@@ -87,7 +87,7 @@ This file is self-contained — you do not need to open these to build a compone
 
 Present on M02, M03, M04, M05. **Absent on M01 and M06.**
 
-## SB-01 · `Sidebar` ✅
+## SB-01 · `Sidebar` ✅ DONE — merged via PR #137 (2026-09-07), as part of M03-01
 
 **Component:** `Sidebar` — container
 
@@ -766,7 +766,7 @@ const planLabel =
 
 Drag mechanics, jank analysis, and scale maths: this screen's tasks carry them inline below.
 
-## M03-01 · `BoardTopBar` ✅
+## M03-01 · `BoardTopBar` ✅ DONE — merged via PR #137 (2026-09-07), also covers SB-01
 
 🎨 fill `$m-surface` · border-bottom `$m-border` 1 · height `64` 🔧 (normalised from 🎨 68) · padding `[0,28]` · gap `14`
 🔧 **Responsive:** filters collapse into a "Filters" sheet below `md`; search stays visible.
