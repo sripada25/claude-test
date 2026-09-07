@@ -1,6 +1,9 @@
 import {
+  findUserApplications,
   insertApplication,
   type Application,
+  type ApplicationListItem,
+  type ApplicationSort,
   type ApplicationSource,
   type ApplicationStatus,
 } from "../repositories/application.ts";
@@ -25,6 +28,8 @@ const VALID_SOURCES: ApplicationSource[] = [
 ];
 
 const MAX_JOB_DESCRIPTION_LENGTH = 15000;
+
+const VALID_SORTS: ApplicationSort[] = ["recent", "oldest_activity", "date_applied", "company_az"];
 
 export interface CreateApplicationInput {
   company: string;
@@ -91,4 +96,37 @@ export async function createApplication(
   });
 
   return { success: true, application };
+}
+
+export interface RawListFilters {
+  q?: string;
+  status?: string[];
+  source?: string[];
+  sort?: string;
+}
+
+// Filter values are validated/normalized here (BACKEND.md - the repository
+// only executes SQL), never passed through raw. Unrecognized status/source
+// values are dropped rather than rejected: a malformed filter shouldn't
+// break board load. An unrecognized sort falls back to the default, never
+// reaches the repository's fixed ORDER BY lookup unresolved.
+export function listApplications(
+  userId: string,
+  raw: RawListFilters,
+): Promise<ApplicationListItem[]> {
+  const q = raw.q?.trim() || undefined;
+
+  const statuses = (raw.status ?? []).filter((value): value is ApplicationStatus =>
+    VALID_STATUSES.includes(value as ApplicationStatus),
+  );
+
+  const sources = (raw.source ?? []).filter((value): value is ApplicationSource =>
+    VALID_SOURCES.includes(value as ApplicationSource),
+  );
+
+  const sort = VALID_SORTS.includes(raw.sort as ApplicationSort)
+    ? (raw.sort as ApplicationSort)
+    : "recent";
+
+  return findUserApplications(userId, { q, statuses, sources, sort });
 }
