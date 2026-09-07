@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { LocationSegmented, type LocationPreference } from "@/components/profile/LocationSegmented";
 import { ProfileFields, type ProfileFieldsValues } from "@/components/profile/ProfileFields";
 import { ResumeDropzone } from "@/components/profile/ResumeDropzone";
 import { SalaryField, type SalaryValues } from "@/components/profile/SalaryField";
@@ -23,6 +24,7 @@ export function ProfileBuilderScreen() {
   const [profileForm, setProfileForm] = useState<ProfileFieldsValues>(EMPTY_PROFILE_FORM);
   const [skills, setSkills] = useState<string[]>([]);
   const [salary, setSalary] = useState<SalaryValues>({ currency: "INR", amount: "", period: "" });
+  const [locationPreference, setLocationPreference] = useState<LocationPreference | "">("");
 
   useEffect(() => {
     if (!extractedProfile) {
@@ -76,6 +78,7 @@ export function ProfileBuilderScreen() {
             values={salary}
             onChange={(patch) => setSalary((current) => ({ ...current, ...patch }))}
           />
+          <LocationSegmented value={locationPreference} onChange={setLocationPreference} />
         </div>
       </main>
     </div>
