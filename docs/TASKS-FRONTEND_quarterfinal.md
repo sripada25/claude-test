@@ -853,7 +853,7 @@ Drag mechanics, jank analysis, and scale maths: this screen's tasks carry them i
 
 ---
 
-## M03-06 · `StageColumn` ✅
+## M03-06 · `StageColumn` ✅ DONE — merged via PR #153 (2026-09-07)
 
 🎨 width `200` fixed · vertical
 🎨 Head: padding `[0,2,10,2]` · `justify space-between` · align center
