@@ -125,7 +125,7 @@ F1 P3 Auth API      F1 P4 SSO
 | T5.1 | ✅ DONE — `AIProvider` interface | T2.3 | ✅ | Merged via PR #69 (2026-09-07). ⭐ Reused by F3, F4 (drafts), F5. Get this right once. Pure types - no adapter, no `ai_usage` writes yet (F3's table doesn't exist) |
 | T5.2 | ✅ DONE — `GeminiAdapter` | T5.1 | ⚙️ | Merged via PR #75 (2026-09-07). PDF sent natively (L061). ⚠️ **No tools, no function calling** (L122). `generateResume` stubbed - needs employment-history data that doesn't exist yet. Uses `@google/genai`. No real API key yet - tests mock the SDK, live verification deferred |
 | T5.3 | Prompt templates, versioned in DB | T5.1 | ✅ | Different providers want different phrasing |
-| T5.4 | `POST /api/profile/parse-resume` | T5.2 | ⚙️ | Validate → extract → **persist nothing** (L049) |
+| T5.4 | ✅ DONE — `POST /api/profile/parse-resume` | T5.2 | ⚙️ | Merged via PR #77 (2026-09-07). Validate → extract → **persist nothing** (L049). Added `lib/ai/provider.ts`'s `AI_PROVIDER` factory (deferred from T5.1) |
 | T5.5 | ✅ DONE — `GET`/`PUT /api/profile` | T1.3, T2.3 | ✅ | Merged via PR #71 (2026-09-07). Session-derived ownership, field whitelist. `completed_at` untouched - reserved for T5.6 |
 | T5.6 | ✅ DONE — Profile completeness rule → `completed_at` | T5.5 | ✅ | Merged via PR #73 (2026-09-07). Gates generation (L047). Recomputed on every PUT, not a one-time milestone - can go back to NULL |
 
