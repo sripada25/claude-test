@@ -100,7 +100,7 @@ F1 P3 Auth API      F1 P4 SSO
 | T3.4 | ✅ DONE — `GET /api/auth/session` | T2.2 | ✅ | Merged via PR #42 (2026-09-07). Hydration endpoint |
 | T3.5 | ✅ DONE — OTP issue + verify | T1.5, T2.5 | ⚙️ | Merged via PR #34 (2026-09-06). Done ahead of T3.1. `verify_email` purpose only - T3.6/T3.7 reuse for their own purposes. 6 digits, hashed, 5 attempts, 10 min. Mailpit → provider at deploy |
 | T3.6 | ✅ DONE — `POST /api/auth/change-email` (+ confirm) | T3.5 | ⚙️ | Merged via PR #44 (2026-09-07). Token to the new address. First protected `/api/auth/*` route - resolves session cookie directly |
-| T3.7 | Forgot password — OTP, works for SSO-only accounts | T3.5 | ⚙️ | **Never a temporary password by email** (L099) |
+| T3.7 | ✅ DONE — Forgot password — OTP, works for SSO-only accounts | T3.5, T2.4 | ⚙️ | Merged via PR #46 (2026-09-07). **Never a temporary password by email** (L099) |
 | T3.8 | `DELETE /api/account` | T2.3, T3.5 | ✅ | Cascade delete (DPDP, L064) |
 | T3.9 | `POST /api/auth/sessions/revoke-all` | T2.2 | ✅ | Log out all devices |
 
