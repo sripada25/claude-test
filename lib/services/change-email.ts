@@ -1,6 +1,7 @@
 import { sendEmail } from "../email/transport.ts";
 import { findUserByEmail, updateEmail } from "../repositories/user.ts";
 import { checkRateLimit, recordAttempt } from "../security/rate-limit.ts";
+import { logSecurityEvent } from "../security/events.ts";
 import { issueOtp, verifyOtp } from "./verification.ts";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -71,6 +72,7 @@ export async function confirmChangeEmail(
 
   if (result.newEmail) {
     await updateEmail(userId, result.newEmail);
+    await logSecurityEvent("email_changed", { userId, metadata: { newEmail: result.newEmail } });
   }
 
   return { success: true };

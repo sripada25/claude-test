@@ -42,7 +42,9 @@ describe("change-email service (real Postgres + Mailpit)", () => {
   }, 90_000);
 
   afterEach(async () => {
-    await pool.query("TRUNCATE users, verification_tokens, email_log, auth_attempts CASCADE");
+    await pool.query(
+      "TRUNCATE users, verification_tokens, email_log, auth_attempts, security_events CASCADE",
+    );
     await fetch(`${mailpitHttpBase}/api/v1/messages`, { method: "DELETE" });
   });
 
@@ -138,6 +140,30 @@ describe("change-email service (real Postgres + Mailpit)", () => {
     );
     expect(user.rows[0].email).toBe("after-confirm@example.com");
     expect(user.rows[0].email_verified_at).not.toBeNull();
+  });
+
+  it("records an email_changed security event on successful confirm", async () => {
+    const userId = await insertUser("before-event@example.com");
+    await changeEmail.requestChangeEmail({ userId, newEmail: "after-event@example.com" });
+
+    const messages = await messagesTo("after-event@example.com");
+    const code = messages[0].Text.match(/\d{6}/)![0];
+
+    await changeEmail.confirmChangeEmail(userId, code);
+
+    const events = await pool.query<{
+      event_type: string;
+      user_id: string | null;
+      metadata: { newEmail?: string };
+    }>("SELECT event_type, user_id, metadata FROM security_events WHERE event_type = 'email_changed'");
+
+    expect(events.rows).toEqual([
+      {
+        event_type: "email_changed",
+        user_id: userId,
+        metadata: { newEmail: "after-event@example.com" },
+      },
+    ]);
   });
 
   it("confirm with the wrong code does not change the email", async () => {
