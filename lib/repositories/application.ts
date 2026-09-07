@@ -34,6 +34,19 @@ export interface Application {
   updatedAt: Date;
 }
 
+export type ApplicationSort = "recent" | "oldest_activity" | "date_applied" | "company_az";
+
+export interface ListApplicationsOptions {
+  q?: string;
+  statuses: ApplicationStatus[];
+  sources: ApplicationSource[];
+  sort: ApplicationSort;
+}
+
+export interface ApplicationListItem extends Application {
+  followUpDue: boolean;
+}
+
 interface ApplicationRow {
   id: string;
   user_id: string;
@@ -101,4 +114,57 @@ export async function insertApplication(
     ],
   );
   return toApplication(result.rows[0]);
+}
+
+const SORT_CLAUSES: Record<ApplicationSort, string> = {
+  recent: "last_activity_at DESC",
+  oldest_activity: "last_activity_at ASC",
+  date_applied: "date_applied DESC NULLS LAST",
+  company_az: "company ASC",
+};
+
+// The sole read path for listing a user's applications (SECURITY_quarterfinal.md
+// §14 / G13) - board, list, search, and filter all go through this one function
+// so the deleted_at IS NULL discipline can't be forgotten on a parallel path.
+export async function findUserApplications(
+  userId: string,
+  opts: ListApplicationsOptions,
+): Promise<ApplicationListItem[]> {
+  const conditions: string[] = ["user_id = $1", "deleted_at IS NULL"];
+  const params: unknown[] = [userId];
+
+  if (opts.q) {
+    params.push(`%${opts.q}%`);
+    conditions.push(`(company ILIKE $${params.length} OR role ILIKE $${params.length})`);
+  }
+
+  if (opts.statuses.length > 0) {
+    params.push(opts.statuses);
+    conditions.push(`status = ANY($${params.length}::application_status[])`);
+  }
+
+  if (opts.sources.length > 0) {
+    params.push(opts.sources);
+    conditions.push(`source = ANY($${params.length}::application_source[])`);
+  }
+
+  const result = await pool.query<ApplicationRow & { follow_up_due: boolean }>(
+    `SELECT id, user_id, company, role, status, job_description, source, source_url, date_applied,
+            assessment_due_at, interview_at, notes, last_activity_at, created_at, updated_at,
+            (
+              status IN ('applied','assessment','interview')
+              AND date_applied IS NOT NULL
+              AND date_applied < (now() - interval '7 days')
+              AND NOT EXISTS (
+                SELECT 1 FROM application_events e
+                WHERE e.application_id = applications.id AND e.type = 'follow_up_sent'
+              )
+            ) AS follow_up_due
+     FROM applications
+     WHERE ${conditions.join(" AND ")}
+     ORDER BY ${SORT_CLAUSES[opts.sort]}`,
+    params,
+  );
+
+  return result.rows.map((row) => ({ ...toApplication(row), followUpDue: row.follow_up_due }));
 }

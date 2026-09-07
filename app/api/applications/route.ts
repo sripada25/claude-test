@@ -1,5 +1,22 @@
 import { NextResponse } from "next/server";
-import { createApplication } from "@/lib/services/application";
+import { createApplication, listApplications } from "@/lib/services/application";
+
+export async function GET(request: Request): Promise<NextResponse> {
+  const userId = request.headers.get("x-user-id");
+  if (!userId) {
+    return NextResponse.json({ success: false, reason: "unauthorized" }, { status: 401 });
+  }
+
+  const url = new URL(request.url);
+  const applications = await listApplications(userId, {
+    q: url.searchParams.get("q") ?? undefined,
+    status: url.searchParams.getAll("status"),
+    source: url.searchParams.getAll("source"),
+    sort: url.searchParams.get("sort") ?? undefined,
+  });
+
+  return NextResponse.json(applications);
+}
 
 export async function POST(request: Request): Promise<NextResponse> {
   const userId = request.headers.get("x-user-id");
