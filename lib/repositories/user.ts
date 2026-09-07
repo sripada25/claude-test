@@ -24,3 +24,22 @@ export async function findUserByEmail(email: string): Promise<UserSummary | null
 export async function markEmailVerified(userId: string): Promise<void> {
   await pool.query(`UPDATE users SET email_verified_at = now() WHERE id = $1`, [userId]);
 }
+
+export interface UserForLogin {
+  id: string;
+  passwordHash: string | null;
+}
+
+// Deliberately separate from findUserByEmail, which never returns
+// password_hash - this is the one function allowed to read it, so no other
+// call site can accidentally receive it.
+export async function findUserForLogin(email: string): Promise<UserForLogin | null> {
+  const result = await pool.query<{ id: string; password_hash: string | null }>(
+    `SELECT id, password_hash FROM users WHERE email = $1`,
+    [email],
+  );
+  if (!result.rows[0]) {
+    return null;
+  }
+  return { id: result.rows[0].id, passwordHash: result.rows[0].password_hash };
+}
