@@ -25,6 +25,14 @@ export async function markEmailVerified(userId: string): Promise<void> {
   await pool.query(`UPDATE users SET email_verified_at = now() WHERE id = $1`, [userId]);
 }
 
+export async function hasPasswordHash(userId: string): Promise<boolean> {
+  const result = await pool.query<{ password_hash: string | null }>(
+    `SELECT password_hash FROM users WHERE id = $1`,
+    [userId],
+  );
+  return result.rows[0]?.password_hash != null;
+}
+
 export async function deleteUser(userId: string): Promise<void> {
   await pool.query(`DELETE FROM users WHERE id = $1`, [userId]);
 }

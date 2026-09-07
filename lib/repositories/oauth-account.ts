@@ -1,6 +1,30 @@
 import { pool } from "../db.ts";
 import type { OauthProvider } from "./oauth-state.ts";
 
+export interface OauthConnection {
+  provider: OauthProvider;
+  connectedAt: Date;
+}
+
+export async function listOauthAccountsForUser(userId: string): Promise<OauthConnection[]> {
+  const result = await pool.query<{ provider: OauthProvider; created_at: Date }>(
+    `SELECT provider, created_at FROM oauth_accounts WHERE user_id = $1 ORDER BY created_at ASC`,
+    [userId],
+  );
+  return result.rows.map((row) => ({ provider: row.provider, connectedAt: row.created_at }));
+}
+
+export async function deleteOauthAccountForUser(
+  userId: string,
+  provider: OauthProvider,
+): Promise<boolean> {
+  const result = await pool.query(
+    `DELETE FROM oauth_accounts WHERE user_id = $1 AND provider = $2`,
+    [userId, provider],
+  );
+  return (result.rowCount ?? 0) > 0;
+}
+
 export async function findOauthAccountByProviderSub(
   provider: OauthProvider,
   providerUserId: string,
