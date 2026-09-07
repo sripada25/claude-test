@@ -840,7 +840,7 @@ Drag mechanics, jank analysis, and scale maths: this screen's tasks carry them i
 
 ---
 
-## M03-05 · `AddApplicationButton` ✅
+## M03-05 · `AddApplicationButton` ✅ DONE — merged via PR #151 (2026-09-07)
 
 🎨 `M/Button` instance (`N6bZj`) with padding overridden to **`[10,18]`** (base `[13,22]`)
 🔧 **`Button size="sm"`** — a third size, not a new component.
