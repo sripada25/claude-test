@@ -4,6 +4,7 @@ import { Bell, Briefcase, FileText, LayoutDashboard, Settings } from "lucide-rea
 import { useEffect } from "react";
 import { NavItem } from "@/components/shell/NavItem";
 import { SidebarBrand } from "@/components/shell/SidebarBrand";
+import { SidebarUser } from "@/components/shell/SidebarUser";
 
 const NAV_ITEMS = [
   { href: "/app/board", label: "Board", icon: LayoutDashboard },
@@ -54,6 +55,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
             ))}
           </nav>
         </div>
+        <SidebarUser />
       </aside>
     </>
   );
