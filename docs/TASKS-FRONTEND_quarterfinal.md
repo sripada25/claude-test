@@ -467,7 +467,7 @@ const planLabel =
 
 ---
 
-## M01-09 · `OtpInput` ⚙️
+## M01-09 · `OtpInput` ⚙️ DONE — merged via PR #93 (2026-09-07)
 
 🎨 **Not drawn** — 🔧 renders inside this card when `mode === 'otp'`.
 🔧 Six single-character boxes styled as `EmailField`, `width 44` each, gap `8`.
