@@ -1,4 +1,5 @@
 import {
+  findUserApplicationById,
   findUserApplications,
   insertApplication,
   type Application,
@@ -96,6 +97,10 @@ export async function createApplication(
   });
 
   return { success: true, application };
+}
+
+export function getApplication(userId: string, id: string): Promise<Application | null> {
+  return findUserApplicationById(userId, id);
 }
 
 export interface RawListFilters {

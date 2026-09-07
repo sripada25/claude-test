@@ -5,6 +5,7 @@ describe("application service (real Postgres)", () => {
   let container: StartedPostgreSqlContainer;
   let createApplication: typeof import("./application.ts")["createApplication"];
   let listApplications: typeof import("./application.ts")["listApplications"];
+  let getApplication: typeof import("./application.ts")["getApplication"];
   let migrate: typeof import("../../scripts/migrate.ts");
   let pool: typeof import("../db.ts")["pool"];
 
@@ -14,7 +15,7 @@ describe("application service (real Postgres)", () => {
 
     migrate = await import("../../scripts/migrate.ts");
     ({ pool } = await import("../db.ts"));
-    ({ createApplication, listApplications } = await import("./application.ts"));
+    ({ createApplication, listApplications, getApplication } = await import("./application.ts"));
 
     await migrate.up();
   }, 60_000);
@@ -313,5 +314,41 @@ describe("application service (real Postgres)", () => {
     expect(byCompany["Already Sent Co"]).toBe(false);
     expect(byCompany["Wrong Status Co"]).toBe(false);
     expect(dueId).toBeTruthy();
+  });
+
+  it("returns the application when owned and not deleted", async () => {
+    const userId = await insertUser("get-owned@example.com");
+    const id = await insertRawApplication(userId, { company: "Owned Co" });
+
+    const result = await getApplication(userId, id);
+
+    expect(result?.company).toBe("Owned Co");
+  });
+
+  it("returns null for another user's application", async () => {
+    const owner = await insertUser("get-owner@example.com");
+    const other = await insertUser("get-other@example.com");
+    const id = await insertRawApplication(owner, { company: "Not Yours Co" });
+
+    expect(await getApplication(other, id)).toBeNull();
+  });
+
+  it("returns null for a soft-deleted application, even for its owner", async () => {
+    const userId = await insertUser("get-deleted@example.com");
+    const id = await insertRawApplication(userId, { company: "Deleted Co", deletedAt: new Date() });
+
+    expect(await getApplication(userId, id)).toBeNull();
+  });
+
+  it("returns null for a nonexistent id", async () => {
+    const userId = await insertUser("get-missing@example.com");
+
+    expect(await getApplication(userId, "00000000-0000-0000-0000-000000000000")).toBeNull();
+  });
+
+  it("returns null for a malformed id, without throwing", async () => {
+    const userId = await insertUser("get-malformed@example.com");
+
+    await expect(getApplication(userId, "not-a-uuid")).resolves.toBeNull();
   });
 });
