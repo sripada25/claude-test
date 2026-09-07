@@ -122,7 +122,7 @@ F1 P3 Auth API      F1 P4 SSO
 
 | ID | Task | Depends | Env | Notes |
 |---|---|---|---|---|
-| T5.1 | `AIProvider` interface | T2.3 | ✅ | ⭐ Reused by F3, F4 (drafts), F5. Get this right once |
+| T5.1 | ✅ DONE — `AIProvider` interface | T2.3 | ✅ | Merged via PR #69 (2026-09-07). ⭐ Reused by F3, F4 (drafts), F5. Get this right once. Pure types - no adapter, no `ai_usage` writes yet (F3's table doesn't exist) |
 | T5.2 | `GeminiAdapter` | T5.1 | ⚙️ | PDF sent natively (L061). ⚠️ **No tools, no function calling** (L122) |
 | T5.3 | Prompt templates, versioned in DB | T5.1 | ✅ | Different providers want different phrasing |
 | T5.4 | `POST /api/profile/parse-resume` | T5.2 | ⚙️ | Validate → extract → **persist nothing** (L049) |
