@@ -75,7 +75,7 @@ describe("POST /api/auth/verify", () => {
       email: "a@example.com",
       emailVerifiedAt: null,
     });
-    verifyOtpMock.mockResolvedValue({ success: true });
+    verifyOtpMock.mockResolvedValue({ success: true, newEmail: null });
     issueSessionMock.mockResolvedValue({
       rawToken: "raw-session-token",
       expiresAt: new Date(),
