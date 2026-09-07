@@ -528,7 +528,7 @@ const planLabel =
 
 ---
 
-## M01-11 · `CreateAccountLink` ✅
+## M01-11 · `CreateAccountLink` ✅ DONE — merged via PR #97 (2026-09-07)
 
 🎨 gap `5` centred · "New here?" body `13`/normal `$m-ink-2` · "Create an account" body `13`/**600** `$m-accent`
 🔧 **onClick:** swaps `mode` to `signup`. **Same route.** A `<button>`, not an `<a>`.
