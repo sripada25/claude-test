@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { AuthCard } from "@/components/auth/AuthCard";
+import { AuthHeading } from "@/components/auth/AuthHeading";
 import { Field } from "@/components/ui/Field";
 
 type AuthMode = "signin" | "signup";
@@ -12,8 +13,6 @@ export function SignInScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const heading =
-    mode === "signin" ? "Sign in to your account" : "Create your account";
   const submitLabel = mode === "signin" ? "Sign in" : "Create account";
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -35,12 +34,7 @@ export function SignInScreen() {
           </span>
         </div>
 
-        <h1 className="mt-[28px] font-display text-[20px] font-semibold tracking-[-0.3px] text-ink sm:text-[23px]">
-          {heading}
-        </h1>
-        <p className="mt-[6px] w-full font-body text-[14px] leading-[1.5] text-ink-2 sm:w-[340px]">
-          Track applications, generate documents, never miss a follow-up.
-        </p>
+        <AuthHeading mode={mode} />
 
         <form className="mt-[26px] flex w-full flex-col gap-4" onSubmit={onSubmit}>
           <Field
