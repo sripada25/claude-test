@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { AuthHeading } from "@/components/auth/AuthHeading";
+import { EmailField } from "@/components/auth/EmailField";
 import { Field } from "@/components/ui/Field";
 
 type AuthMode = "signin" | "signup";
@@ -37,17 +38,7 @@ export function SignInScreen() {
         <AuthHeading mode={mode} />
 
         <form className="mt-[26px] flex w-full flex-col gap-4" onSubmit={onSubmit}>
-          <Field
-            id="email"
-            name="email"
-            label="Email"
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={setEmail}
-            placeholder="you@example.com"
-          />
+          <EmailField value={email} onChange={setEmail} />
           <Field
             id="password"
             name="password"

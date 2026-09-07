@@ -7,10 +7,12 @@ type FieldProps = {
   name: string;
   value: string;
   onChange: (value: string) => void;
+  onBlur?: () => void;
   autoComplete?: string;
   placeholder?: string;
   required?: boolean;
   labelAction?: ReactNode;
+  error?: string;
 };
 
 export function Field({
@@ -20,11 +22,15 @@ export function Field({
   name,
   value,
   onChange,
+  onBlur,
   autoComplete,
   placeholder,
   required,
   labelAction,
+  error,
 }: FieldProps) {
+  const errorId = `${id}-error`;
+
   return (
     <div className="flex w-full flex-col gap-[7px]">
       <div className="flex w-full flex-wrap items-center justify-between gap-x-2 gap-y-1">
@@ -45,8 +51,16 @@ export function Field({
         value={value}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full border border-border bg-surface px-[13px] py-[11px] font-body text-[13.5px] text-ink placeholder:text-muted focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary focus-visible:outline-none"
+        onBlur={onBlur}
+        aria-invalid={!!error}
+        aria-describedby={error ? errorId : undefined}
+        className="w-full border border-border bg-surface px-[13px] py-[11px] font-body text-[13.5px] text-ink placeholder:text-muted focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary focus-visible:outline-none aria-[invalid=true]:border-danger"
       />
+      {error && (
+        <p id={errorId} className="font-body text-[12px] text-danger">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
