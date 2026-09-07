@@ -179,7 +179,7 @@ Present on M02, M03, M04, M05. **Absent on M01 and M06.**
 
 ---
 
-## SB-04 · `SidebarUser` ⚙️
+## SB-04 · `SidebarUser` ⚙️ DONE — merged via PR #143 (2026-09-07)
 
 🎨 Divider `$m-sidebar-2` 1px · row padding `[16,20]` gap `11` align center
 🎨 Avatar `32×32` fill `$m-accent` · initials display **`11.5`**/700 white
