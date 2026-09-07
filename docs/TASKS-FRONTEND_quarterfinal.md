@@ -597,7 +597,7 @@ const planLabel =
 
 ---
 
-## M02-03 · `ResumeDropzone` ✅
+## M02-03 · `ResumeDropzone` ✅ DONE — merged via PR #107 (2026-09-07)
 
 🎨 Label "BASE RESUME (OPTIONAL)" mono `10.5`/600 · gap `8`
 🎨 Hatch: fill **`$m-bg`** · stroke **`$m-border-strong`** 1 · height `76` · gap `8` · centred
