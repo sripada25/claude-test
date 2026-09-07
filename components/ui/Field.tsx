@@ -13,6 +13,7 @@ type FieldProps = {
   required?: boolean;
   labelAction?: ReactNode;
   error?: string;
+  hint?: string;
 };
 
 export function Field({
@@ -28,6 +29,7 @@ export function Field({
   required,
   labelAction,
   error,
+  hint,
 }: FieldProps) {
   const errorId = `${id}-error`;
 
@@ -56,10 +58,12 @@ export function Field({
         aria-describedby={error ? errorId : undefined}
         className="w-full border border-border bg-surface px-[13px] py-[11px] font-body text-[13.5px] text-ink placeholder:text-muted focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary focus-visible:outline-none aria-[invalid=true]:border-danger"
       />
-      {error && (
+      {error ? (
         <p id={errorId} className="font-body text-[12px] text-danger">
           {error}
         </p>
+      ) : (
+        hint && <p className="font-body text-[12px] text-muted">{hint}</p>
       )}
     </div>
   );
