@@ -539,7 +539,7 @@ const planLabel =
 
 ---
 
-## M01-12 · `TermsNotice` ✅
+## M01-12 · `TermsNotice` ✅ DONE — merged via PR #99 (2026-09-07)
 
 🎨 body `11.5`/normal · `lineHeight 1.5` · `textAlign center` · `$m-muted`
 🎨 "By continuing you agree to the Terms and Privacy Policy."
