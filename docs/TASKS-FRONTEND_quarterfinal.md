@@ -797,7 +797,7 @@ Drag mechanics, jank analysis, and scale maths: this screen's tasks carry them i
 
 ---
 
-## M03-03 · `FilterChip` ✅ — three instances
+## M03-03 · `FilterChip` ✅ — three instances — DONE, merged via PR #147 (2026-09-07)
 
 🎨 fill `$m-surface` · stroke `$m-border-strong` 1 · padding `[8,12]` · gap `5`
 🎨 text body `12.5`/500 `$m-ink-2` · icon `chevron-down` `13×13` `$m-muted`
