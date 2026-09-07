@@ -6,6 +6,7 @@ import { FormEvent, useState } from "react";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { AuthHeading } from "@/components/auth/AuthHeading";
 import { EmailField } from "@/components/auth/EmailField";
+import { OrDivider } from "@/components/auth/OrDivider";
 import { PasswordField } from "@/components/auth/PasswordField";
 import { SignInButton } from "@/components/auth/SignInButton";
 import { CSRF_HEADER_NAME, getCsrfToken } from "@/lib/security/csrf-client";
@@ -95,14 +96,7 @@ export function SignInScreen() {
           <SignInButton loading={loading} canSubmit={canSubmit} label={submitLabel} />
         </form>
 
-        <div
-          className="mt-[22px] flex w-full items-center gap-3"
-          aria-hidden="true"
-        >
-          <span className="h-px flex-1 bg-border" />
-          <span className="font-mono text-[11px] text-muted">or</span>
-          <span className="h-px flex-1 bg-border" />
-        </div>
+        <OrDivider />
 
         <div className="mt-[22px] flex w-full flex-col gap-3">
           <button
