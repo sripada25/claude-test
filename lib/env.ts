@@ -32,4 +32,10 @@ export const env = {
   get EMAIL_FROM(): string {
     return required("EMAIL_FROM");
   },
+  get GOOGLE_CLIENT_ID(): string {
+    return required("GOOGLE_CLIENT_ID");
+  },
+  get GOOGLE_CLIENT_SECRET(): string {
+    return required("GOOGLE_CLIENT_SECRET");
+  },
 };

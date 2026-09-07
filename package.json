@@ -28,6 +28,7 @@
   "homepage": "https://github.com/sripada25/claude-test#readme",
   "dependencies": {
     "argon2": "0.45.1",
+    "jose": "6.2.12",
     "next": "^16.3.3",
     "nodemailer": "10.0.0",
     "pg": "8.23.0",
