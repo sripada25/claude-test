@@ -38,12 +38,62 @@ export function SignInScreen() {
     router.push(profile?.completedAt ? "/app/board" : "/app/profile");
   }
 
+  function mapSignupError(reason: string): string {
+    switch (reason) {
+      case "weak_password":
+        return "Use at least 12 characters.";
+      case "invalid_email":
+        return "Enter a valid email address.";
+      case "rate_limited":
+        return "Too many attempts. Try again in a few minutes.";
+      default:
+        return "That didn't work. Try again.";
+    }
+  }
+
+  async function submitLogin() {
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", [CSRF_HEADER_NAME]: getCsrfToken() },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!response.ok) {
+      setFormError(
+        response.status === 429
+          ? "Too many attempts. Try again in a few minutes."
+          : "Incorrect email or password.",
+      );
+      return;
+    }
+
+    await goToProfileOrBoard();
+  }
+
+  async function submitSignup() {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const response = await fetch("/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", [CSRF_HEADER_NAME]: getCsrfToken() },
+      body: JSON.stringify({ email, password, timezone }),
+    });
+    const result = await response.json();
+
+    // Anti-enumeration by design (T3.1): a duplicate email gets the exact
+    // same {success:true} - it silently gets a notice email instead of an
+    // OTP. The frontend can't and shouldn't try to tell the two apart.
+    if (!result.success) {
+      setFormError(mapSignupError(result.reason));
+      return;
+    }
+
+    setMode("otp");
+  }
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    // Only signin submits for real - no M01 task wires up signup's
-    // POST /api/auth/signup yet.
-    if (mode !== "signin" || loading || !canSubmit) {
+    if ((mode !== "signin" && mode !== "signup") || loading || !canSubmit) {
       return;
     }
 
@@ -51,22 +101,11 @@ export function SignInScreen() {
     setFormError(null);
 
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", [CSRF_HEADER_NAME]: getCsrfToken() },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        setFormError(
-          response.status === 429
-            ? "Too many attempts. Try again in a few minutes."
-            : "Incorrect email or password.",
-        );
-        return;
+      if (mode === "signin") {
+        await submitLogin();
+      } else {
+        await submitSignup();
       }
-
-      await goToProfileOrBoard();
     } catch {
       setFormError("That didn't work. Try again.");
     } finally {
