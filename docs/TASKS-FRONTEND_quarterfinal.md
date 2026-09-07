@@ -384,7 +384,7 @@ const planLabel =
 
 ---
 
-## M01-06 · `OrDivider` ✅
+## M01-06 · `OrDivider` ✅ DONE — merged via PR #89 (2026-09-07)
 
 🎨 gap `12` · two 1px `$m-border` rules filling · centre "or" mono `11` `$m-muted`
 🔧 `aria-hidden="true"` — purely visual.
