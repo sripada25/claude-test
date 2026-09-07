@@ -24,9 +24,11 @@ function formatAmount(raw: string): string {
 export function SalaryField({
   values,
   onChange,
+  error,
 }: {
   values: SalaryValues;
   onChange: (patch: Partial<SalaryValues>) => void;
+  error?: string;
 }) {
   const [amountFocused, setAmountFocused] = useState(false);
   const displayAmount = amountFocused ? values.amount : formatAmount(values.amount);
@@ -80,6 +82,7 @@ export function SalaryField({
           ))}
         </div>
       </div>
+      {error && <p className="font-body text-[12px] text-danger">{error}</p>}
     </fieldset>
   );
 }

@@ -1,7 +1,9 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LocationSegmented, type LocationPreference } from "@/components/profile/LocationSegmented";
+import { ProfileActions } from "@/components/profile/ProfileActions";
 import { ProfileFields, type ProfileFieldsValues } from "@/components/profile/ProfileFields";
 import { ResumeDropzone } from "@/components/profile/ResumeDropzone";
 import { SalaryField, type SalaryValues } from "@/components/profile/SalaryField";
@@ -10,6 +12,7 @@ import { SkipLink } from "@/components/profile/SkipLink";
 import { StepChip } from "@/components/profile/StepChip";
 import { BrandMark } from "@/components/ui/BrandMark";
 import type { ExtractedProfile } from "@/lib/ai/types";
+import { CSRF_HEADER_NAME, getCsrfToken } from "@/lib/security/csrf-client";
 
 const EMPTY_PROFILE_FORM: ProfileFieldsValues = {
   fullName: "",
@@ -25,6 +28,11 @@ export function ProfileBuilderScreen() {
   const [skills, setSkills] = useState<string[]>([]);
   const [salary, setSalary] = useState<SalaryValues>({ currency: "INR", amount: "", period: "" });
   const [locationPreference, setLocationPreference] = useState<LocationPreference | "">("");
+  const [fieldErrors, setFieldErrors] = useState<{ fullName?: string; targetRole?: string }>({});
+  const [salaryError, setSalaryError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (!extractedProfile) {
@@ -57,6 +65,76 @@ export function ProfileBuilderScreen() {
     });
   }, [extractedProfile]);
 
+  const isDirty =
+    profileForm.fullName !== "" ||
+    profileForm.currentRole !== "" ||
+    profileForm.targetRole !== "" ||
+    profileForm.yearsExperience !== "0" ||
+    profileForm.monthsExperience !== "0" ||
+    skills.length > 0 ||
+    salary.amount !== "" ||
+    salary.period !== "" ||
+    locationPreference !== "";
+
+  function handleBack() {
+    if (isDirty && !window.confirm("Leave without saving? Your changes will be lost.")) {
+      return;
+    }
+    router.back();
+  }
+
+  async function handleSave() {
+    const nextFieldErrors: { fullName?: string; targetRole?: string } = {};
+    if (!profileForm.fullName.trim()) {
+      nextFieldErrors.fullName = "Enter your name";
+    }
+    if (!profileForm.targetRole.trim()) {
+      nextFieldErrors.targetRole = "Enter the role you're targeting";
+    }
+    setFieldErrors(nextFieldErrors);
+
+    const salaryStarted = salary.amount !== "" || salary.period !== "";
+    const salaryValid = !salaryStarted || (salary.amount !== "" && salary.period !== "" && salary.currency !== "");
+    setSalaryError(
+      salaryValid ? null : "Complete all three - amount, currency, and period - or leave salary blank.",
+    );
+
+    if (Object.keys(nextFieldErrors).length > 0 || !salaryValid) {
+      return;
+    }
+
+    setSaving(true);
+    setSaveError(null);
+
+    const body = {
+      fullName: profileForm.fullName,
+      currentRole: profileForm.currentRole || null,
+      targetRole: profileForm.targetRole,
+      yearsExperience: Number(profileForm.yearsExperience),
+      monthsExperience: Number(profileForm.monthsExperience),
+      skills,
+      salaryAmount: salary.amount ? Number(salary.amount) : null,
+      salaryCurrency: salary.amount ? salary.currency : null,
+      salaryPeriod: salary.amount ? salary.period || null : null,
+      locationPreference: locationPreference || null,
+    };
+
+    const response = await fetch("/api/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", [CSRF_HEADER_NAME]: getCsrfToken() },
+      body: JSON.stringify(body),
+    }).catch(() => null);
+
+    setSaving(false);
+
+    if (!response?.ok) {
+      setSaveError("Something went wrong - try again.");
+      return;
+    }
+
+    router.push("/app/board");
+  }
+
   return (
     <div className="min-h-screen bg-bg">
       <header className="flex h-16 items-center justify-between border-b border-border bg-surface px-8">
@@ -72,13 +150,16 @@ export function ProfileBuilderScreen() {
           <ProfileFields
             values={profileForm}
             onChange={(patch) => setProfileForm((current) => ({ ...current, ...patch }))}
+            errors={fieldErrors}
           />
           <SkillsTagInput skills={skills} onChange={setSkills} />
           <SalaryField
             values={salary}
             onChange={(patch) => setSalary((current) => ({ ...current, ...patch }))}
+            error={salaryError ?? undefined}
           />
           <LocationSegmented value={locationPreference} onChange={setLocationPreference} />
+          <ProfileActions saving={saving} error={saveError} onBack={handleBack} onSave={handleSave} />
         </div>
       </main>
     </div>
