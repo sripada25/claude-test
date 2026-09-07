@@ -6,6 +6,7 @@ import { FormEvent, useState } from "react";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { AuthHeading } from "@/components/auth/AuthHeading";
 import { EmailField } from "@/components/auth/EmailField";
+import { GoogleSSOButton } from "@/components/auth/GoogleSSOButton";
 import { OrDivider } from "@/components/auth/OrDivider";
 import { PasswordField } from "@/components/auth/PasswordField";
 import { SignInButton } from "@/components/auth/SignInButton";
@@ -99,18 +100,7 @@ export function SignInScreen() {
         <OrDivider />
 
         <div className="mt-[22px] flex w-full flex-col gap-3">
-          <button
-            type="button"
-            className="flex w-full items-center justify-center gap-[10px] border border-border-strong bg-surface px-4 py-[11px] font-body text-[13.5px] font-semibold text-ink transition-colors duration-150 hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent focus-visible:outline-none"
-          >
-            <span
-              className="grid size-[18px] place-items-center bg-[#1A73E8] font-display text-[10.5px] font-bold text-white"
-              aria-hidden
-            >
-              G
-            </span>
-            Continue with Google
-          </button>
+          <GoogleSSOButton />
           <button
             type="button"
             className="flex w-full items-center justify-center gap-[10px] border border-border-strong bg-surface px-4 py-[11px] font-body text-[13.5px] font-semibold text-ink transition-colors duration-150 hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent focus-visible:outline-none"
