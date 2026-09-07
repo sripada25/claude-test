@@ -8,6 +8,7 @@ describe("application service (real Postgres)", () => {
   let getApplication: typeof import("./application.ts")["getApplication"];
   let updateApplication: typeof import("./application.ts")["updateApplication"];
   let deleteApplication: typeof import("./application.ts")["deleteApplication"];
+  let emptyTrash: typeof import("./application.ts")["emptyTrash"];
   let migrate: typeof import("../../scripts/migrate.ts");
   let pool: typeof import("../db.ts")["pool"];
 
@@ -17,8 +18,14 @@ describe("application service (real Postgres)", () => {
 
     migrate = await import("../../scripts/migrate.ts");
     ({ pool } = await import("../db.ts"));
-    ({ createApplication, listApplications, getApplication, updateApplication, deleteApplication } =
-      await import("./application.ts"));
+    ({
+      createApplication,
+      listApplications,
+      getApplication,
+      updateApplication,
+      deleteApplication,
+      emptyTrash,
+    } = await import("./application.ts"));
 
     await migrate.up();
   }, 60_000);
@@ -538,5 +545,62 @@ describe("application service (real Postgres)", () => {
       success: false,
       reason: "not_found",
     });
+  });
+
+  it("hard-deletes every trashed application and returns the count", async () => {
+    const userId = await insertUser("empty-trash@example.com");
+    await insertRawApplication(userId, { company: "Trash One", deletedAt: new Date() });
+    await insertRawApplication(userId, { company: "Trash Two", deletedAt: new Date() });
+
+    const result = await emptyTrash(userId);
+
+    expect(result).toEqual({ deletedCount: 2 });
+    const remaining = await pool.query("SELECT 1 FROM applications WHERE user_id = $1", [userId]);
+    expect(remaining.rows).toHaveLength(0);
+  });
+
+  it("never touches a still-active application", async () => {
+    const userId = await insertUser("empty-trash-active@example.com");
+    await insertRawApplication(userId, { company: "Trashed Co", deletedAt: new Date() });
+    const activeId = await insertRawApplication(userId, { company: "Active Co" });
+
+    const result = await emptyTrash(userId);
+
+    expect(result).toEqual({ deletedCount: 1 });
+    const active = await pool.query("SELECT company FROM applications WHERE id = $1", [activeId]);
+    expect(active.rows).toEqual([{ company: "Active Co" }]);
+  });
+
+  it("never touches another user's trash", async () => {
+    const userA = await insertUser("empty-trash-a@example.com");
+    const userB = await insertUser("empty-trash-b@example.com");
+    await insertRawApplication(userA, { company: "A Trash", deletedAt: new Date() });
+    await insertRawApplication(userB, { company: "B Trash", deletedAt: new Date() });
+
+    const result = await emptyTrash(userA);
+
+    expect(result).toEqual({ deletedCount: 1 });
+    const bStillThere = await pool.query("SELECT 1 FROM applications WHERE user_id = $1", [userB]);
+    expect(bStillThere.rows).toHaveLength(1);
+  });
+
+  it("cascades hard delete to application_events", async () => {
+    const userId = await insertUser("empty-trash-cascade@example.com");
+    const id = await insertRawApplication(userId, { deletedAt: new Date() });
+    await insertEvent(id, userId, "note_updated");
+
+    await emptyTrash(userId);
+
+    const events = await pool.query("SELECT 1 FROM application_events WHERE application_id = $1", [
+      id,
+    ]);
+    expect(events.rows).toHaveLength(0);
+  });
+
+  it("returns deletedCount 0 for an already-empty trash", async () => {
+    const userId = await insertUser("empty-trash-noop@example.com");
+    await insertRawApplication(userId, { company: "Active Co" });
+
+    expect(await emptyTrash(userId)).toEqual({ deletedCount: 0 });
   });
 });
