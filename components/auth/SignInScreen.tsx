@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { AuthCard } from "@/components/auth/AuthCard";
 import { Field } from "@/components/ui/Field";
 
 type AuthMode = "signin" | "signup";
@@ -24,7 +25,7 @@ export function SignInScreen() {
       data-pen-id="Ziq0l"
       className="flex min-h-screen items-center justify-center bg-bg px-5 py-10"
     >
-      <main className="w-full max-w-[420px] border border-border bg-surface px-5 py-6 sm:px-10 sm:py-11">
+      <AuthCard>
         <div className="flex items-center gap-[9px]" aria-hidden="true">
           <span className="grid size-[26px] place-items-center bg-accent font-display text-[13px] font-bold text-white">
             T
@@ -162,7 +163,7 @@ export function SignInScreen() {
           </Link>
           .
         </p>
-      </main>
+      </AuthCard>
     </div>
   );
 }
