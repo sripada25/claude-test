@@ -269,7 +269,7 @@ const planLabel =
 
 ---
 
-## M01-03 · `EmailField` ✅
+## M01-03 · `EmailField` ✅ DONE — merged via PR #83 (2026-09-07)
 
 🎨 **Instance of `M/Field`** (`scDqq`) — width `fill_container`
 🎨 Label "EMAIL" mono `10.5`/600 · `letterSpacing 0.8` · `$m-ink-2` · gap `7`
