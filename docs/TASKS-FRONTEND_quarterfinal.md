@@ -133,7 +133,7 @@ Present on M02, M03, M04, M05. **Absent on M01 and M06.**
 
 ---
 
-## SB-03 · `NavItem` ✅
+## SB-03 · `NavItem` ✅ DONE — merged via PR #141 (2026-09-07)
 
 🎨 **From pen** (`N4wTMB`): width `208` · gap `11` · padding `[10,14]`
 
