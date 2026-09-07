@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { BoardTopBar } from "@/components/board/BoardTopBar";
+import { StageColumn } from "@/components/board/StageColumn";
+import { STAGES } from "@/components/board/stages";
 import type { BoardView } from "@/components/board/ViewToggle";
 import { Sidebar } from "@/components/shell/Sidebar";
 
@@ -80,7 +82,23 @@ export function BoardScreen({ initialView }: { initialView: BoardView }) {
           {applications.length} results
         </p>
         <div className="flex-1 overflow-x-auto px-7 py-[26px]">
-          <div className="flex gap-4" />
+          {view === "board" && (
+            <div className="flex gap-4">
+              {STAGES.map((stage) => {
+                const stageApplications = applications.filter((a) => a.status === stage.value);
+                return (
+                  <StageColumn
+                    key={stage.value}
+                    label={stage.label}
+                    colorClass={stage.colorClass}
+                    count={stageApplications.length}
+                  >
+                    {null}
+                  </StageColumn>
+                );
+              })}
+            </div>
+          )}
         </div>
       </main>
     </div>
