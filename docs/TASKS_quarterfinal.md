@@ -110,7 +110,7 @@ F1 P3 Auth API      F1 P4 SSO
 
 | ID | Task | Depends | Env | Notes |
 |---|---|---|---|---|
-| T4.1 | OAuth `state` + PKCE service | T2.2, T1.9 | ✅ | Single-use, 10 min, session-bound (L075) |
+| T4.1 | ✅ DONE — OAuth `state` + PKCE service | T2.2, T1.9 | ✅ | Merged via PR #54 (2026-09-07). Single-use, 10 min, session-bound (L075) |
 | T4.2 | Google OIDC adapter | T4.1 | ⚙️ | `openid profile email` — **name claim only** (L082) |
 | T4.3 | **Callback + account linking** | T4.2, T1.6 | ⚙️ | ⚠️ Auto-link on verified email, invalidate unverified password (L069) — closes pre-registration takeover |
 | T4.4 | LinkedIn adapter | T4.3 | ⏸ | Blocked on company Page (L074) |
