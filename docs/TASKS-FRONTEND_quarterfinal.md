@@ -507,7 +507,7 @@ const planLabel =
 
 ---
 
-## M01-10 · `ForgotPasswordForm` ⚙️
+## M01-10 · `ForgotPasswordForm` ⚙️ DONE — merged via PR #95 (2026-09-07)
 
 🎨 **Not drawn** — 🔧 replaces the card body when `mode === 'forgot'`.
 🔧 Hides password field, SSO group, and "Create an account". Shows `EmailField` + a "Send code" button.

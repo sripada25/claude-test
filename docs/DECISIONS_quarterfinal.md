@@ -154,6 +154,7 @@ docs/
 | L123 | **Soft-delete query discipline (G13)** — every query filters `deleted_at IS NULL` | ✅ |
 | L124 | **Trust-proxy: `TRUST_PROXY` env-gated, spoof-tested post-deploy** — the one control needing environment-specific code | ✅ |
 | L127 | **Nonce-based production CSP forces every page to dynamic rendering** — `await connection()` in every `app/**/page.tsx`, no static optimization/CDN caching going forward | ✅ NEW |
+| L128 | **Forgot-password is a 2-step flow, not 3** — `reset-password` combines verify+set-password in one call, no `/api/auth/set-password` endpoint | ✅ NEW |
 
 ## Tooling & workflow
 
@@ -429,6 +430,17 @@ Full records for **L090–L112** exist in that file and are not reproduced here.
 4. **Could change if:** a future page has a strong performance/caching need that outweighs the strict nonce-based CSP — the fallback path (`next.config.ts`'s static header config + SRI, no nonce) is documented in Next's own guide and was considered, just not chosen here.
 
 **Full spec:** `SECURITY_quarterfinal.md` §5 — T7.1 implementation notes on issue #65.
+
+---
+
+## L128 — Forgot-password is a 2-step flow, not 3
+
+1. **Initially stated:** `TASKS-FRONTEND_quarterfinal.md`'s mode state machine (line 218) and M01-10's own spec both describe `forgot → otp → set-password`, calling `POST /api/auth/forgot-password` → `POST /api/auth/verify` → `POST /api/auth/set-password` as three separate steps.
+2. **What changed:** building M01-10 against the real backend showed `POST /api/auth/verify` is hardcoded to `purpose: "verify_email"` only, and no `/api/auth/set-password` endpoint exists at all. T3.7's actual design (`resetPassword` in `lib/services/forgot-password.ts`) combines verification and the password change into one call — `POST /api/auth/reset-password` takes `{email, code, newPassword}` together, checks the code and sets the password atomically, and returns a session directly.
+3. **Going with:** the frontend flow is two steps, not three — email request, then code+new-password together in one form and one call. No new `/api/auth/set-password` endpoint, no extending `/api/auth/verify` to support a second purpose, no new `AuthHeading` mode for an intermediate "verifying" state. Confirmed with the user rather than building toward the doc's literal (but unimplemented) 3-endpoint shape.
+4. **Could change if:** a future design genuinely wants the code confirmed before the user commits to a new password (e.g. showing "code accepted" before asking for the password) — that would need a real standalone verify-without-setting endpoint, which doesn't exist today and wasn't judged worth adding for this flow.
+
+**Full spec:** M01-10 implementation notes on issue #94.
 
 ---
 
