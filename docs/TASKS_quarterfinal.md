@@ -174,7 +174,7 @@ F1 P3 Auth API      F1 P4 SSO
 | F2-2.4 | `PATCH /api/applications/:id` | F2-2.1 | ✅ | ⚠️ Filter · writes a timeline event (2s debounce) · **same service function used by drag** |
 | F2-2.5 | `DELETE /api/applications/:id` (soft) | F2-2.1 | ✅ | Only when status is Rejected. Sets `deleted_at` |
 | F2-2.6 | `DELETE /api/trash/empty` (hard) | F2-2.5 | ✅ | Immediate hard delete, cascades normally (L113) |
-| F2-2.7 | Timeline event service | F2-1.3 | ✅ | Called by every state change |
+| F2-2.7 | ✅ DONE — Timeline event service | F2-1.3 | ✅ | Merged via PR #129 (2026-09-07). `recordApplicationEvent` — the one path future callers use. `createApplication` (F2-2.1) now writes its `created` event transactionally, closing that loop |
 | F2-2.8 | JD copy-on-write on edit | F2-1.4 | ✅ | Copies old JD into dependent documents |
 | F2-2.9 | ✅ DONE — URL scheme validation | F2-1.2 | ✅ | Merged via PR #123 (2026-09-07), as part of F2-2.1 (`lib/security/url-scheme.ts`). `http`/`https` only. Reject `javascript:`, `data:`, `file:` (L110) |
 
