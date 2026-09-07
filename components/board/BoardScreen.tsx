@@ -1,20 +1,40 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BoardTopBar } from "@/components/board/BoardTopBar";
 import { Sidebar } from "@/components/shell/Sidebar";
+
+interface BoardApplication {
+  id: string;
+  status: string;
+  source: string | null;
+}
 
 export function BoardScreen() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [applications, setApplications] = useState<unknown[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [sourceFilter, setSourceFilter] = useState<string[]>([]);
+  const [sort, setSort] = useState("recent");
+  const [applications, setApplications] = useState<BoardApplication[]>([]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
-      const search = query ? `?q=${encodeURIComponent(query)}` : "";
-      const response = await fetch(`/api/applications${search}`).catch(() => null);
+      const params = new URLSearchParams();
+      if (query) {
+        params.set("q", query);
+      }
+      for (const status of statusFilter) {
+        params.append("status", status);
+      }
+      for (const source of sourceFilter) {
+        params.append("source", source);
+      }
+      params.set("sort", sort);
+
+      const response = await fetch(`/api/applications?${params.toString()}`).catch(() => null);
       if (!response?.ok) {
         return;
       }
@@ -28,13 +48,28 @@ export function BoardScreen() {
     return () => {
       cancelled = true;
     };
-  }, [query]);
+  }, [query, statusFilter, sourceFilter, sort]);
+
+  const hasAnySource = useMemo(
+    () => applications.some((application) => application.source != null),
+    [applications],
+  );
 
   return (
     <div className="flex h-screen bg-bg">
       <Sidebar open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       <main className="flex flex-1 flex-col overflow-hidden">
-        <BoardTopBar onOpenDrawer={() => setDrawerOpen(true)} onQueryChange={setQuery} />
+        <BoardTopBar
+          onOpenDrawer={() => setDrawerOpen(true)}
+          onQueryChange={setQuery}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          sourceFilter={sourceFilter}
+          onSourceFilterChange={setSourceFilter}
+          hasAnySource={hasAnySource}
+          sort={sort}
+          onSortChange={setSort}
+        />
         <p role="status" aria-live="polite" className="sr-only">
           {applications.length} results
         </p>
