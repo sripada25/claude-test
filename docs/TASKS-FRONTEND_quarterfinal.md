@@ -108,7 +108,7 @@ Present on M02, M03, M04, M05. **Absent on M01 and M06.**
 
 ---
 
-## SB-02 · `SidebarBrand` ✅
+## SB-02 · `SidebarBrand` ✅ DONE — merged via PR #139 (2026-09-07)
 
 🎨 padding `[22,20,26,20]` · gap `9` · align center
 🎨 Mark: `26×26` fill `$m-accent` · letter "T" display `13`/700 `#FFFFFF`
