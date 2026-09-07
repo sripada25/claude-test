@@ -6,6 +6,7 @@ describe("application service (real Postgres)", () => {
   let createApplication: typeof import("./application.ts")["createApplication"];
   let listApplications: typeof import("./application.ts")["listApplications"];
   let getApplication: typeof import("./application.ts")["getApplication"];
+  let updateApplication: typeof import("./application.ts")["updateApplication"];
   let migrate: typeof import("../../scripts/migrate.ts");
   let pool: typeof import("../db.ts")["pool"];
 
@@ -15,7 +16,9 @@ describe("application service (real Postgres)", () => {
 
     migrate = await import("../../scripts/migrate.ts");
     ({ pool } = await import("../db.ts"));
-    ({ createApplication, listApplications, getApplication } = await import("./application.ts"));
+    ({ createApplication, listApplications, getApplication, updateApplication } = await import(
+      "./application.ts"
+    ));
 
     await migrate.up();
   }, 60_000);
@@ -365,5 +368,126 @@ describe("application service (real Postgres)", () => {
     const userId = await insertUser("get-malformed@example.com");
 
     await expect(getApplication(userId, "not-a-uuid")).resolves.toBeNull();
+  });
+
+  async function eventsFor(applicationId: string): Promise<{ type: string; description: string }[]> {
+    const result = await pool.query<{ type: string; description: string }>(
+      "SELECT type, description FROM application_events WHERE application_id = $1 AND type != 'created'",
+      [applicationId],
+    );
+    return result.rows;
+  }
+
+  it("changing status writes a status_changed event and bumps last_activity_at", async () => {
+    const userId = await insertUser("patch-status@example.com");
+    const oldActivity = new Date(Date.now() - 10 * 86_400_000);
+    const id = await insertRawApplication(userId, { status: "applied", lastActivityAt: oldActivity });
+
+    const result = await updateApplication(userId, id, { status: "interview" });
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.application.status).toBe("interview");
+    expect(result.application.lastActivityAt.getTime()).toBeGreaterThan(oldActivity.getTime());
+    expect(await eventsFor(id)).toEqual([
+      { type: "status_changed", description: "Status changed to Interview" },
+    ]);
+  });
+
+  it("changing notes writes a note_updated event and bumps last_activity_at", async () => {
+    const userId = await insertUser("patch-notes@example.com");
+    const oldActivity = new Date(Date.now() - 10 * 86_400_000);
+    const id = await insertRawApplication(userId, { lastActivityAt: oldActivity });
+
+    const result = await updateApplication(userId, id, { notes: "Called recruiter" });
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.application.notes).toBe("Called recruiter");
+    expect(result.application.lastActivityAt.getTime()).toBeGreaterThan(oldActivity.getTime());
+    expect(await eventsFor(id)).toEqual([{ type: "note_updated", description: "Note updated" }]);
+  });
+
+  it("changing only company/role writes no event and does not bump last_activity_at", async () => {
+    const userId = await insertUser("patch-company@example.com");
+    const oldActivity = new Date(Date.now() - 10 * 86_400_000);
+    const id = await insertRawApplication(userId, { company: "Old Co", lastActivityAt: oldActivity });
+
+    const result = await updateApplication(userId, id, { company: "New Co" });
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.application.company).toBe("New Co");
+    expect(result.application.lastActivityAt.getTime()).toBe(oldActivity.getTime());
+    expect(await eventsFor(id)).toEqual([]);
+  });
+
+  it("rejects an empty company on patch", async () => {
+    const userId = await insertUser("patch-empty-company@example.com");
+    const id = await insertRawApplication(userId);
+
+    expect(await updateApplication(userId, id, { company: "" })).toEqual({
+      success: false,
+      reason: "missing_company",
+    });
+  });
+
+  it("rejects an invalid status on patch", async () => {
+    const userId = await insertUser("patch-bad-status@example.com");
+    const id = await insertRawApplication(userId);
+
+    expect(await updateApplication(userId, id, { status: "bogus" as never })).toEqual({
+      success: false,
+      reason: "invalid_status",
+    });
+  });
+
+  it("rejects a disallowed source URL scheme on patch", async () => {
+    const userId = await insertUser("patch-bad-url@example.com");
+    const id = await insertRawApplication(userId);
+
+    expect(await updateApplication(userId, id, { sourceUrl: "javascript:alert(1)" })).toEqual({
+      success: false,
+      reason: "invalid_source_url",
+    });
+  });
+
+  it("rejects a job description over 15000 characters on patch", async () => {
+    const userId = await insertUser("patch-long-jd@example.com");
+    const id = await insertRawApplication(userId);
+
+    expect(
+      await updateApplication(userId, id, { jobDescription: "x".repeat(15001) }),
+    ).toEqual({ success: false, reason: "job_description_too_long" });
+  });
+
+  it("returns not_found for another user's application", async () => {
+    const owner = await insertUser("patch-owner@example.com");
+    const other = await insertUser("patch-other@example.com");
+    const id = await insertRawApplication(owner);
+
+    expect(await updateApplication(other, id, { company: "Hijacked" })).toEqual({
+      success: false,
+      reason: "not_found",
+    });
+  });
+
+  it("returns not_found for a soft-deleted application", async () => {
+    const userId = await insertUser("patch-deleted@example.com");
+    const id = await insertRawApplication(userId, { deletedAt: new Date() });
+
+    expect(await updateApplication(userId, id, { company: "Resurrected" })).toEqual({
+      success: false,
+      reason: "not_found",
+    });
+  });
+
+  it("returns not_found for a malformed id", async () => {
+    const userId = await insertUser("patch-malformed@example.com");
+
+    expect(await updateApplication(userId, "not-a-uuid", { company: "X" })).toEqual({
+      success: false,
+      reason: "not_found",
+    });
   });
 });

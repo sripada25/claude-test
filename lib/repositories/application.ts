@@ -142,6 +142,53 @@ export async function findUserApplicationById(
   return result.rows[0] ? toApplication(result.rows[0]) : null;
 }
 
+// Full static column list every time (read-modify-write from the service),
+// not a dynamically-built SQL statement - matches updateProfileFields's
+// style elsewhere in this codebase. Ownership + soft-delete filtered on the
+// write itself, not just the caller's earlier read.
+export async function updateApplicationFields(
+  db: Queryable,
+  userId: string,
+  id: string,
+  fields: Pick<
+    Application,
+    | "company"
+    | "role"
+    | "status"
+    | "jobDescription"
+    | "source"
+    | "sourceUrl"
+    | "dateApplied"
+    | "notes"
+    | "lastActivityAt"
+  >,
+): Promise<Application | null> {
+  const result = await db.query<ApplicationRow>(
+    `UPDATE applications
+     SET company = $3, role = $4, status = $5, job_description = $6, source = $7,
+         source_url = $8, date_applied = $9, notes = $10, last_activity_at = $11,
+         updated_at = now()
+     WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
+     RETURNING id, user_id, company, role, status, job_description, source, source_url, date_applied,
+               assessment_due_at, interview_at, notes, last_activity_at, created_at, updated_at`,
+    [
+      id,
+      userId,
+      fields.company,
+      fields.role,
+      fields.status,
+      fields.jobDescription,
+      fields.source,
+      fields.sourceUrl,
+      fields.dateApplied,
+      fields.notes,
+      fields.lastActivityAt,
+    ],
+  );
+
+  return result.rows[0] ? toApplication(result.rows[0]) : null;
+}
+
 const SORT_CLAUSES: Record<ApplicationSort, string> = {
   recent: "last_activity_at DESC",
   oldest_activity: "last_activity_at ASC",
