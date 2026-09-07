@@ -168,7 +168,7 @@ F1 P3 Auth API      F1 P4 SSO
 
 | ID | Task | Depends | Env | Soft-delete criterion |
 |---|---|---|---|---|
-| F2-2.1 | `POST /api/applications` | F2-1.1, T2.3 | ✅ | — |
+| F2-2.1 | ✅ DONE — `POST /api/applications` | F2-1.1, T2.3 | ✅ | Merged via PR #123 (2026-09-07). Whitelist: company, role, status, jobDescription, source, sourceUrl, dateApplied — confirmed against M04-03/M04-04, not just company/role |
 | F2-2.2 | `GET /api/applications` (search/filter/sort) | F2-2.1 | ✅ | ⚠️ **Must filter `deleted_at IS NULL`** — verified by test |
 | F2-2.3 | `GET /api/applications/:id` | F2-2.1 | ✅ | ⚠️ **Must filter `deleted_at IS NULL`** · ownership from session, never the URL |
 | F2-2.4 | `PATCH /api/applications/:id` | F2-2.1 | ✅ | ⚠️ Filter · writes a timeline event (2s debounce) · **same service function used by drag** |
@@ -176,7 +176,7 @@ F1 P3 Auth API      F1 P4 SSO
 | F2-2.6 | `DELETE /api/trash/empty` (hard) | F2-2.5 | ✅ | Immediate hard delete, cascades normally (L113) |
 | F2-2.7 | Timeline event service | F2-1.3 | ✅ | Called by every state change |
 | F2-2.8 | JD copy-on-write on edit | F2-1.4 | ✅ | Copies old JD into dependent documents |
-| F2-2.9 | URL scheme validation | F2-1.2 | ✅ | `http`/`https` only. Reject `javascript:`, `data:`, `file:` (L110) |
+| F2-2.9 | ✅ DONE — URL scheme validation | F2-1.2 | ✅ | Merged via PR #123 (2026-09-07), as part of F2-2.1 (`lib/security/url-scheme.ts`). `http`/`https` only. Reject `javascript:`, `data:`, `file:` (L110) |
 
 ⚠️ **F2-2.2 and F2-2.3 are the two highest-priority soft-delete tests** — a leak here surfaces a withdrawn application to its own user, which reads as a bug but is an access-control failure (L123).
 
