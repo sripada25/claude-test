@@ -573,7 +573,7 @@ const planLabel =
 
 ---
 
-## M02-02 · `SkipLink` ✅ ⚠️ built, hidden
+## M02-02 · `SkipLink` ✅ ⚠️ built, hidden — DONE, merged via PR #105 (2026-09-07)
 
 🎨 gap `6` · "Skip for now" body `13`/500 `$m-ink-2` · icon `arrow-right` `14×14`
 
