@@ -7,6 +7,7 @@ describe("application service (real Postgres)", () => {
   let listApplications: typeof import("./application.ts")["listApplications"];
   let getApplication: typeof import("./application.ts")["getApplication"];
   let updateApplication: typeof import("./application.ts")["updateApplication"];
+  let deleteApplication: typeof import("./application.ts")["deleteApplication"];
   let migrate: typeof import("../../scripts/migrate.ts");
   let pool: typeof import("../db.ts")["pool"];
 
@@ -16,9 +17,8 @@ describe("application service (real Postgres)", () => {
 
     migrate = await import("../../scripts/migrate.ts");
     ({ pool } = await import("../db.ts"));
-    ({ createApplication, listApplications, getApplication, updateApplication } = await import(
-      "./application.ts"
-    ));
+    ({ createApplication, listApplications, getApplication, updateApplication, deleteApplication } =
+      await import("./application.ts"));
 
     await migrate.up();
   }, 60_000);
@@ -486,6 +486,55 @@ describe("application service (real Postgres)", () => {
     const userId = await insertUser("patch-malformed@example.com");
 
     expect(await updateApplication(userId, "not-a-uuid", { company: "X" })).toEqual({
+      success: false,
+      reason: "not_found",
+    });
+  });
+
+  it("soft-deletes a rejected application", async () => {
+    const userId = await insertUser("delete-rejected@example.com");
+    const id = await insertRawApplication(userId, { status: "rejected" });
+
+    const result = await deleteApplication(userId, id);
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.application.id).toBe(id);
+
+    expect(await getApplication(userId, id)).toBeNull();
+    expect((await listApplications(userId, {})).map((a) => a.id)).not.toContain(id);
+  });
+
+  it("refuses to delete a non-rejected application", async () => {
+    const userId = await insertUser("delete-not-rejected@example.com");
+    const id = await insertRawApplication(userId, { status: "interview" });
+
+    const result = await deleteApplication(userId, id);
+
+    expect(result).toEqual({ success: false, reason: "not_rejected" });
+    expect(await getApplication(userId, id)).not.toBeNull();
+  });
+
+  it("returns not_found deleting another user's application", async () => {
+    const owner = await insertUser("delete-owner@example.com");
+    const other = await insertUser("delete-other@example.com");
+    const id = await insertRawApplication(owner, { status: "rejected" });
+
+    expect(await deleteApplication(other, id)).toEqual({ success: false, reason: "not_found" });
+  });
+
+  it("returns not_found deleting an already-deleted application", async () => {
+    const userId = await insertUser("delete-twice@example.com");
+    const id = await insertRawApplication(userId, { status: "rejected" });
+
+    expect((await deleteApplication(userId, id)).success).toBe(true);
+    expect(await deleteApplication(userId, id)).toEqual({ success: false, reason: "not_found" });
+  });
+
+  it("returns not_found deleting a malformed id", async () => {
+    const userId = await insertUser("delete-malformed@example.com");
+
+    expect(await deleteApplication(userId, "not-a-uuid")).toEqual({
       success: false,
       reason: "not_found",
     });
