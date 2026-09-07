@@ -55,6 +55,7 @@ export function BoardTopBar({
         />
         <SortControl value={sort} onChange={onSortChange} />
       </div>
+      <div className="hidden md:block md:flex-1" />
       <ViewToggle value={view} onChange={onViewChange} />
       <AddApplicationButton onClick={onAddApplication} />
     </header>
