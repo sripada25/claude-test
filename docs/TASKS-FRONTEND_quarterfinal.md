@@ -741,7 +741,7 @@ const planLabel =
 
 ---
 
-## M02-08 · `ProfileActions` ✅
+## M02-08 · `ProfileActions` ✅ DONE — merged via PR #117 (2026-09-07)
 
 🎨 34px spacer · divider `$m-border` 1px · 22px spacer · actions gap `12`
 🎨 **Back:** fill `$m-surface` · stroke **`$m-border-strong`** 1 · padding `[13,22]` · body `13.5`/600 `$m-ink`
