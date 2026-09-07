@@ -3,6 +3,7 @@ import { insertApplicationEvent } from "../repositories/application-event.ts";
 import {
   findUserApplicationById,
   findUserApplications,
+  hardDeleteTrash,
   insertApplication,
   softDeleteApplication,
   updateApplicationFields,
@@ -318,4 +319,11 @@ export async function deleteApplication(userId: string, id: string): Promise<Del
   }
 
   return { success: true, application: deleted };
+}
+
+// No failure mode beyond auth (already handled at the route) - an
+// already-empty trash is a valid no-op, not an error.
+export async function emptyTrash(userId: string): Promise<{ deletedCount: number }> {
+  const deletedCount = await hardDeleteTrash(userId);
+  return { deletedCount };
 }

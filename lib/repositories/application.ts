@@ -205,6 +205,19 @@ export async function softDeleteApplication(userId: string, id: string): Promise
   return result.rows[0] ? toApplication(result.rows[0]) : null;
 }
 
+// Bulk action - the WHERE clause is the entire authorization boundary (no
+// separate ownership check needed, unlike the single-item endpoints).
+// deleted_at IS NOT NULL must never be loosened: this must never be able to
+// touch a still-active application. Cascades to application_events via the
+// existing ON DELETE CASCADE FK (F2-1.3) - nothing new to enforce here.
+export async function hardDeleteTrash(userId: string): Promise<number> {
+  const result = await pool.query(
+    `DELETE FROM applications WHERE user_id = $1 AND deleted_at IS NOT NULL`,
+    [userId],
+  );
+  return result.rowCount ?? 0;
+}
+
 const SORT_CLAUSES: Record<ApplicationSort, string> = {
   recent: "last_activity_at DESC",
   oldest_activity: "last_activity_at ASC",
