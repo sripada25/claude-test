@@ -116,6 +116,31 @@ export async function insertApplication(
   return toApplication(result.rows[0]);
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Independent of findUserApplications (a different access pattern - one row
+// or none, not a filtered array) but enforces the exact same discipline:
+// deleted_at IS NULL and ownership from the session, never the URL
+// (SECURITY_quarterfinal.md §14 - "detail fetch" is explicitly in scope).
+export async function findUserApplicationById(
+  userId: string,
+  id: string,
+): Promise<Application | null> {
+  if (!UUID_PATTERN.test(id)) {
+    return null;
+  }
+
+  const result = await pool.query<ApplicationRow>(
+    `SELECT id, user_id, company, role, status, job_description, source, source_url, date_applied,
+            assessment_due_at, interview_at, notes, last_activity_at, created_at, updated_at
+     FROM applications
+     WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL`,
+    [id, userId],
+  );
+
+  return result.rows[0] ? toApplication(result.rows[0]) : null;
+}
+
 const SORT_CLAUSES: Record<ApplicationSort, string> = {
   recent: "last_activity_at DESC",
   oldest_activity: "last_activity_at ASC",
