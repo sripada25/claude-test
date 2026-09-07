@@ -5,6 +5,7 @@ import { SearchInput } from "@/components/board/SearchInput";
 import { SortControl } from "@/components/board/SortControl";
 import { SourceFilter } from "@/components/board/SourceFilter";
 import { StatusFilter } from "@/components/board/StatusFilter";
+import { ViewToggle, type BoardView } from "@/components/board/ViewToggle";
 
 export function BoardTopBar({
   onOpenDrawer,
@@ -16,6 +17,8 @@ export function BoardTopBar({
   hasAnySource,
   sort,
   onSortChange,
+  view,
+  onViewChange,
 }: {
   onOpenDrawer: () => void;
   onQueryChange: (query: string) => void;
@@ -26,6 +29,8 @@ export function BoardTopBar({
   hasAnySource: boolean;
   sort: string;
   onSortChange: (value: string) => void;
+  view: BoardView;
+  onViewChange: (value: BoardView) => void;
 }) {
   return (
     <header className="flex h-16 shrink-0 items-center gap-[14px] border-b border-border bg-surface px-7">
@@ -47,6 +52,7 @@ export function BoardTopBar({
         />
         <SortControl value={sort} onChange={onSortChange} />
       </div>
+      <ViewToggle value={view} onChange={onViewChange} />
     </header>
   );
 }
