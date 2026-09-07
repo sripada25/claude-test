@@ -126,7 +126,7 @@ F1 P3 Auth API      F1 P4 SSO
 | T5.2 | `GeminiAdapter` | T5.1 | ⚙️ | PDF sent natively (L061). ⚠️ **No tools, no function calling** (L122) |
 | T5.3 | Prompt templates, versioned in DB | T5.1 | ✅ | Different providers want different phrasing |
 | T5.4 | `POST /api/profile/parse-resume` | T5.2 | ⚙️ | Validate → extract → **persist nothing** (L049) |
-| T5.5 | `GET`/`PUT /api/profile` | T1.3, T2.3 | ✅ | Session-derived ownership, field whitelist |
+| T5.5 | ✅ DONE — `GET`/`PUT /api/profile` | T1.3, T2.3 | ✅ | Merged via PR #71 (2026-09-07). Session-derived ownership, field whitelist. `completed_at` untouched - reserved for T5.6 |
 | T5.6 | Profile completeness rule → `completed_at` | T5.5 | ✅ | Gates generation (L047) |
 
 **Reads:** `AI-RULES.md` §2 (all AI ops), §3 (résumé extraction)
