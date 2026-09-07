@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { BoardTopBar } from "@/components/board/BoardTopBar";
+import type { BoardView } from "@/components/board/ViewToggle";
 import { Sidebar } from "@/components/shell/Sidebar";
 
 interface BoardApplication {
@@ -10,8 +11,9 @@ interface BoardApplication {
   source: string | null;
 }
 
-export function BoardScreen() {
+export function BoardScreen({ initialView }: { initialView: BoardView }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [view, setView] = useState<BoardView>(initialView);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [sourceFilter, setSourceFilter] = useState<string[]>([]);
@@ -69,6 +71,8 @@ export function BoardScreen() {
           hasAnySource={hasAnySource}
           sort={sort}
           onSortChange={setSort}
+          view={view}
+          onViewChange={setView}
         />
         <p role="status" aria-live="polite" className="sr-only">
           {applications.length} results
