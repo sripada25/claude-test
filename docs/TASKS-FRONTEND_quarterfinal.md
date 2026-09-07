@@ -632,7 +632,7 @@ const planLabel =
 
 ---
 
-## M02-04 · `ProfileFields` ✅
+## M02-04 · `ProfileFields` ✅ DONE — merged via PR #109 (2026-09-07)
 
 🎨 Two rows, each `gap 20`, each holding two `M/Field` instances (`scDqq`):
 
