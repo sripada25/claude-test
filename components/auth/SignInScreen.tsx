@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { AuthHeading } from "@/components/auth/AuthHeading";
+import { CreateAccountLink } from "@/components/auth/CreateAccountLink";
 import { EmailField } from "@/components/auth/EmailField";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 import { GoogleSSOButton } from "@/components/auth/GoogleSSOButton";
@@ -144,31 +145,10 @@ export function SignInScreen() {
 
             <div className="mt-[26px] h-px w-full bg-border" />
 
-            <p className="mt-[18px] flex justify-center gap-[5px] text-center font-body text-[13px] text-ink-2">
-              {mode === "signin" ? (
-                <>
-                  New here?
-                  <button
-                    type="button"
-                    onClick={() => setMode("signup")}
-                    className="font-semibold text-accent hover:text-accent-hover hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                  >
-                    Create an account
-                  </button>
-                </>
-              ) : (
-                <>
-                  Already have an account?
-                  <button
-                    type="button"
-                    onClick={() => setMode("signin")}
-                    className="font-semibold text-accent hover:text-accent-hover hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                  >
-                    Sign in
-                  </button>
-                </>
-              )}
-            </p>
+            <CreateAccountLink
+              mode={mode === "signin" ? "signin" : "signup"}
+              onSwitch={setMode}
+            />
           </>
         )}
 
