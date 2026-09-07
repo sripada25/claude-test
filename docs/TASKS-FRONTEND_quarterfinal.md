@@ -310,7 +310,7 @@ const planLabel =
 
 ---
 
-## M01-04 · `PasswordField` ✅
+## M01-04 · `PasswordField` ✅ DONE — merged via PR #85 (2026-09-07)
 
 ⚠️ 🎨 **Not an `M/Field` instance** (`oNC08`) — the label row carries a second element.
 
