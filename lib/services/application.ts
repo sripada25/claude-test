@@ -1,3 +1,5 @@
+import { pool } from "../db.ts";
+import { insertApplicationEvent } from "../repositories/application-event.ts";
 import {
   findUserApplicationById,
   findUserApplications,
@@ -86,17 +88,35 @@ export async function createApplication(
     return { success: false, reason: "job_description_too_long" };
   }
 
-  const application = await insertApplication(userId, {
-    company,
-    role,
-    status,
-    jobDescription: input.jobDescription ?? null,
-    source: input.source ?? null,
-    sourceUrl: input.sourceUrl ?? null,
-    dateApplied: input.dateApplied ?? null,
-  });
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
 
-  return { success: true, application };
+    const application = await insertApplication(client, userId, {
+      company,
+      role,
+      status,
+      jobDescription: input.jobDescription ?? null,
+      source: input.source ?? null,
+      sourceUrl: input.sourceUrl ?? null,
+      dateApplied: input.dateApplied ?? null,
+    });
+
+    await insertApplicationEvent(client, {
+      applicationId: application.id,
+      userId,
+      type: "created",
+      description: "Application created",
+    });
+
+    await client.query("COMMIT");
+    return { success: true, application };
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 export function getApplication(userId: string, id: string): Promise<Application | null> {

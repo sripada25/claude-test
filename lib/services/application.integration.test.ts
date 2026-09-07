@@ -75,6 +75,21 @@ describe("application service (real Postgres)", () => {
     );
   }
 
+  it("writes exactly one created event when an application is created", async () => {
+    const userId = await insertUser("created-event@example.com");
+
+    const result = await createApplication(userId, { company: "Acme", role: "Engineer" });
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    const events = await pool.query<{ type: string; description: string }>(
+      "SELECT type, description FROM application_events WHERE application_id = $1",
+      [result.application.id],
+    );
+    expect(events.rows).toEqual([{ type: "created", description: "Application created" }]);
+  });
+
   it("creates an application with the full field set", async () => {
     const userId = await insertUser("full@example.com");
 

@@ -1,4 +1,4 @@
-import { pool } from "../db.ts";
+import { pool, type Queryable } from "../db.ts";
 
 export type ApplicationStatus =
   | "saved"
@@ -86,6 +86,7 @@ function toApplication(row: ApplicationRow): Application {
 }
 
 export async function insertApplication(
+  db: Queryable,
   userId: string,
   input: {
     company: string;
@@ -97,7 +98,7 @@ export async function insertApplication(
     dateApplied: string | null;
   },
 ): Promise<Application> {
-  const result = await pool.query<ApplicationRow>(
+  const result = await db.query<ApplicationRow>(
     `INSERT INTO applications (user_id, company, role, status, job_description, source, source_url, date_applied)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      RETURNING id, user_id, company, role, status, job_description, source, source_url, date_applied,
