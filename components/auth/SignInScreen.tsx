@@ -1,23 +1,65 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { AuthHeading } from "@/components/auth/AuthHeading";
 import { EmailField } from "@/components/auth/EmailField";
 import { PasswordField } from "@/components/auth/PasswordField";
+import { SignInButton } from "@/components/auth/SignInButton";
+import { CSRF_HEADER_NAME, getCsrfToken } from "@/lib/security/csrf-client";
 
 type AuthMode = "signin" | "signup" | "forgot";
 
 export function SignInScreen() {
+  const router = useRouter();
   const [mode, setMode] = useState<AuthMode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const submitLabel = mode === "signin" ? "Sign in" : "Create account";
+  const canSubmit = email.trim() !== "" && password.trim() !== "";
 
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    // Only signin submits for real - no M01 task wires up signup's
+    // POST /api/auth/signup yet.
+    if (mode !== "signin" || loading || !canSubmit) {
+      return;
+    }
+
+    setLoading(true);
+    setFormError(null);
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", [CSRF_HEADER_NAME]: getCsrfToken() },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        setFormError(
+          response.status === 429
+            ? "Too many attempts. Try again in a few minutes."
+            : "Incorrect email or password.",
+        );
+        return;
+      }
+
+      const profileResponse = await fetch("/api/profile");
+      const profile = profileResponse.ok ? await profileResponse.json() : null;
+
+      router.push(profile?.completedAt ? "/app/board" : "/app/profile");
+    } catch {
+      setFormError("That didn't work. Try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -45,12 +87,12 @@ export function SignInScreen() {
             onChange={setPassword}
             onForgotPassword={() => setMode("forgot")}
           />
-          <button
-            type="submit"
-            className="inline-flex w-full items-center justify-center gap-2 bg-primary px-[22px] py-[13px] font-body text-[13.5px] font-semibold tracking-[0.1px] text-primary-foreground transition-colors duration-150 hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent focus-visible:outline-none motion-reduce:transition-none"
-          >
-            {submitLabel}
-          </button>
+          {formError && (
+            <p role="alert" className="font-body text-[12px] text-danger">
+              {formError}
+            </p>
+          )}
+          <SignInButton loading={loading} canSubmit={canSubmit} label={submitLabel} />
         </form>
 
         <div
