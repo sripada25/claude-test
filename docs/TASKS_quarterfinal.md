@@ -173,7 +173,7 @@ F1 P3 Auth API      F1 P4 SSO
 | F2-2.3 | ✅ DONE — `GET /api/applications/:id` | F2-2.1 | ✅ | Merged via PR #127 (2026-09-07). `findUserApplicationById` — same discipline as the list path, own dedicated function. Generic 404 for every not-found reason |
 | F2-2.4 | ✅ DONE — `PATCH /api/applications/:id` | F2-2.1 | ✅ | Merged via PR #131 (2026-09-07). Only status/notes changes write an event (status_changed/note_updated) — matches what event_type supports. Debounce is a frontend concern, not built here |
 | F2-2.5 | ✅ DONE — `DELETE /api/applications/:id` (soft) | F2-2.1 | ✅ | Merged via PR #133 (2026-09-07). Only when status is Rejected. Sets `deleted_at` — `status='rejected'` re-checked in the UPDATE's own WHERE as a race guard |
-| F2-2.6 | `DELETE /api/trash/empty` (hard) | F2-2.5 | ✅ | Immediate hard delete, cascades normally (L113) |
+| F2-2.6 | ✅ DONE — `DELETE /api/trash/empty` (hard) | F2-2.5 | ✅ | Merged via PR #135 (2026-09-07). Immediate hard delete, cascades normally (L113) — never-touches-active-application tested explicitly |
 | F2-2.7 | ✅ DONE — Timeline event service | F2-1.3 | ✅ | Merged via PR #129 (2026-09-07). `recordApplicationEvent` — the one path future callers use. `createApplication` (F2-2.1) now writes its `created` event transactionally, closing that loop |
 | F2-2.8 | JD copy-on-write on edit | F2-1.4 | ✅ | Copies old JD into dependent documents |
 | F2-2.9 | ✅ DONE — URL scheme validation | F2-1.2 | ✅ | Merged via PR #123 (2026-09-07), as part of F2-2.1 (`lib/security/url-scheme.ts`). `http`/`https` only. Reject `javascript:`, `data:`, `file:` (L110) |
