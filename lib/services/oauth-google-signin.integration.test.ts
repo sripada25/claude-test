@@ -100,6 +100,15 @@ describe("completeGoogleSignIn (real Postgres, Google adapter mocked)", () => {
       "SELECT 1 FROM oauth_accounts WHERE provider = 'google' AND provider_user_id = 'google-sub-new'",
     );
     expect(oauthAccount.rows).toHaveLength(1);
+
+    const subscription = await pool.query<{ trial_ends_at: Date }>(
+      "SELECT trial_ends_at FROM subscriptions WHERE user_id = $1",
+      [user.rows[0].id],
+    );
+    const daysUntilTrialEnds =
+      (subscription.rows[0].trial_ends_at.getTime() - Date.now()) / (24 * 60 * 60 * 1000);
+    expect(daysUntilTrialEnds).toBeGreaterThan(11.9);
+    expect(daysUntilTrialEnds).toBeLessThan(12.1);
   });
 
   it("links to an existing verified user without touching their password", async () => {

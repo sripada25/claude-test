@@ -99,11 +99,16 @@ describe("signup service (real Postgres + Mailpit)", () => {
     );
     expect(profile.rows).toEqual([{ full_name: "" }]);
 
-    const subscription = await pool.query<{ tier: string; status: string }>(
-      "SELECT tier, status FROM subscriptions WHERE user_id = $1",
+    const subscription = await pool.query<{ tier: string; status: string; trial_ends_at: Date }>(
+      "SELECT tier, status, trial_ends_at FROM subscriptions WHERE user_id = $1",
       [userId],
     );
-    expect(subscription.rows).toEqual([{ tier: "free", status: "trialing" }]);
+    expect(subscription.rows[0].tier).toBe("free");
+    expect(subscription.rows[0].status).toBe("trialing");
+    const daysUntilTrialEnds =
+      (subscription.rows[0].trial_ends_at.getTime() - Date.now()) / (24 * 60 * 60 * 1000);
+    expect(daysUntilTrialEnds).toBeGreaterThan(11.9);
+    expect(daysUntilTrialEnds).toBeLessThan(12.1);
 
     const quota = await pool.query<{ used: number }>(
       "SELECT used FROM generation_quota WHERE user_id = $1",

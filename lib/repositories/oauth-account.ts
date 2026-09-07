@@ -97,7 +97,10 @@ export async function createUserWithOauth(params: {
       userId,
       params.fullName,
     ]);
-    await client.query(`INSERT INTO subscriptions (user_id) VALUES ($1)`, [userId]);
+    await client.query(
+      `INSERT INTO subscriptions (user_id, trial_ends_at) VALUES ($1, now() + interval '12 days')`,
+      [userId],
+    );
     await client.query(`INSERT INTO generation_quota (user_id, period_start) VALUES ($1, $2)`, [
       userId,
       params.periodStart,
