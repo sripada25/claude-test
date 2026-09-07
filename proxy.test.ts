@@ -153,4 +153,34 @@ describe("proxy", () => {
     expect(response.status).not.toBe(403);
     expect(response.headers.get("x-middleware-request-x-user-id")).toBe("user-123");
   });
+
+  it("applies security headers to a public-path pass-through", async () => {
+    const response = await proxy(requestTo("/signin"));
+
+    expect(response.headers.get("Content-Security-Policy")).toContain("default-src 'self'");
+    expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    expect(response.headers.get("X-Frame-Options")).toBe("DENY");
+    expect(response.headers.get("Referrer-Policy")).toBe("strict-origin-when-cross-origin");
+  });
+
+  it("applies security headers to a 401 deny response", async () => {
+    resolveSessionMock.mockResolvedValue(null);
+
+    const response = await proxy(requestTo("/api/profile", "session=some-raw-token"));
+
+    expect(response.headers.get("Content-Security-Policy")).toBeTruthy();
+    expect(response.headers.get("X-Frame-Options")).toBe("DENY");
+  });
+
+  it("applies security headers to a 403 CSRF-denied response", async () => {
+    const response = await proxy(postRequestTo("/api/auth/login"));
+
+    expect(response.headers.get("Content-Security-Policy")).toBeTruthy();
+  });
+
+  it("never sends Strict-Transport-Security outside production", async () => {
+    const response = await proxy(requestTo("/signin"));
+
+    expect(response.headers.get("Strict-Transport-Security")).toBeNull();
+  });
 });

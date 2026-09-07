@@ -1,4 +1,7 @@
-export default function TermsPage() {
+import { connection } from "next/server";
+
+export default async function TermsPage() {
+  await connection();
   return (
     <main className="mx-auto max-w-[640px] px-5 py-16 font-body text-[14px] leading-[1.5] text-ink-2">
       <h1 className="font-display text-[23px] font-semibold tracking-[-0.3px] text-ink">
