@@ -102,7 +102,7 @@ F1 P3 Auth API      F1 P4 SSO
 | T3.6 | ✅ DONE — `POST /api/auth/change-email` (+ confirm) | T3.5 | ⚙️ | Merged via PR #44 (2026-09-07). Token to the new address. First protected `/api/auth/*` route - resolves session cookie directly |
 | T3.7 | ✅ DONE — Forgot password — OTP, works for SSO-only accounts | T3.5, T2.4 | ⚙️ | Merged via PR #46 (2026-09-07). **Never a temporary password by email** (L099) |
 | T3.8 | ✅ DONE — `DELETE /api/account` | T2.3, T3.5 | ✅ | Merged via PR #48 (2026-09-07). Cascade delete (DPDP, L064) |
-| T3.9 | `POST /api/auth/sessions/revoke-all` | T2.2 | ✅ | Log out all devices |
+| T3.9 | ✅ DONE — `POST /api/auth/sessions/revoke-all` | T2.2 | ✅ | Merged via PR #52 (2026-09-07). Log out all devices, including the current one - revokes unconditionally then clears the cookie |
 
 **Reads:** `SECURITY_quarterfinal.md` §8 (enumeration), §9 (OTP)
 
