@@ -79,6 +79,7 @@ export async function updateProfileFields(
     | "salaryCurrency"
     | "salaryPeriod"
     | "locationPreference"
+    | "completedAt"
   >,
 ): Promise<void> {
   await pool.query(
@@ -86,7 +87,7 @@ export async function updateProfileFields(
      SET full_name = $2, "current_role" = $3, target_role = $4, contact_email = $5,
          years_experience = $6, months_experience = $7, skills = $8,
          salary_amount = $9, salary_currency = $10, salary_period = $11,
-         location_preference = $12, updated_at = now()
+         location_preference = $12, completed_at = $13, updated_at = now()
      WHERE user_id = $1`,
     [
       userId,
@@ -101,6 +102,7 @@ export async function updateProfileFields(
       profile.salaryCurrency,
       profile.salaryPeriod,
       profile.locationPreference,
+      profile.completedAt,
     ],
   );
 }

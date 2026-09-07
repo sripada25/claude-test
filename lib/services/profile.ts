@@ -34,6 +34,19 @@ function normalizeSkills(skills: string[]): string[] {
   return Array.from(new Set(normalized)).slice(0, MAX_SKILLS);
 }
 
+// SCREEN-SPEC-M02.md's resolved open item #3: current_role, salary, and
+// location_preference are never required - only these five gate generation.
+function isComplete(profile: Profile): boolean {
+  return (
+    profile.fullName.trim() !== "" &&
+    profile.targetRole !== null &&
+    profile.targetRole.trim() !== "" &&
+    profile.skills.length > 0 &&
+    profile.yearsExperience !== null &&
+    profile.monthsExperience !== null
+  );
+}
+
 export async function getProfile(userId: string): Promise<Profile> {
   const profile = await findProfileByUserId(userId);
   if (!profile) {
@@ -86,6 +99,12 @@ export async function updateProfile(
   if (salaryFieldsSet !== 0 && salaryFieldsSet !== salaryFields.length) {
     return { success: false, reason: "incomplete_salary" };
   }
+
+  // Recomputed on every save, not a one-time milestone - generation gates on
+  // completed_at IS NOT NULL at the moment of generating, so a stale "was
+  // once complete" timestamp would let it proceed against a profile that's
+  // since lost a required field.
+  merged.completedAt = isComplete(merged) ? (current.completedAt ?? new Date()) : null;
 
   await updateProfileFields(userId, merged);
   return { success: true, profile: merged };
