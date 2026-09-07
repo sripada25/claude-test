@@ -14,7 +14,7 @@ export function PasswordField({
   mode: "signin" | "signup";
   value: string;
   onChange: (value: string) => void;
-  onForgotPassword: () => void;
+  onForgotPassword?: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
 
@@ -45,13 +45,15 @@ export function PasswordField({
       error={error ?? undefined}
       hint={mode === "signup" ? `At least ${MIN_PASSWORD_LENGTH} characters.` : undefined}
       labelAction={
-        <button
-          type="button"
-          onClick={onForgotPassword}
-          className="font-body text-[12px] font-medium text-accent hover:text-accent-hover hover:underline"
-        >
-          Forgot password?
-        </button>
+        onForgotPassword && (
+          <button
+            type="button"
+            onClick={onForgotPassword}
+            className="font-body text-[12px] font-medium text-accent hover:text-accent-hover hover:underline"
+          >
+            Forgot password?
+          </button>
+        )
       }
     />
   );
