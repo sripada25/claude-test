@@ -671,7 +671,7 @@ const planLabel =
 
 ---
 
-## M02-05 · `SkillsTagInput` ✅
+## M02-05 · `SkillsTagInput` ✅ DONE — merged via PR #111 (2026-09-07)
 
 🎨 Label "SKILLS" mono `10.5`/600 · gap `7`
 🎨 Box: fill `$m-surface` · stroke `$m-border` 1 · padding `[10,12]` · gap `8` · horizontal
