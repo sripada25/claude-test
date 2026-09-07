@@ -148,4 +148,86 @@ describe("profile service (real Postgres)", () => {
     expect(row.rows[0].completed_at).toBeNull();
     expect(row.rows[0].source).toBe("manual");
   });
+
+  it("sets completed_at once all five required fields are present", async () => {
+    const userId = await insertUserWithProfile("complete@example.com", "Jane Doe");
+
+    const result = await updateProfile(userId, {
+      targetRole: "Engineer",
+      skills: ["react"],
+      yearsExperience: 3,
+      monthsExperience: 6,
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error("expected success");
+    expect(result.profile.completedAt).not.toBeNull();
+  });
+
+  it("does not set completed_at when a required field is missing", async () => {
+    const userId = await insertUserWithProfile("incomplete@example.com", "Jane Doe");
+
+    const result = await updateProfile(userId, {
+      targetRole: "Engineer",
+      skills: ["react"],
+      yearsExperience: 3,
+      // monthsExperience omitted
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error("expected success");
+    expect(result.profile.completedAt).toBeNull();
+  });
+
+  it("goes back to null if a previously-complete profile loses a required field", async () => {
+    const userId = await insertUserWithProfile("uncomplete@example.com", "Jane Doe");
+    await updateProfile(userId, {
+      targetRole: "Engineer",
+      skills: ["react"],
+      yearsExperience: 3,
+      monthsExperience: 6,
+    });
+
+    const result = await updateProfile(userId, { skills: [] });
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error("expected success");
+    expect(result.profile.completedAt).toBeNull();
+  });
+
+  it("does not bump completed_at on an unrelated edit once already complete", async () => {
+    const userId = await insertUserWithProfile("stable-timestamp@example.com", "Jane Doe");
+    const first = await updateProfile(userId, {
+      targetRole: "Engineer",
+      skills: ["react"],
+      yearsExperience: 3,
+      monthsExperience: 6,
+    });
+    if (!first.success) throw new Error("expected success");
+    const firstCompletedAt = first.profile.completedAt;
+
+    const second = await updateProfile(userId, { currentRole: "Senior Engineer" });
+
+    expect(second.success).toBe(true);
+    if (!second.success) throw new Error("expected success");
+    expect(second.profile.completedAt).toEqual(firstCompletedAt);
+  });
+
+  it("sets completed_at even with current_role, salary, and location_preference absent", async () => {
+    const userId = await insertUserWithProfile("minimal-complete@example.com", "Jane Doe");
+
+    const result = await updateProfile(userId, {
+      targetRole: "Engineer",
+      skills: ["react"],
+      yearsExperience: 0,
+      monthsExperience: 0,
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error("expected success");
+    expect(result.profile.completedAt).not.toBeNull();
+    expect(result.profile.currentRole).toBeNull();
+    expect(result.profile.salaryAmount).toBeNull();
+    expect(result.profile.locationPreference).toBeNull();
+  });
 });
