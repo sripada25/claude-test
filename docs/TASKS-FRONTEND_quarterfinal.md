@@ -217,7 +217,7 @@ const planLabel =
 🎨 Card `D66lO`: width `420` · fill `$m-surface` · stroke `$m-border` 1 · padding `[44,40]`
 🔧 One route, one card. **`mode` state machine:** `signin ⇄ signup → otp` and `signin → forgot → otp → set-password`.
 
-## M01-01 · `AuthCard` ✅
+## M01-01 · `AuthCard` ✅ DONE — merged via PR #79 (2026-09-07)
 
 🎨 Vertical rhythm — the file uses explicit spacer frames:
 
