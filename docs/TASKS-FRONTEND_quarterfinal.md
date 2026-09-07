@@ -345,7 +345,7 @@ const planLabel =
 
 ---
 
-## M01-05 · `SignInButton` ✅
+## M01-05 · `SignInButton` ✅ DONE — merged via PR #87 (2026-09-07)
 
 🎨 **Instance of `M/Button`** (`zK0k4`) — width `fill_container`, icon **disabled**, content "Sign in"
 🎨 Inherited: fill `$m-primary` · padding `[13,22]` · gap `8` · label body `13.5`/600 · `letterSpacing 0.1` · `#FFFFFF`
