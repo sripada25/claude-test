@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ProfileFields, type ProfileFieldsValues } from "@/components/profile/ProfileFields";
 import { ResumeDropzone } from "@/components/profile/ResumeDropzone";
+import { SalaryField, type SalaryValues } from "@/components/profile/SalaryField";
 import { SkillsTagInput } from "@/components/profile/SkillsTagInput";
 import { SkipLink } from "@/components/profile/SkipLink";
 import { StepChip } from "@/components/profile/StepChip";
@@ -21,6 +22,7 @@ export function ProfileBuilderScreen() {
   const [extractedProfile, setExtractedProfile] = useState<ExtractedProfile | null>(null);
   const [profileForm, setProfileForm] = useState<ProfileFieldsValues>(EMPTY_PROFILE_FORM);
   const [skills, setSkills] = useState<string[]>([]);
+  const [salary, setSalary] = useState<SalaryValues>({ currency: "INR", amount: "", period: "" });
 
   useEffect(() => {
     if (!extractedProfile) {
@@ -70,6 +72,10 @@ export function ProfileBuilderScreen() {
             onChange={(patch) => setProfileForm((current) => ({ ...current, ...patch }))}
           />
           <SkillsTagInput skills={skills} onChange={setSkills} />
+          <SalaryField
+            values={salary}
+            onChange={(patch) => setSalary((current) => ({ ...current, ...patch }))}
+          />
         </div>
       </main>
     </div>
