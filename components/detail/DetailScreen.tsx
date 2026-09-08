@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { DetailHeader } from "@/components/detail/DetailHeader";
 import { DetailTopBar } from "@/components/detail/DetailTopBar";
 import { Sidebar } from "@/components/shell/Sidebar";
 
@@ -48,12 +49,23 @@ export function DetailScreen({ id }: { id: string }) {
           <p className="p-7 font-body text-[13px] text-muted">Application not found.</p>
         ) : (
           application && (
-            <DetailTopBar
-              application={application}
-              onStatusChange={(status) =>
-                setApplication((current) => (current ? { ...current, status } : current))
-              }
-            />
+            <>
+              <DetailTopBar
+                application={application}
+                onStatusChange={(status) =>
+                  setApplication((current) => (current ? { ...current, status } : current))
+                }
+              />
+              <div className="flex flex-1 flex-col gap-[22px] overflow-y-auto px-7 py-[26px]">
+                <DetailHeader
+                  company={application.company}
+                  role={application.role}
+                  dateApplied={application.dateApplied}
+                  source={application.source}
+                  sourceUrl={application.sourceUrl}
+                />
+              </div>
+            </>
           )
         )}
       </main>
