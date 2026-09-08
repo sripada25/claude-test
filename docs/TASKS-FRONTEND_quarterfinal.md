@@ -1365,7 +1365,7 @@ const prompt = `Write a cover letter for this job: ${jd}`;
 
 ---
 
-## M05-04 · `DetailHeader` ✅
+## M05-04 · `DetailHeader` ✅ DONE — merged via PR #189 (2026-09-08), also fixed a date_applied timezone bug (see DATABASE_quarterfinal.md)
 
 🎨 Title "Razorpay — Product Designer II" display `22`/600 · `letterSpacing -0.3` · `$m-ink`
 🎨 Chip row gap `8` — `M/Tag` sized, fill `$m-surface-2`, mono `10.5`/600 `$m-ink-2`

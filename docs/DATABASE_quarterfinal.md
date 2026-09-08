@@ -315,6 +315,8 @@ CREATE INDEX idx_applications_trash
   WHERE deleted_at IS NOT NULL;
 ```
 
+⚠️ **`DATE` columns need the `lib/db.ts` type-parser override to read back correctly (fixed 2026-09-08, M05-04).** `node-postgres` parses `DATE` (OID 1082) into a JS `Date` object using the Node process's *local* timezone by default; serializing that via `JSON.stringify()` → `.toISOString()` then shifts it to UTC, silently corrupting the calendar date by a day whenever the server's local UTC offset isn't zero. `date_applied` was affected — latent since F2, only caught when M05-04 became the first place to read it back and display it. `lib/db.ts` now registers `types.setTypeParser(1082, v => v)` globally, so this is already handled for every current and future `DATE` column — no per-column action needed, just don't re-introduce a `Date`-object conversion on top of it.
+
 ### Only `company` and `role` are required
 
 Designer's note, M04: *"a tracker that refuses partial records doesn't get used during a burst of applying."* Resist adding `NOT NULL`.
