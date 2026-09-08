@@ -13,6 +13,7 @@ import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useEffect, useMemo, useState } from "react";
 import { ApplicationCard } from "@/components/board/ApplicationCard";
 import { BoardTopBar } from "@/components/board/BoardTopBar";
+import { Drawer } from "@/components/board/Drawer";
 import { EmptyColumn } from "@/components/board/EmptyColumn";
 import { ErrorToast } from "@/components/board/ErrorToast";
 import { StageColumn } from "@/components/board/StageColumn";
@@ -217,6 +218,11 @@ export function BoardScreen({
       {errorMessage && (
         <ErrorToast message={errorMessage} onDismiss={() => setErrorMessage(null)} />
       )}
+      <Drawer open={addDrawerOpen} onClose={() => setAddDrawerOpen(false)} isDirty={false}>
+        <h2 id="drawer-title" className="p-7 font-display text-[19px] font-semibold text-ink">
+          Add application
+        </h2>
+      </Drawer>
     </div>
   );
 }
