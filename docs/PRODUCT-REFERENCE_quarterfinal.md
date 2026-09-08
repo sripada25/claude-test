@@ -64,8 +64,8 @@ Replaces the single-point-in-time `F1-READINESS.md`. This table is designed to b
 
 | | |
 |---|---|
-| **Backend** | 14 tasks, `TASKS_quarterfinal.md` §F2 |
-| **Frontend** | M03 (13) + M04 (6) + M05 (10) = 29 components |
+| **Backend** | 16 tasks, `TASKS_quarterfinal.md` §F2 |
+| **Frontend** | M03 (15) + M04 (6) + M05 (10) = 31 components |
 | **Schema** | Complete — `DATABASE_quarterfinal.md` §3 |
 | **Security** | Soft-delete discipline (L123) is F2's dominant risk — 2 tests specifically target it |
 | **Blocking** | Nothing |
