@@ -12,6 +12,7 @@ import {
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useEffect, useMemo, useState } from "react";
 import { ApplicationCard } from "@/components/board/ApplicationCard";
+import { ApplicationFields, type ApplicationFieldsValues } from "@/components/board/ApplicationFields";
 import { BoardTopBar } from "@/components/board/BoardTopBar";
 import { Drawer } from "@/components/board/Drawer";
 import { DrawerHeader } from "@/components/board/DrawerHeader";
@@ -26,6 +27,15 @@ import { CSRF_HEADER_NAME, getCsrfToken } from "@/lib/security/csrf-client";
 function stageLabel(id: string | number | undefined): string {
   return STAGES.find((stage) => stage.value === id)?.label ?? "the board";
 }
+
+const INITIAL_DRAFT: ApplicationFieldsValues = {
+  company: "",
+  role: "",
+  status: "saved",
+  dateApplied: "",
+  source: "",
+  sourceUrl: "",
+};
 
 const dragAnnouncements: Announcements = {
   onDragStart: () => "Picked up application card.",
@@ -64,6 +74,7 @@ export function BoardScreen({
   const [sort, setSort] = useState("recent");
   const [applications, setApplications] = useState<BoardApplication[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [draft, setDraft] = useState<ApplicationFieldsValues>(INITIAL_DRAFT);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
@@ -145,6 +156,19 @@ export function BoardScreen({
     void moveApplication(application.id, application.status, String(over.id));
   }
 
+  function updateDraft(patch: Partial<ApplicationFieldsValues>) {
+    setDraft((current) => ({ ...current, ...patch }));
+  }
+
+  function closeAddDrawer() {
+    setAddDrawerOpen(false);
+    setDraft(INITIAL_DRAFT);
+  }
+
+  const isDraftDirty = Object.keys(INITIAL_DRAFT).some(
+    (key) => draft[key as keyof ApplicationFieldsValues] !== INITIAL_DRAFT[key as keyof ApplicationFieldsValues],
+  );
+
   const hasAnySource = useMemo(
     () => applications.some((application) => application.source != null),
     [applications],
@@ -219,8 +243,11 @@ export function BoardScreen({
       {errorMessage && (
         <ErrorToast message={errorMessage} onDismiss={() => setErrorMessage(null)} />
       )}
-      <Drawer open={addDrawerOpen} onClose={() => setAddDrawerOpen(false)} isDirty={false}>
+      <Drawer open={addDrawerOpen} onClose={closeAddDrawer} isDirty={isDraftDirty}>
         <DrawerHeader title="Add application" />
+        <div className="flex flex-col gap-[18px] overflow-y-auto px-7 pt-6">
+          <ApplicationFields values={draft} onChange={updateDraft} />
+        </div>
       </Drawer>
     </div>
   );
