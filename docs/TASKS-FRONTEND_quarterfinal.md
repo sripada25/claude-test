@@ -950,7 +950,7 @@ Drag mechanics, jank analysis, and scale maths: this screen's tasks carry them i
 
 ---
 
-## M03-09 · `CardTag` ✅
+## M03-09 · `CardTag` ✅ DONE — merged via PR #161 (2026-09-08), age/follow-up/date tags only
 
 🎨 **Two variants:**
 
@@ -967,11 +967,13 @@ Drag mechanics, jank analysis, and scale maths: this screen's tasks carry them i
 
 | Tag | Stage | Derived from | Column exists? |
 |---|---|---|---|
-| `2d` | all | `last_activity_at` | ✅ |
-| **`Follow up`** | Applied | computed — see below | ✅ derivable |
-| `Doc` | any | count of `documents` | ✅ |
-| `Due Fri` | **Assess** | `assessment_due_at` | ✅ added |
-| `Tue 3pm` | **Interview** | `interview_at`, written by F5 | ✅ added |
+| `2d` | all | `last_activity_at` | ✅ built (PR #161) |
+| **`Follow up`** | Applied | computed — see below | ✅ built (PR #161) |
+| `Doc` | any | count of `documents` | ⚠️ **not built** — `documents` table doesn't exist (F3-forward, no migration; this row's old "✅" was wrong) |
+| `Due Fri` | **Assess** | `assessment_due_at` | ✅ built (PR #161) |
+| `Tue 3pm` | **Interview** | `interview_at`, written by F5 | ✅ built (PR #161) |
+
+⚠️ **Undocumented tag found in the mockup (2026-09-08, not built):** a `Call log` tag appears on 2/9 example cards, absent from this table entirely. Traced to `application_events.type = 'call_logged'` (enum exists in `DATABASE_quarterfinal.md` §3.2) — but there's no API to count or create these events, and no F4 call-logging UI. Needs a task of its own once F4's call-logging surface exists.
 
 ### ⚠️ `Follow up` is a derived state, not a stored flag
 
