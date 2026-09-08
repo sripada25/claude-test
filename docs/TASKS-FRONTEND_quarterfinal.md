@@ -885,7 +885,7 @@ Drag mechanics, jank analysis, and scale maths: this screen's tasks carry them i
 
 ---
 
-## M03-07 · `ColumnHeader` ✅ — collapse control
+## M03-07 · `ColumnHeader` ✅ DONE — merged via PR #157 (2026-09-08)
 
 🔧 **Collapse fires on the header only**, not the whole column — clicking empty space near a card is a frequent misclick.
 
