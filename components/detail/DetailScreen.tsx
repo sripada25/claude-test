@@ -15,6 +15,7 @@ export interface ApplicationDetail {
   source: string | null;
   sourceUrl: string | null;
   jobDescription: string | null;
+  notes: string | null;
 }
 
 export function DetailScreen({ id }: { id: string }) {
@@ -73,7 +74,9 @@ export function DetailScreen({ id }: { id: string }) {
                       <DetailTabs
                         applicationId={application.id}
                         jobDescription={application.jobDescription}
+                        notes={application.notes}
                         refreshSignal={refreshSignal}
+                        onNotesSaved={() => setRefreshSignal((current) => current + 1)}
                       />
                     </Suspense>
                   </div>

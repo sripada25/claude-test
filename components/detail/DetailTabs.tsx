@@ -3,6 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useRef, type KeyboardEvent } from "react";
 import { JobDescriptionPanel } from "@/components/detail/JobDescriptionPanel";
+import { NotesField } from "@/components/detail/NotesField";
 import { Timeline } from "@/components/detail/Timeline";
 
 const TABS = [
@@ -21,11 +22,15 @@ const EMPTY_STATES: Record<string, string> = {
 export function DetailTabs({
   applicationId,
   jobDescription,
+  notes,
   refreshSignal,
+  onNotesSaved,
 }: {
   applicationId: string;
   jobDescription: string | null;
+  notes: string | null;
   refreshSignal: number;
+  onNotesSaved: () => void;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -100,6 +105,7 @@ export function DetailTabs({
             <div className="flex flex-col gap-5">
               <JobDescriptionPanel jobDescription={jobDescription} />
               <Timeline applicationId={applicationId} refreshSignal={refreshSignal} />
+              <NotesField applicationId={applicationId} notes={notes} onSaved={onNotesSaved} />
             </div>
           ) : (
             <p className="font-body text-[13px] text-muted">{EMPTY_STATES[tab.key]}</p>
