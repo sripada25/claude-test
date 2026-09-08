@@ -1109,11 +1109,13 @@ const move = async (id, from, to) => {
 
 **Designer's intent:** *"Company and role are the only required fields — a tracker that refuses partial records doesn't get used during a burst of applying."* · *"Pasted JD text is untrusted input… a JD containing 'ignore previous instructions' is a live attack path."* · *"The generate checkbox is a shortcut into the generation flow, not a second way to generate. Unchecked by default."*
 
-## M04-01 · `Drawer` ✅
+## M04-01 · `Drawer` ✅ DONE — merged via PR #171 (2026-09-08)
 
 🎨 width `410` · height full · fill `$m-surface` · stroke `$m-border` `{left:1}` · `justify space-between`
 🎨 Board behind: **`opacity: 0.45`** — ⚠️ **the sidebar is not dimmed**
 ⚠️ 🎨 **No backdrop element exists.** 🔧 Add one for click-outside.
+⚠️ 🎨 **Also has a left-facing drop shadow** (`outer, offset {x:-6,y:0}, blur 28, color #15181C26`), found by direct inspection — missing from this bullet list originally.
+⚠️ **No mockup exists for the dirty-state-confirm dialog below.** Built as a plain `window.confirm()` for now — a real design is needed if a custom dialog is wanted later.
 
 ```jsx
 <>
