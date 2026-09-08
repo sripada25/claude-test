@@ -163,7 +163,7 @@ F1 P3 Auth API      F1 P4 SSO
 | F2-1.3 | ✅ DONE — `application_events` — timeline | F2-1.1 | ✅ | Merged via PR #121 (2026-09-07). Append-only, never updated |
 | F2-1.4 | `documents.jd_snapshot` column | F2-1.1 | ✅ | ⚠️ Blocked — `documents` table doesn't exist yet (F3, not built). NULL = same as current JD (L090) |
 | F2-1.5 | ✅ DONE — `idx_applications_board` composite index | F2-1.1 | ✅ | Merged via PR #119 (2026-09-07), as part of 010_applications. `(user_id, status, last_activity_at DESC) WHERE deleted_at IS NULL` |
-| F2-1.6 | `applications.position` column + index (L129) | F2-1.1 | ✅ | Migration 012. `DOUBLE PRECISION`, nullable, fractional indexing, scoped per `user_id + status`. New composite index `(user_id, status, position)` for Manual sort only — `idx_applications_board` (F2-1.5) is untouched, still serves the 4 computed sorts |
+| F2-1.6 | ✅ DONE — `applications.position` column + index (L129) | F2-1.1 | ✅ | Merged via PR #199 (2026-09-08). Migration 012. `DOUBLE PRECISION`, nullable, fractional indexing, scoped per `user_id + status`. New composite index `(user_id, status, position)` for Manual sort only — `idx_applications_board` (F2-1.5) is untouched, still serves the 4 computed sorts |
 
 ## F2-API — Endpoints
 
