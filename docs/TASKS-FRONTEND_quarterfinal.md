@@ -1152,7 +1152,7 @@ const move = async (id, from, to) => {
 
 ---
 
-## M04-03 · `ApplicationFields` ✅
+## M04-03 · `ApplicationFields` ✅ DONE — merged via PR #175 (2026-09-08)
 
 🎨 Form padding `[24,28,0,28]` · **gap `18`** ⚠️ tighter than M02's 22 — drawers are denser.
 🎨 Five `M/Field` instances (`scDqq`), all `fill_container`:
