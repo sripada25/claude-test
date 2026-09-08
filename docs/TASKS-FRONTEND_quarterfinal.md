@@ -1193,7 +1193,7 @@ const move = async (id, from, to) => {
 
 ---
 
-## M04-04 · `JobDescriptionField` ✅
+## M04-04 · `JobDescriptionField` ✅ DONE — merged via PR #177 (2026-09-08), text capture only
 
 ⚠️ 🎨 **Not an `M/Field`** (`dzkOx`) — the label row carries a counter. **Reuse M01's `labelAction` slot.**
 
@@ -1216,6 +1216,8 @@ const move = async (id, from, to) => {
 ```
 
 🔧 **Counter turns `$m-danger` past 90%.** `maxLength` caps client-side; **the DB `CHECK (length ≤ 15000)` is authoritative.**
+
+⚠️ **This task built text-capture only (2026-09-08).** Everything below this point — the AI-layer prompt-injection defenses and the `documents.jd_snapshot` copy-on-write rule — is F3 (AI Generation) scope. F3 isn't built (no `documents` table, no generation code). Whoever builds F3's actual generation call must implement these; they are not enforced anywhere yet.
 
 ### 🔴 Prompt injection — the most important item on this screen
 
