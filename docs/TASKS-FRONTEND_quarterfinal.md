@@ -1289,7 +1289,7 @@ const prompt = `Write a cover letter for this job: ${jd}`;
 
 ---
 
-## M04-06 · `DrawerActions` ✅
+## M04-06 · `DrawerActions` ✅ DONE — merged via PR #181 (2026-09-08), M04 complete
 
 🎨 padding `[20,28,24,28]` · gap `12` · `justify end` · rule above
 🎨 **Cancel:** fill `$m-surface` · stroke `$m-border-strong` 1 · padding `[13,20]` · body `13.5`/600 `$m-ink`
@@ -1299,6 +1299,8 @@ const prompt = `Write a cover letter for this job: ${jd}`;
 
 🔧 **Cancel:** dirty check, then close.
 🔧 **Save:** validate company + role → POST → close → the card appears.
+
+⚠️ **Found while wiring this (2026-09-08):** `createApplication`'s optional-field checks treat a non-`null` value as "provided" — an empty string isn't `null`, so a blank Source URL ran `isAllowedUrlScheme("")` (throws internally, returns `false`) and incorrectly rejected the whole save with `invalid_source_url`, even though the field was never touched. Fixed client-side: empty optional fields (`dateApplied`, `source`, `sourceUrl`, `jobDescription`) are normalized to `null` before POSTing, not left as `""`.
 🔧 **Loading:** disable both, spinner in Save. Prevents duplicate applications.
 
 🔧 **Responsive:** ⚠️ **Full-width stacked buttons below `md`**, Save on top. The bar stays pinned to the bottom of the full-screen drawer.
