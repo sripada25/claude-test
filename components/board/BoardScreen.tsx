@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { ApplicationCard } from "@/components/board/ApplicationCard";
 import { BoardTopBar } from "@/components/board/BoardTopBar";
 import { StageColumn } from "@/components/board/StageColumn";
 import { STAGES } from "@/components/board/stages";
@@ -11,6 +12,8 @@ interface BoardApplication {
   id: string;
   status: string;
   source: string | null;
+  company: string;
+  role: string;
 }
 
 export function BoardScreen({
@@ -113,7 +116,15 @@ export function BoardScreen({
                     collapsed={collapsedStages.includes(stage.value)}
                     onToggleCollapse={() => toggleCollapsed(stage.value)}
                   >
-                    {null}
+                    {stageApplications.map((application) => (
+                      <ApplicationCard
+                        key={application.id}
+                        id={application.id}
+                        company={application.company}
+                        role={application.role}
+                        colorClass={stage.colorClass}
+                      />
+                    ))}
                   </StageColumn>
                 );
               })}
