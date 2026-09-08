@@ -1011,9 +1011,11 @@ AND NOT EXISTS (SELECT 1 FROM application_events
 
 ---
 
-## M03-11 · `CollapsedColumn` ✅
+## M03-11 · `CollapsedColumn` ✅ DONE — merged via PR #165 (2026-09-08)
 
 🎨 width `56` · height `220` · padding `[4,0]` · vertical · align center
+
+⚠️ **Corrections from direct mockup inspection (2026-09-08):** the mockup node also has `opacity: 0.55` on the whole rail, missing from this bullet list and from the JSX example below — built with it. The `height: 220` above conflicts with the JSX example, which has no height class at all; that 220 was this specific mockup screenshot's incidental frame size, not a real constraint — built content-sized, matching the code.
 🎨 dot `7×7` `$m-danger` · label body `12.5`/600 `$m-ink-2` **`rotation: -90`** · count mono `12` `$m-muted`
 
 ```jsx
