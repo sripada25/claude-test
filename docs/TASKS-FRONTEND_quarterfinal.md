@@ -1349,11 +1349,13 @@ const prompt = `Write a cover letter for this job: ${jd}`;
 
 ---
 
-## M05-03 · `OverflowMenu` ✅
+## M05-03 · `OverflowMenu` ✅ DONE — merged via PR #187 (2026-09-08), Delete + Duplicate work; Edit has no destination yet
 
 🎨 icon `ellipsis` `19×19` `$m-ink-2`
 🔧 **Contains Delete** — available **only when status is Rejected**. Soft-deletes to trash; the user later empties trash for a hard delete.
 🔧 Also: Edit · Duplicate.
+
+⚠️ **Confirmed via a full text scan of the M05 mockup (2026-09-08, checked twice): no Edit-form or Duplicate-flow design exists anywhere.** Duplicate was built anyway (no new screen needed — POST a copy via the existing create endpoint, navigate to it). **Edit is a real gap: visible in the menu, but non-functional** until a task exists for an actual edit form. Needs its own task once designed.
 🔧 **Database:** sets `applications.deleted_at`. ⚠️ **Every board, list, search and export query must filter `deleted_at IS NULL`.**
 🔧 **A11y:** `aria-label="More actions"` · `aria-haspopup="menu"` · arrow-key navigation · Escape closes.
 
