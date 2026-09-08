@@ -1247,12 +1247,15 @@ const prompt = `Write a cover letter for this job: ${jd}`;
 
 ---
 
-## M04-05 · `GenerateCheckbox` ✅
+## M04-05 · `GenerateCheckbox` ✅ DONE — merged via PR #179 (2026-09-08)
 
 🎨 gap `11` · checkbox is an `M/Checkbox` instance (`pksBX`)
 🎨 **Checked:** fill `$m-primary` · stroke `$m-primary` · check icon `13×13` `#FFFFFF`
 🎨 **Unchecked** (base): fill `$m-surface` · stroke `$m-border-strong` `1.3`
+🎨 **Disabled** (found 2026-09-08, not in this list before): fill `$m-surface-2` · stroke `$m-border` `1.3` — the doc never described this state; the mockup's own `M/Checkbox — Disabled` component did.
 🎨 Label body `13`/normal `$m-ink` + icon `info` `13×13`
+
+⚠️ **Mockup's checked-state check icon is `#16324F` (same as its own fill, invisible) — an authoring bug.** Built white per this doc's own instruction above, not the mockup's literal color.
 
 ⚠️ 🔧 **The mockup shows it checked; the designer's note says unchecked by default. Follow the note** — the mockup is demonstrating the checked appearance.
 
