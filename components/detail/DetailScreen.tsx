@@ -20,6 +20,7 @@ export interface ApplicationDetail {
 export function DetailScreen({ id }: { id: string }) {
   const [application, setApplication] = useState<ApplicationDetail | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [refreshSignal, setRefreshSignal] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,6 +57,7 @@ export function DetailScreen({ id }: { id: string }) {
                 onStatusChange={(status) =>
                   setApplication((current) => (current ? { ...current, status } : current))
                 }
+                onStatusConfirmed={() => setRefreshSignal((current) => current + 1)}
               />
               <div className="flex flex-1 flex-col gap-[22px] overflow-y-auto px-7 py-[26px]">
                 <DetailHeader
@@ -68,7 +70,11 @@ export function DetailScreen({ id }: { id: string }) {
                 <div className="flex flex-col-reverse gap-[26px] lg:flex-row">
                   <div className="flex w-full flex-col gap-5 lg:flex-1">
                     <Suspense fallback={null}>
-                      <DetailTabs jobDescription={application.jobDescription} />
+                      <DetailTabs
+                        applicationId={application.id}
+                        jobDescription={application.jobDescription}
+                        refreshSignal={refreshSignal}
+                      />
                     </Suspense>
                   </div>
                   <div className="flex w-full flex-col gap-[14px] lg:w-[236px]" />

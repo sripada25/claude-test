@@ -9,9 +9,11 @@ import { StatusChip } from "@/components/detail/StatusChip";
 export function DetailTopBar({
   application,
   onStatusChange,
+  onStatusConfirmed,
 }: {
   application: ApplicationDetail;
   onStatusChange: (status: string) => void;
+  onStatusConfirmed: () => void;
 }) {
   const router = useRouter();
 
@@ -31,6 +33,7 @@ export function DetailTopBar({
         applicationId={application.id}
         status={application.status}
         onStatusChange={onStatusChange}
+        onConfirmed={onStatusConfirmed}
       />
       <OverflowMenu application={application} />
     </div>

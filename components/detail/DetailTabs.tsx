@@ -3,6 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useRef, type KeyboardEvent } from "react";
 import { JobDescriptionPanel } from "@/components/detail/JobDescriptionPanel";
+import { Timeline } from "@/components/detail/Timeline";
 
 const TABS = [
   { key: "overview", label: "Overview", count: 0 },
@@ -17,7 +18,15 @@ const EMPTY_STATES: Record<string, string> = {
   reminders: "No reminders yet.",
 };
 
-export function DetailTabs({ jobDescription }: { jobDescription: string | null }) {
+export function DetailTabs({
+  applicationId,
+  jobDescription,
+  refreshSignal,
+}: {
+  applicationId: string;
+  jobDescription: string | null;
+  refreshSignal: number;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -88,7 +97,10 @@ export function DetailTabs({ jobDescription }: { jobDescription: string | null }
           hidden={tab.key !== active}
         >
           {tab.key === "overview" ? (
-            <JobDescriptionPanel jobDescription={jobDescription} />
+            <div className="flex flex-col gap-5">
+              <JobDescriptionPanel jobDescription={jobDescription} />
+              <Timeline applicationId={applicationId} refreshSignal={refreshSignal} />
+            </div>
           ) : (
             <p className="font-body text-[13px] text-muted">{EMPTY_STATES[tab.key]}</p>
           )}

@@ -1,5 +1,6 @@
 import { pool } from "../db.ts";
 import {
+  findApplicationEvents,
   insertApplicationEvent,
   type ApplicationEvent,
   type ApplicationEventType,
@@ -42,4 +43,8 @@ export async function recordApplicationEvent(input: RecordEventInput): Promise<R
 
   const event = await insertApplicationEvent(pool, input);
   return { success: true, event };
+}
+
+export function listApplicationEvents(userId: string, applicationId: string): Promise<ApplicationEvent[]> {
+  return findApplicationEvents(pool, userId, applicationId);
 }
