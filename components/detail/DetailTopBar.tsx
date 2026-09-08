@@ -2,8 +2,17 @@
 
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { StatusChip } from "@/components/detail/StatusChip";
 
-export function DetailTopBar() {
+export function DetailTopBar({
+  applicationId,
+  status,
+  onStatusChange,
+}: {
+  applicationId: string;
+  status: string;
+  onStatusChange: (status: string) => void;
+}) {
   const router = useRouter();
 
   return (
@@ -17,6 +26,8 @@ export function DetailTopBar() {
         <ArrowLeft size={15} />
         <span className="hidden font-body text-[13px] font-medium sm:inline">Board</span>
       </button>
+      <div className="flex-1" />
+      <StatusChip applicationId={applicationId} status={status} onStatusChange={onStatusChange} />
     </div>
   );
 }
