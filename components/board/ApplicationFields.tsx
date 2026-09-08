@@ -12,6 +12,7 @@ export interface ApplicationFieldsValues {
   dateApplied: string;
   source: string;
   sourceUrl: string;
+  jobDescription: string;
 }
 
 const SOURCE_OPTIONS = [
