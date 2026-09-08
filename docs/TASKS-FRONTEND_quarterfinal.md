@@ -434,6 +434,8 @@ const planLabel =
 
 ## M01-08 · `LinkedInSSOButton` ⏸
 
+⚠️ **Not built — pre-existing placeholder doesn't match this spec (found 2026-09-08).** `components/auth/SignInScreen.tsx` already renders a LinkedIn button, but as a fully active-looking button (hover state, focus ring, normal ink/border colors) with no `disabled`/`aria-disabled`, no `title`, no helper text, and no `onClick` — it looks clickable but silently does nothing. Worse than the spec below, which requires the disabled state never be the sole signal. Still paused per the ⏸ status (LinkedIn OAuth app creation is blocked without a verified company Page), but whenever this is picked up, replace the placeholder rather than leave it half-live.
+
 🎨 Identical structure (`Eguff`) · mark fill **`#0A66C2`** · letter "in"
 
 🔧 **Rendered visible but disabled for MVP.**
