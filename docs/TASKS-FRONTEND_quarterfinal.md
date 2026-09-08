@@ -909,7 +909,7 @@ Drag mechanics, jank analysis, and scale maths: this screen's tasks carry them i
 
 ---
 
-## M03-08 · `ApplicationCard` ✅
+## M03-08 · `ApplicationCard` ✅ DONE — merged via PR #159 (2026-09-08)
 
 🎨 fill `$m-surface` · stroke `$m-border` **`{right:1, bottom:1, left:1}`** — ⚠️ **no top border**
 🎨 Top bar: a **separate 3px rectangle child**, fill = stage colour, full width
@@ -917,6 +917,8 @@ Drag mechanics, jank analysis, and scale maths: this screen's tasks carry them i
 🎨 Company body `13`/600 `$m-ink` · Role body `11.5`/normal `$m-ink-2` · Tags gap `5`
 
 ⚠️ 🎨 **`border-t-[3px]` is wrong.** The stroke explicitly excludes the top, and the coloured strip is a child element.
+
+⚠️ **Unscoped mockup discrepancy (found 2026-09-08, not built):** 2 of 11 example cards on the mockup (Razorpay/Applied, Meesho/Interview) show extra elements not covered by any spec — a 20×20 outlined "Draft btn" (`file-text` icon), a 19×19 filled "Send btn" (`send` icon), and a "Tag overflow" chip (`+2`) when tags exceed the row. No task, no backing endpoint (F3 AI generation isn't built), and they appear on only 2/11 examples — needs a product decision on whether/how to scope this before any task touches it.
 
 ```jsx
 <article ref={setNodeRef} {...listeners} {...attributes}
