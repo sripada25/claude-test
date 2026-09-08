@@ -30,11 +30,12 @@ export interface Application {
   interviewAt: Date | null;
   notes: string | null;
   lastActivityAt: Date;
+  position: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export type ApplicationSort = "recent" | "oldest_activity" | "date_applied" | "company_az";
+export type ApplicationSort = "recent" | "oldest_activity" | "date_applied" | "company_az" | "manual";
 
 export interface ListApplicationsOptions {
   q?: string;
@@ -61,6 +62,7 @@ interface ApplicationRow {
   interview_at: Date | null;
   notes: string | null;
   last_activity_at: Date;
+  position: number | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -80,6 +82,7 @@ function toApplication(row: ApplicationRow): Application {
     interviewAt: row.interview_at,
     notes: row.notes,
     lastActivityAt: row.last_activity_at,
+    position: row.position,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -102,7 +105,7 @@ export async function insertApplication(
     `INSERT INTO applications (user_id, company, role, status, job_description, source, source_url, date_applied)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      RETURNING id, user_id, company, role, status, job_description, source, source_url, date_applied,
-               assessment_due_at, interview_at, notes, last_activity_at, created_at, updated_at`,
+               assessment_due_at, interview_at, notes, last_activity_at, position, created_at, updated_at`,
     [
       userId,
       input.company,
@@ -133,7 +136,7 @@ export async function findUserApplicationById(
 
   const result = await pool.query<ApplicationRow>(
     `SELECT id, user_id, company, role, status, job_description, source, source_url, date_applied,
-            assessment_due_at, interview_at, notes, last_activity_at, created_at, updated_at
+            assessment_due_at, interview_at, notes, last_activity_at, position, created_at, updated_at
      FROM applications
      WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL`,
     [id, userId],
@@ -161,16 +164,17 @@ export async function updateApplicationFields(
     | "dateApplied"
     | "notes"
     | "lastActivityAt"
+    | "position"
   >,
 ): Promise<Application | null> {
   const result = await db.query<ApplicationRow>(
     `UPDATE applications
      SET company = $3, role = $4, status = $5, job_description = $6, source = $7,
          source_url = $8, date_applied = $9, notes = $10, last_activity_at = $11,
-         updated_at = now()
+         position = $12, updated_at = now()
      WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
      RETURNING id, user_id, company, role, status, job_description, source, source_url, date_applied,
-               assessment_due_at, interview_at, notes, last_activity_at, created_at, updated_at`,
+               assessment_due_at, interview_at, notes, last_activity_at, position, created_at, updated_at`,
     [
       id,
       userId,
@@ -183,6 +187,7 @@ export async function updateApplicationFields(
       fields.dateApplied,
       fields.notes,
       fields.lastActivityAt,
+      fields.position,
     ],
   );
 
@@ -223,6 +228,7 @@ const SORT_CLAUSES: Record<ApplicationSort, string> = {
   oldest_activity: "last_activity_at ASC",
   date_applied: "date_applied DESC NULLS LAST",
   company_az: "company ASC",
+  manual: "position ASC NULLS LAST",
 };
 
 // The sole read path for listing a user's applications (SECURITY_quarterfinal.md
@@ -252,7 +258,7 @@ export async function findUserApplications(
 
   const result = await pool.query<ApplicationRow & { follow_up_due: boolean }>(
     `SELECT id, user_id, company, role, status, job_description, source, source_url, date_applied,
-            assessment_due_at, interview_at, notes, last_activity_at, created_at, updated_at,
+            assessment_due_at, interview_at, notes, last_activity_at, position, created_at, updated_at,
             (
               status IN ('applied','assessment','interview')
               AND date_applied IS NOT NULL
