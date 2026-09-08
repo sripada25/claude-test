@@ -68,7 +68,7 @@ export function DetailScreen({ id }: { id: string }) {
                 <div className="flex flex-col-reverse gap-[26px] lg:flex-row">
                   <div className="flex w-full flex-col gap-5 lg:flex-1">
                     <Suspense fallback={null}>
-                      <DetailTabs />
+                      <DetailTabs jobDescription={application.jobDescription} />
                     </Suspense>
                   </div>
                   <div className="flex w-full flex-col gap-[14px] lg:w-[236px]" />
