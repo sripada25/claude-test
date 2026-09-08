@@ -4,9 +4,15 @@ import { useEffect, useState } from "react";
 import { DetailTopBar } from "@/components/detail/DetailTopBar";
 import { Sidebar } from "@/components/shell/Sidebar";
 
-interface ApplicationDetail {
+export interface ApplicationDetail {
   id: string;
+  company: string;
+  role: string;
   status: string;
+  dateApplied: string | null;
+  source: string | null;
+  sourceUrl: string | null;
+  jobDescription: string | null;
 }
 
 export function DetailScreen({ id }: { id: string }) {
@@ -43,8 +49,7 @@ export function DetailScreen({ id }: { id: string }) {
         ) : (
           application && (
             <DetailTopBar
-              applicationId={application.id}
-              status={application.status}
+              application={application}
               onStatusChange={(status) =>
                 setApplication((current) => (current ? { ...current, status } : current))
               }

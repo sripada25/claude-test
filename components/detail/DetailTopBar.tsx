@@ -2,15 +2,15 @@
 
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
+import type { ApplicationDetail } from "@/components/detail/DetailScreen";
+import { OverflowMenu } from "@/components/detail/OverflowMenu";
 import { StatusChip } from "@/components/detail/StatusChip";
 
 export function DetailTopBar({
-  applicationId,
-  status,
+  application,
   onStatusChange,
 }: {
-  applicationId: string;
-  status: string;
+  application: ApplicationDetail;
   onStatusChange: (status: string) => void;
 }) {
   const router = useRouter();
@@ -27,7 +27,12 @@ export function DetailTopBar({
         <span className="hidden font-body text-[13px] font-medium sm:inline">Board</span>
       </button>
       <div className="flex-1" />
-      <StatusChip applicationId={applicationId} status={status} onStatusChange={onStatusChange} />
+      <StatusChip
+        applicationId={application.id}
+        status={application.status}
+        onStatusChange={onStatusChange}
+      />
+      <OverflowMenu application={application} />
     </div>
   );
 }
