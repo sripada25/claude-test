@@ -1037,7 +1037,7 @@ AND NOT EXISTS (SELECT 1 FROM application_events
 
 ---
 
-## M03-12 · `DragContext` ✅
+## M03-12 · `DragContext` ✅ DONE — merged via PR #167 (2026-09-08), `@dnd-kit` added
 
 🎨 **Not drawn** — 🔧 behaviour only.
 
