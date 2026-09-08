@@ -1,6 +1,6 @@
 "use client";
 
-import type { Announcements } from "@dnd-kit/core";
+import type { Announcements, DragEndEvent } from "@dnd-kit/core";
 import {
   DndContext,
   KeyboardSensor,
@@ -14,10 +14,12 @@ import { useEffect, useMemo, useState } from "react";
 import { ApplicationCard } from "@/components/board/ApplicationCard";
 import { BoardTopBar } from "@/components/board/BoardTopBar";
 import { EmptyColumn } from "@/components/board/EmptyColumn";
+import { ErrorToast } from "@/components/board/ErrorToast";
 import { StageColumn } from "@/components/board/StageColumn";
 import { STAGES } from "@/components/board/stages";
 import type { BoardView } from "@/components/board/ViewToggle";
 import { Sidebar } from "@/components/shell/Sidebar";
+import { CSRF_HEADER_NAME, getCsrfToken } from "@/lib/security/csrf-client";
 
 function stageLabel(id: string | number | undefined): string {
   return STAGES.find((stage) => stage.value === id)?.label ?? "the board";
@@ -59,6 +61,7 @@ export function BoardScreen({
   const [sourceFilter, setSourceFilter] = useState<string[]>([]);
   const [sort, setSort] = useState("recent");
   const [applications, setApplications] = useState<BoardApplication[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
@@ -107,6 +110,39 @@ export function BoardScreen({
     });
   }
 
+  function setApplicationStatus(id: string, status: string) {
+    setApplications((current) => current.map((a) => (a.id === id ? { ...a, status } : a)));
+  }
+
+  async function moveApplication(id: string, from: string, to: string) {
+    setApplicationStatus(id, to);
+    try {
+      const response = await fetch(`/api/applications/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", [CSRF_HEADER_NAME]: getCsrfToken() },
+        body: JSON.stringify({ status: to }),
+      });
+      if (!response.ok) {
+        throw new Error("update_failed");
+      }
+    } catch {
+      setApplicationStatus(id, from);
+      setErrorMessage("Could not update — please try again");
+    }
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over) {
+      return;
+    }
+    const application = applications.find((a) => a.id === active.id);
+    if (!application || application.status === over.id) {
+      return;
+    }
+    void moveApplication(application.id, application.status, String(over.id));
+  }
+
   const hasAnySource = useMemo(
     () => applications.some((application) => application.source != null),
     [applications],
@@ -138,6 +174,7 @@ export function BoardScreen({
             <DndContext
               sensors={sensors}
               accessibility={{ announcements: dragAnnouncements }}
+              onDragEnd={handleDragEnd}
             >
               <div className="flex gap-4">
                 {STAGES.map((stage) => {
@@ -177,6 +214,9 @@ export function BoardScreen({
           )}
         </div>
       </main>
+      {errorMessage && (
+        <ErrorToast message={errorMessage} onDismiss={() => setErrorMessage(null)} />
+      )}
     </div>
   );
 }
