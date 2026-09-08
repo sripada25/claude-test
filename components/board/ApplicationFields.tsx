@@ -15,7 +15,7 @@ export interface ApplicationFieldsValues {
   jobDescription: string;
 }
 
-const SOURCE_OPTIONS = [
+export const SOURCE_OPTIONS = [
   { value: "linkedin", label: "LinkedIn" },
   { value: "naukri", label: "Naukri" },
   { value: "indeed", label: "Indeed" },
