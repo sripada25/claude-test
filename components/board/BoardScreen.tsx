@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ApplicationCard } from "@/components/board/ApplicationCard";
 import { BoardTopBar } from "@/components/board/BoardTopBar";
+import { EmptyColumn } from "@/components/board/EmptyColumn";
 import { StageColumn } from "@/components/board/StageColumn";
 import { STAGES } from "@/components/board/stages";
 import type { BoardView } from "@/components/board/ViewToggle";
@@ -120,19 +121,23 @@ export function BoardScreen({
                     collapsed={collapsedStages.includes(stage.value)}
                     onToggleCollapse={() => toggleCollapsed(stage.value)}
                   >
-                    {stageApplications.map((application) => (
-                      <ApplicationCard
-                        key={application.id}
-                        id={application.id}
-                        company={application.company}
-                        role={application.role}
-                        colorClass={stage.colorClass}
-                        lastActivityAt={application.lastActivityAt}
-                        followUpDue={application.followUpDue}
-                        assessmentDueAt={application.assessmentDueAt}
-                        interviewAt={application.interviewAt}
-                      />
-                    ))}
+                    {stageApplications.length === 0 ? (
+                      <EmptyColumn />
+                    ) : (
+                      stageApplications.map((application) => (
+                        <ApplicationCard
+                          key={application.id}
+                          id={application.id}
+                          company={application.company}
+                          role={application.role}
+                          colorClass={stage.colorClass}
+                          lastActivityAt={application.lastActivityAt}
+                          followUpDue={application.followUpDue}
+                          assessmentDueAt={application.assessmentDueAt}
+                          interviewAt={application.interviewAt}
+                        />
+                      ))
+                    )}
                   </StageColumn>
                 );
               })}
