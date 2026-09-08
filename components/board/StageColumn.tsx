@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { CollapsedColumn } from "@/components/board/CollapsedColumn";
 
 export function StageColumn({
   value,
@@ -18,6 +19,23 @@ export function StageColumn({
   children: ReactNode;
 }) {
   const bodyId = `col-${value}`;
+
+  if (collapsed) {
+    return (
+      <section
+        aria-label={`${label}, ${count} application${count === 1 ? "" : "s"}`}
+        className="shrink-0"
+      >
+        <CollapsedColumn
+          label={label}
+          colorClass={colorClass}
+          count={count}
+          bodyId={bodyId}
+          onExpand={onToggleCollapse}
+        />
+      </section>
+    );
+  }
 
   return (
     <section
