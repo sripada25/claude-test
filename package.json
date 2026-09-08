@@ -27,6 +27,9 @@
   },
   "homepage": "https://github.com/sripada25/claude-test#readme",
   "dependencies": {
+    "@dnd-kit/core": "6.3.1",
+    "@dnd-kit/sortable": "10.0.0",
+    "@dnd-kit/utilities": "3.2.2",
     "@google/genai": "2.21.0",
     "argon2": "0.45.1",
     "jose": "6.2.12",

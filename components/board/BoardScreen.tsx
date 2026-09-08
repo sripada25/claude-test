@@ -1,5 +1,15 @@
 "use client";
 
+import type { Announcements } from "@dnd-kit/core";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useEffect, useMemo, useState } from "react";
 import { ApplicationCard } from "@/components/board/ApplicationCard";
 import { BoardTopBar } from "@/components/board/BoardTopBar";
@@ -8,6 +18,18 @@ import { StageColumn } from "@/components/board/StageColumn";
 import { STAGES } from "@/components/board/stages";
 import type { BoardView } from "@/components/board/ViewToggle";
 import { Sidebar } from "@/components/shell/Sidebar";
+
+function stageLabel(id: string | number | undefined): string {
+  return STAGES.find((stage) => stage.value === id)?.label ?? "the board";
+}
+
+const dragAnnouncements: Announcements = {
+  onDragStart: () => "Picked up application card.",
+  onDragOver: ({ over }) => (over ? `Application card is over ${stageLabel(over.id)}.` : ""),
+  onDragEnd: ({ over }) =>
+    over ? `Application card dropped over ${stageLabel(over.id)}.` : "Application card dropped.",
+  onDragCancel: () => "Dragging cancelled.",
+};
 
 interface BoardApplication {
   id: string;
@@ -37,6 +59,11 @@ export function BoardScreen({
   const [sourceFilter, setSourceFilter] = useState<string[]>([]);
   const [sort, setSort] = useState("recent");
   const [applications, setApplications] = useState<BoardApplication[]>([]);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -108,40 +135,45 @@ export function BoardScreen({
         </p>
         <div className="flex-1 overflow-x-auto px-7 py-[26px]">
           {view === "board" && (
-            <div className="flex gap-4">
-              {STAGES.map((stage) => {
-                const stageApplications = applications.filter((a) => a.status === stage.value);
-                return (
+            <DndContext
+              sensors={sensors}
+              accessibility={{ announcements: dragAnnouncements }}
+            >
+              <div className="flex gap-4">
+                {STAGES.map((stage) => {
+                  const stageApplications = applications.filter((a) => a.status === stage.value);
+                  return (
                   <StageColumn
-                    key={stage.value}
-                    value={stage.value}
-                    label={stage.label}
-                    colorClass={stage.colorClass}
-                    count={stageApplications.length}
-                    collapsed={collapsedStages.includes(stage.value)}
-                    onToggleCollapse={() => toggleCollapsed(stage.value)}
-                  >
-                    {stageApplications.length === 0 ? (
-                      <EmptyColumn />
-                    ) : (
-                      stageApplications.map((application) => (
-                        <ApplicationCard
-                          key={application.id}
-                          id={application.id}
-                          company={application.company}
-                          role={application.role}
-                          colorClass={stage.colorClass}
-                          lastActivityAt={application.lastActivityAt}
-                          followUpDue={application.followUpDue}
-                          assessmentDueAt={application.assessmentDueAt}
-                          interviewAt={application.interviewAt}
-                        />
-                      ))
-                    )}
-                  </StageColumn>
-                );
-              })}
-            </div>
+                      key={stage.value}
+                      value={stage.value}
+                      label={stage.label}
+                      colorClass={stage.colorClass}
+                      count={stageApplications.length}
+                      collapsed={collapsedStages.includes(stage.value)}
+                      onToggleCollapse={() => toggleCollapsed(stage.value)}
+                    >
+                      {stageApplications.length === 0 ? (
+                        <EmptyColumn />
+                      ) : (
+                        stageApplications.map((application) => (
+                          <ApplicationCard
+                            key={application.id}
+                            id={application.id}
+                            company={application.company}
+                            role={application.role}
+                            colorClass={stage.colorClass}
+                            lastActivityAt={application.lastActivityAt}
+                            followUpDue={application.followUpDue}
+                            assessmentDueAt={application.assessmentDueAt}
+                            interviewAt={application.interviewAt}
+                          />
+                        ))
+                      )}
+                    </StageColumn>
+                  );
+                })}
+              </div>
+            </DndContext>
           )}
         </div>
       </main>
