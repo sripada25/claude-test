@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 type FieldProps = {
   id: string;
   label: string;
-  type?: "email" | "password" | "text";
+  type?: "email" | "password" | "text" | "date" | "url";
   name: string;
   value: string;
   onChange: (value: string) => void;
