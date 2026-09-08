@@ -1,9 +1,8 @@
 "use client";
 
-import { useDraggable } from "@dnd-kit/core";
-import { CSS } from "@dnd-kit/utilities";
+import type { DraggableAttributes, DraggableSyntheticListeners } from "@dnd-kit/core";
 import { useRouter } from "next/navigation";
-import type { KeyboardEvent } from "react";
+import type { CSSProperties, KeyboardEvent } from "react";
 import { CardTag, CardTagOverflow } from "@/components/board/CardTag";
 import { deriveCardTags } from "@/components/board/cardTags";
 
@@ -16,6 +15,11 @@ export function ApplicationCard({
   followUpDue,
   assessmentDueAt,
   interviewAt,
+  dragRef,
+  dragStyle,
+  dragAttributes,
+  dragListeners,
+  dragging,
 }: {
   id: string;
   company: string;
@@ -25,6 +29,11 @@ export function ApplicationCard({
   followUpDue: boolean;
   assessmentDueAt: string | null;
   interviewAt: string | null;
+  dragRef?: (node: HTMLElement | null) => void;
+  dragStyle?: CSSProperties;
+  dragAttributes?: DraggableAttributes;
+  dragListeners?: DraggableSyntheticListeners;
+  dragging?: boolean;
 }) {
   const router = useRouter();
   const { visible, overflowCount } = deriveCardTags({
@@ -34,23 +43,24 @@ export function ApplicationCard({
     assessmentDueAt,
     interviewAt,
   });
-  const { setNodeRef, attributes, listeners, transform } = useDraggable({ id });
 
   return (
     <article
-      ref={setNodeRef}
-      style={{ transform: CSS.Translate.toString(transform) }}
-      {...attributes}
-      {...listeners}
+      ref={dragRef}
+      style={dragStyle}
+      {...dragAttributes}
+      {...dragListeners}
       aria-label={`${company}, ${role}`}
       onClick={() => router.push(`/app/applications/${id}`)}
       onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
-        listeners?.onKeyDown?.(event);
+        dragListeners?.onKeyDown?.(event);
         if (event.key === "Enter") {
           router.push(`/app/applications/${id}`);
         }
       }}
-      className="flex cursor-pointer flex-col border-x border-b border-border bg-surface hover:border-border-strong focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
+      className={`flex cursor-pointer flex-col border-x border-b border-border bg-surface hover:border-border-strong focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent ${
+        dragging ? "opacity-40" : ""
+      }`}
     >
       <div className={`h-[3px] w-full ${colorClass}`} aria-hidden="true" />
       <div className="flex flex-col gap-1.5 px-3 pb-3 pt-[11px]">

@@ -7,6 +7,7 @@ const SORT_OPTIONS: { value: string; label: string }[] = [
   { value: "oldest_activity", label: "Oldest activity" },
   { value: "date_applied", label: "Date applied" },
   { value: "company_az", label: "Company A–Z" },
+  { value: "manual", label: "Manual" },
 ];
 
 export function SortControl({
