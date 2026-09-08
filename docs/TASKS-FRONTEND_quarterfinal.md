@@ -1068,7 +1068,7 @@ const sensors = useSensors(
 
 ---
 
-## M03-13 · `OptimisticMove` ✅
+## M03-13 · `OptimisticMove` ✅ DONE — merged via PR #169 (2026-09-08), M03 complete
 
 ```jsx
 const move = async (id, from, to) => {
@@ -1091,8 +1091,10 @@ const move = async (id, from, to) => {
 🔧 **Concurrency — two tabs, same card: last write wins.** Both writes come from the same person; there's no data loss, just a status they can correct. Optimistic locking adds a version column and a conflict UI for a single-user resource. Revisit only for shared boards.
 🔧 **API:** `PATCH /api/applications/:id { status }` → writes an `application_events` row.
 ⚠️ 🔧 **Same service function as M05's status dropdown.** Designer: *"one code path, two entry points."*
-⚠️ 🔧 **Debounce timeline events 2s** — fidgety drags otherwise produce five entries.
+⚠️ 🔧 **Debounce timeline events 2s** — fidgety drags otherwise produce five entries. ⚠️ **Not built (2026-09-08): conflicts with `DATABASE_quarterfinal.md` §3.2's append-only rule** for `application_events` (never updated, never deleted). No timeline UI exists yet to show the extra rows, so there's no visible consequence today — needs a decision (dedupe on display vs. reopening the append-only rule) whenever that UI is actually built.
 🔧 **Security:** CSRF token required. `user_id` from the session.
+
+⚠️ **Found in the mockup, wrong feature (2026-09-08):** a detailed "Error toast" exists (`j2JDC`, frame "Mockup — 03b List · Error") but it's for the List view's bulk multi-select move ("Couldn't move 2 applications... Retry/Dismiss"), not this single-card board toast. Built a smaller single-item version in the same visual language instead. The bulk-toast design is real ground truth for whatever future task builds List view's bulk actions.
 
 🔧 **Scale — 10 users, 12 days, 2 applications/day:** 240 rows total, ~4 cards per column, ~40 status changes/day = **0.03 per minute**. The board query is a single indexed lookup. **It will never be the bottleneck** — generation is.
 
