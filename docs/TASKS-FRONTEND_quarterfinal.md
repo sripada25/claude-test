@@ -1385,7 +1385,7 @@ const prompt = `Write a cover letter for this job: ${jd}`;
 
 ---
 
-## M05-05 · `DetailTabs` ✅
+## M05-05 · `DetailTabs` ✅ DONE — merged via PR #191 (2026-09-08), also introduces the two-column layout
 
 🎨 border-bottom `$m-border` 1
 🎨 **Selected:** border-bottom `$m-primary` **2** · padding `[10,16]` · body `13`/600 `$m-ink`
