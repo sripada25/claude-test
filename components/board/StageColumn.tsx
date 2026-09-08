@@ -1,3 +1,4 @@
+import { useDroppable } from "@dnd-kit/core";
 import type { ReactNode } from "react";
 import { CollapsedColumn } from "@/components/board/CollapsedColumn";
 
@@ -19,10 +20,12 @@ export function StageColumn({
   children: ReactNode;
 }) {
   const bodyId = `col-${value}`;
+  const { setNodeRef } = useDroppable({ id: value });
 
   if (collapsed) {
     return (
       <section
+        ref={setNodeRef}
         aria-label={`${label}, ${count} application${count === 1 ? "" : "s"}`}
         className="shrink-0"
       >
@@ -39,6 +42,7 @@ export function StageColumn({
 
   return (
     <section
+      ref={setNodeRef}
       aria-label={`${label}, ${count} application${count === 1 ? "" : "s"}`}
       className="w-[200px] shrink-0"
     >

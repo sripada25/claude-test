@@ -1,6 +1,9 @@
 "use client";
 
+import { useDraggable } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 import { useRouter } from "next/navigation";
+import type { KeyboardEvent } from "react";
 import { CardTag, CardTagOverflow } from "@/components/board/CardTag";
 import { deriveCardTags } from "@/components/board/cardTags";
 
@@ -31,14 +34,18 @@ export function ApplicationCard({
     assessmentDueAt,
     interviewAt,
   });
+  const { setNodeRef, attributes, listeners, transform } = useDraggable({ id });
 
   return (
     <article
-      tabIndex={0}
-      role="button"
+      ref={setNodeRef}
+      style={{ transform: CSS.Translate.toString(transform) }}
+      {...attributes}
+      {...listeners}
       aria-label={`${company}, ${role}`}
       onClick={() => router.push(`/app/applications/${id}`)}
-      onKeyDown={(event) => {
+      onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
+        listeners?.onKeyDown?.(event);
         if (event.key === "Enter") {
           router.push(`/app/applications/${id}`);
         }
