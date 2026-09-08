@@ -13,10 +13,17 @@ interface BoardApplication {
   source: string | null;
 }
 
-export function BoardScreen({ initialView }: { initialView: BoardView }) {
+export function BoardScreen({
+  initialView,
+  initialCollapsedStages,
+}: {
+  initialView: BoardView;
+  initialCollapsedStages: string[];
+}) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [view, setView] = useState<BoardView>(initialView);
   const [addDrawerOpen, setAddDrawerOpen] = useState(false);
+  const [collapsedStages, setCollapsedStages] = useState<string[]>(initialCollapsedStages);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [sourceFilter, setSourceFilter] = useState<string[]>([]);
@@ -55,6 +62,16 @@ export function BoardScreen({ initialView }: { initialView: BoardView }) {
     };
   }, [query, statusFilter, sourceFilter, sort]);
 
+  function toggleCollapsed(stage: string) {
+    setCollapsedStages((current) => {
+      const next = current.includes(stage)
+        ? current.filter((s) => s !== stage)
+        : [...current, stage];
+      document.cookie = `board_collapsed=${JSON.stringify(next)}; path=/; max-age=31536000; SameSite=Lax`;
+      return next;
+    });
+  }
+
   const hasAnySource = useMemo(
     () => applications.some((application) => application.source != null),
     [applications],
@@ -89,9 +106,12 @@ export function BoardScreen({ initialView }: { initialView: BoardView }) {
                 return (
                   <StageColumn
                     key={stage.value}
+                    value={stage.value}
                     label={stage.label}
                     colorClass={stage.colorClass}
                     count={stageApplications.length}
+                    collapsed={collapsedStages.includes(stage.value)}
+                    onToggleCollapse={() => toggleCollapsed(stage.value)}
                   >
                     {null}
                   </StageColumn>
