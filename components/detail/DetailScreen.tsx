@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { DetailHeader } from "@/components/detail/DetailHeader";
+import { DetailTabs } from "@/components/detail/DetailTabs";
 import { DetailTopBar } from "@/components/detail/DetailTopBar";
 import { Sidebar } from "@/components/shell/Sidebar";
 
@@ -64,6 +65,14 @@ export function DetailScreen({ id }: { id: string }) {
                   source={application.source}
                   sourceUrl={application.sourceUrl}
                 />
+                <div className="flex flex-col-reverse gap-[26px] lg:flex-row">
+                  <div className="flex w-full flex-col gap-5 lg:flex-1">
+                    <Suspense fallback={null}>
+                      <DetailTabs />
+                    </Suspense>
+                  </div>
+                  <div className="flex w-full flex-col gap-[14px] lg:w-[236px]" />
+                </div>
               </div>
             </>
           )
