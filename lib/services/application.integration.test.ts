@@ -57,12 +57,13 @@ describe("application service (real Postgres)", () => {
       dateApplied?: string | null;
       lastActivityAt?: Date;
       deletedAt?: Date | null;
+      position?: number | null;
     } = {},
   ): Promise<string> {
     const result = await pool.query<{ id: string }>(
       `INSERT INTO applications
-         (user_id, company, role, status, source, date_applied, last_activity_at, deleted_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+         (user_id, company, role, status, source, date_applied, last_activity_at, deleted_at, position)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
       [
         userId,
         overrides.company ?? "Acme",
@@ -72,6 +73,7 @@ describe("application service (real Postgres)", () => {
         overrides.dateApplied ?? null,
         overrides.lastActivityAt ?? new Date(),
         overrides.deletedAt ?? null,
+        overrides.position ?? null,
       ],
     );
     return result.rows[0].id;
@@ -287,6 +289,18 @@ describe("application service (real Postgres)", () => {
     expect(results.map((r) => r.company)).toEqual(["Acme", "Zebra Inc"]);
   });
 
+  it("sorts by manual position, with unpositioned rows last", async () => {
+    const userId = await insertUser("sort-manual@example.com");
+    await insertRawApplication(userId, { company: "Third", position: 3 });
+    await insertRawApplication(userId, { company: "First", position: 1 });
+    await insertRawApplication(userId, { company: "Unpositioned" });
+    await insertRawApplication(userId, { company: "Second", position: 2 });
+
+    const results = await listApplications(userId, { sort: "manual" });
+
+    expect(results.map((r) => r.company)).toEqual(["First", "Second", "Third", "Unpositioned"]);
+  });
+
   it("falls back to recent for an unrecognized sort value", async () => {
     const userId = await insertUser("sort-fallback@example.com");
     const now = Date.now();
@@ -427,6 +441,63 @@ describe("application service (real Postgres)", () => {
     expect(result.application.company).toBe("New Co");
     expect(result.application.lastActivityAt.getTime()).toBe(oldActivity.getTime());
     expect(await eventsFor(id)).toEqual([]);
+  });
+
+  it("changing only position writes no event and does not bump last_activity_at", async () => {
+    const userId = await insertUser("patch-position@example.com");
+    const oldActivity = new Date(Date.now() - 10 * 86_400_000);
+    const id = await insertRawApplication(userId, { lastActivityAt: oldActivity });
+
+    const result = await updateApplication(userId, id, { position: 4.5 });
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.application.position).toBe(4.5);
+    expect(result.application.lastActivityAt.getTime()).toBe(oldActivity.getTime());
+    expect(await eventsFor(id)).toEqual([]);
+  });
+
+  it("accepts negative and fractional position values", async () => {
+    const userId = await insertUser("patch-position-fraction@example.com");
+    const id = await insertRawApplication(userId, { position: 1 });
+
+    const result = await updateApplication(userId, id, { position: -0.25 });
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.application.position).toBe(-0.25);
+  });
+
+  it("persists status and position together in one call", async () => {
+    const userId = await insertUser("patch-status-position@example.com");
+    const id = await insertRawApplication(userId, { status: "saved" });
+
+    const result = await updateApplication(userId, id, { status: "applied", position: 7 });
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.application.status).toBe("applied");
+    expect(result.application.position).toBe(7);
+    expect(await eventsFor(id)).toEqual([
+      { type: "status_changed", description: "Status changed to Applied" },
+    ]);
+  });
+
+  it("rejects a non-finite position on patch", async () => {
+    const userId = await insertUser("patch-bad-position@example.com");
+    const id = await insertRawApplication(userId, { position: 1 });
+
+    expect(await updateApplication(userId, id, { position: NaN })).toEqual({
+      success: false,
+      reason: "invalid_position",
+    });
+    expect(await updateApplication(userId, id, { position: Infinity })).toEqual({
+      success: false,
+      reason: "invalid_position",
+    });
+
+    const unchanged = await getApplication(userId, id);
+    expect(unchanged?.position).toBe(1);
   });
 
   it("rejects an empty company on patch", async () => {

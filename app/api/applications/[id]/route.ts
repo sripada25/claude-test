@@ -52,6 +52,7 @@ export async function PATCH(
         ? body.dateApplied
         : undefined,
     notes: body.notes === null || typeof body.notes === "string" ? body.notes : undefined,
+    position: typeof body.position === "number" ? body.position : undefined,
   });
 
   if (!result.success) {

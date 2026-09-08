@@ -35,7 +35,13 @@ const VALID_SOURCES: ApplicationSource[] = [
 
 const MAX_JOB_DESCRIPTION_LENGTH = 15000;
 
-const VALID_SORTS: ApplicationSort[] = ["recent", "oldest_activity", "date_applied", "company_az"];
+const VALID_SORTS: ApplicationSort[] = [
+  "recent",
+  "oldest_activity",
+  "date_applied",
+  "company_az",
+  "manual",
+];
 
 const STATUS_LABELS: Record<ApplicationStatus, string> = {
   saved: "Saved",
@@ -144,6 +150,7 @@ export interface UpdateApplicationInput {
   sourceUrl?: string | null;
   dateApplied?: string | null;
   notes?: string | null;
+  position?: number;
 }
 
 export type UpdateApplicationResult =
@@ -157,7 +164,8 @@ export type UpdateApplicationResult =
         | "invalid_status"
         | "invalid_source"
         | "invalid_source_url"
-        | "job_description_too_long";
+        | "job_description_too_long"
+        | "invalid_position";
     };
 
 // Same service function the board drag will call later (M05-02's doc: "one
@@ -207,6 +215,11 @@ export async function updateApplication(
   const dateApplied = patch.dateApplied !== undefined ? patch.dateApplied : current.dateApplied;
   const notes = patch.notes !== undefined ? patch.notes : current.notes;
 
+  if (patch.position !== undefined && !Number.isFinite(patch.position)) {
+    return { success: false, reason: "invalid_position" };
+  }
+  const position = patch.position !== undefined ? patch.position : current.position;
+
   const statusChanged = status !== current.status;
   const notesChanged = notes !== current.notes;
   const jobDescriptionChanged = jobDescription !== current.jobDescription;
@@ -226,6 +239,7 @@ export async function updateApplication(
       dateApplied,
       notes,
       lastActivityAt: bumpActivity ? new Date() : current.lastActivityAt,
+      position,
     });
 
     if (!updated) {
