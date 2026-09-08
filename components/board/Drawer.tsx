@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { createContext, useEffect, useRef, type ReactNode } from "react";
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+export const DrawerCloseContext = createContext<() => void>(() => {});
 
 export function Drawer({
   open,
@@ -88,7 +90,7 @@ export function Drawer({
           open ? "translate-y-0 md:translate-x-0" : "translate-y-full md:translate-x-full"
         }`}
       >
-        {children}
+        <DrawerCloseContext.Provider value={requestClose}>{children}</DrawerCloseContext.Provider>
       </aside>
     </>
   );
