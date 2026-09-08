@@ -1314,11 +1314,13 @@ const prompt = `Write a cover letter for this job: ${jd}`;
 
 **Designer's intent:** *"One record, four surfaces."* · *"The timeline is the answer to 'what happened with this one'."* · *"Status changes from here and from the board drag. Both write the same timeline event — one code path, two entry points."* · *"The right column is the action surface… because this is the screen the user is on when they remember."*
 
-## M05-01 · `DetailTopBar` ✅
+## M05-01 · `DetailTopBar` ✅ DONE — merged via PR #183 (2026-09-08), also bootstraps the M05 screen/route
 
 🎨 fill `$m-surface` · border-bottom 1 · height `64` 🔧 (normalised from 🎨 60) · padding `[0,28]` · gap `10`
 🎨 Back: gap `6` · icon `arrow-left` `15×15` `$m-ink-2` · "Board" body `13`/500
 🔧 **Uses browser history**, not a hardcoded route — the user may have arrived from List or a reminder.
+
+⚠️ **Found in the mockup (2026-09-08): no hamburger/mobile-nav-toggle anywhere on this screen**, unlike `BoardTopBar`. There is no shown way to open the Sidebar's mobile drawer from Application Detail — navigation relies entirely on Back. Built exactly as drawn; needs a product decision on whether that's intentional (a focused, back-button-only screen) or a mockup gap.
 
 🔧 **Responsive:** "Board" label drops below `sm`, leaving the `arrow-left` icon at 44×44 with `aria-label="Back to board"`.
 
