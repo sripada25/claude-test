@@ -67,3 +67,21 @@ export async function insertApplicationEvent(
   );
   return toApplicationEvent(result.rows[0]);
 }
+
+// Filtering by both application_id and user_id in the same query is this
+// codebase's established ownership check (matches findUserApplications) -
+// no separate lookup needed.
+export async function findApplicationEvents(
+  db: Queryable,
+  userId: string,
+  applicationId: string,
+): Promise<ApplicationEvent[]> {
+  const result = await db.query<ApplicationEventRow>(
+    `SELECT id, application_id, user_id, type, description, metadata, created_at
+     FROM application_events
+     WHERE application_id = $1 AND user_id = $2
+     ORDER BY created_at DESC`,
+    [applicationId, userId],
+  );
+  return result.rows.map(toApplicationEvent);
+}

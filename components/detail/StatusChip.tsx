@@ -19,10 +19,12 @@ export function StatusChip({
   applicationId,
   status,
   onStatusChange,
+  onConfirmed,
 }: {
   applicationId: string;
   status: string;
   onStatusChange: (status: string) => void;
+  onConfirmed?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -76,6 +78,7 @@ export function StatusChip({
       if (!response.ok) {
         throw new Error("update_failed");
       }
+      onConfirmed?.();
     } catch {
       onStatusChange(previous);
       setErrorMessage("Could not update status — please try again");
