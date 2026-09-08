@@ -1,4 +1,5 @@
 import { useDroppable } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import type { ReactNode } from "react";
 import { CollapsedColumn } from "@/components/board/CollapsedColumn";
 
@@ -9,6 +10,7 @@ export function StageColumn({
   count,
   collapsed,
   onToggleCollapse,
+  cardIds,
   children,
 }: {
   value: string;
@@ -17,6 +19,7 @@ export function StageColumn({
   count: number;
   collapsed: boolean;
   onToggleCollapse: () => void;
+  cardIds: string[];
   children: ReactNode;
 }) {
   const bodyId = `col-${value}`;
@@ -63,7 +66,9 @@ export function StageColumn({
         id={bodyId}
         className="flex max-h-[calc(100vh-220px)] flex-col gap-[10px] overflow-y-auto max-md:max-h-[calc(100vh-180px)]"
       >
-        {children}
+        <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
+          {children}
+        </SortableContext>
       </div>
     </section>
   );
