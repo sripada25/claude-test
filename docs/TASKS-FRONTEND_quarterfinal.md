@@ -998,12 +998,14 @@ AND NOT EXISTS (SELECT 1 FROM application_events
 
 ---
 
-## M03-10 · `EmptyColumn` ✅
+## M03-10 · `EmptyColumn` ✅ DONE — merged via PR #163 (2026-09-08)
 
 🎨 fill `$m-bg` · stroke `$m-border` 1 · height `56` · centred · body `12` `$m-muted` "Nothing here yet"
 ⚠️ 🔧 **Empty columns hold their place** — never collapse or hide an empty stage.
 
 🔧 **Responsive:** No change.
+
+⚠️ **Found in the mockup, no task exists (2026-09-08, not built):** a separate frame (`whD4p`, "Mockup — 03 Pipeline board · Empty") shows a whole-board zero state — icon tile, "No applications yet" heading, sub-copy, an "Add application" button, and a "Takes about 30 seconds" hint — for when the user has zero applications total, distinct from this task's per-column placeholder. Needs its own task.
 
 **References:** F2-3.3 · Mockup 03
 
