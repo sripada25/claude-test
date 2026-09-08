@@ -1404,7 +1404,7 @@ const prompt = `Write a cover letter for this job: ${jd}`;
 
 ---
 
-## M05-06 · `JobDescriptionPanel` ✅
+## M05-06 · `JobDescriptionPanel` ✅ DONE — merged via PR #193 (2026-09-08), shows live JD not a per-document snapshot
 
 🎨 fill `$m-surface` · stroke `$m-border` 1 · padding `[16,18]` · gap `12`
 🎨 Label "JOB DESCRIPTION SNAPSHOT" mono `10.5`/600 · `letterSpacing 0.8`
@@ -1413,6 +1413,8 @@ const prompt = `Write a cover letter for this job: ${jd}`;
 
 ⚠️ 🎨 **Line height 1.6 here, 1.5 elsewhere** — long-form reading.
 ⚠️ 🎨 **The label says SNAPSHOT** — surfacing copy-on-write to the user. Shows the JD *as used* when a snapshot exists.
+
+⚠️ **Built showing `application.jobDescription` (the live JD), not a real snapshot (2026-09-08)** — `documents.jd_snapshot` doesn't exist yet (F3 not built). Needs a document-specific variant once F3 ships, that prefers a real snapshot over the live value when one exists.
 
 🔧 **Expand is an accordion, not a modal.** `aria-expanded` + `aria-controls`.
 🔧 **Security:** plain text, rendered as text. ⚠️ **Never `dangerouslySetInnerHTML`** — this is the user-pasted injection vector.
