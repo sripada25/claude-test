@@ -32,7 +32,11 @@ describe("010_applications migration (real Postgres)", () => {
     return result.rows[0].id;
   }
 
-  it("creates applications with the exact columns, types, and nullability", async () => {
+  it("creates applications with 010's own columns, types, and nullability", async () => {
+    // migrate.up() applies every pending migration on disk, not just 010 — later
+    // migrations (e.g. 012, which adds `position`) may add columns of their own.
+    // This only asserts 010's contract is a subset of what's present, so it stays
+    // valid as the table grows instead of re-breaking on every future ADD COLUMN.
     await migrate.up();
 
     const result = await pool.query<{
@@ -52,7 +56,7 @@ describe("010_applications migration (real Postgres)", () => {
       nullable: row.is_nullable === "YES",
     }));
 
-    expect(columns).toEqual([
+    expect(columns).toEqual(expect.arrayContaining([
       { name: "id", type: "uuid", nullable: false },
       { name: "user_id", type: "uuid", nullable: false },
       { name: "company", type: "text", nullable: false },
@@ -69,7 +73,7 @@ describe("010_applications migration (real Postgres)", () => {
       { name: "deleted_at", type: "timestamptz", nullable: true },
       { name: "created_at", type: "timestamptz", nullable: false },
       { name: "updated_at", type: "timestamptz", nullable: false },
-    ]);
+    ]));
   });
 
   it("requires only company and role", async () => {
