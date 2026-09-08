@@ -103,6 +103,8 @@ docs/
 | L114 | **Source field collected in M04**, pre-filled from `source_url` domain | ✅ NEW |
 | L115 | **Card tags capped at 2 visible + `+N` overflow** | ✅ NEW |
 | L116 | **Document persisted on generation**, not on "Save to application" | ✅ NEW |
+| L129 | **`applications.position` column + "Manual" sort — reorder only persists under Manual sort** | ✅ NEW |
+| L130 | **"Load more" ≠ virtualization — doesn't reopen M03-06's no-virtualization call** | ✅ NEW |
 
 ## Follow-up system (F4)
 
@@ -441,6 +443,28 @@ Full records for **L090–L112** exist in that file and are not reproduced here.
 4. **Could change if:** a future design genuinely wants the code confirmed before the user commits to a new password (e.g. showing "code accepted" before asking for the password) — that would need a real standalone verify-without-setting endpoint, which doesn't exist today and wasn't judged worth adding for this flow.
 
 **Full spec:** M01-10 implementation notes on issue #94.
+
+---
+
+## L129 — `applications.position` column + "Manual" sort — reorder only persists under Manual sort
+
+1. **Initially stated:** M03-12/M03-13 built cross-column drag only — `move(id, from, to)` treats `from`/`to` purely as `status` values, never as positions or indices. No position/order column exists anywhere on `applications` (`DATABASE_quarterfinal.md` §3), and within-column order has always been computed live from the board's sort control (`recent` / `oldest_activity` / `date_applied` / `company_az`).
+2. **What changed:** a fuller dnd-kit "multiple sortable lists" pattern was proposed, including manual within-column reordering via drag. Checked against the schema and `SortControl` before building anything — neither expects a persisted order today. Building manual reorder on top of one of the 4 existing computed-sort modes would silently conflict with whatever field that mode already sorts by: a drag would visually apply, then be overwritten on the next re-render by the live computed order, which has no memory of the drag.
+3. **Going with:** add a 5th sort option, "Manual" (`components/board/SortControl.tsx`), backed by a new `applications.position` column (`DOUBLE PRECISION`, fractional indexing, scoped per `user_id + status` — reordering cards in one column never touches rows in any other column or any other user's board). `position` is only read or written when `sort === "manual"`; the other 4 sort modes keep computing order live and ignore it entirely, so there's never ambiguity about which order is authoritative. Cross-column drag performed while Manual is selected appends the moved card to the end of its new column (`max(position)+1` for that status), avoiding any full-column reflow.
+4. **Could change if:** a future design wants a drag performed under a *computed* sort (e.g. "Recent") to also set a durable manual order — that needs a UI decision about how a live-computed order and a stored position coexist in the same view, not just a backend change, and wasn't asked for here.
+
+**Full spec:** F2-1.6, F2-2.10 (backend) · M03-14 (frontend) — proposed 2026-09-09.
+
+---
+
+## L130 — "Load more" ≠ virtualization — doesn't reopen M03-06's no-virtualization call
+
+1. **Initially stated:** M03-06 recorded "No virtualization (~50 cards per column after six months; it also fights drag auto-scroll)" — a decision specifically about windowed/recycled rendering.
+2. **What changed:** a "show 10 most recent cards + Load more" per-column affordance was proposed alongside the reordering work, raising the question of whether it reopens M03-06's call. On inspection the two techniques are different: virtualization unmounts and recycles off-screen DOM nodes as the user scrolls, which is what fights `@dnd-kit`'s drag auto-scroll per M03-06's own stated reasoning. "Load more" only caps the *initial* render count and reveals the rest on click — every card that's been rendered stays mounted for the rest of the session, so nothing unmounts mid-drag and there's no auto-scroll conflict.
+3. **Going with:** M03-06's no-virtualization decision stands, untouched. "Load more" (M03-15) is a plain client-side slice of the array `GET /api/applications` already returns in full — no new endpoint, no pagination params, no windowing. The two are independent techniques; neither task's reasoning overrides the other's.
+4. **Could change if:** a column's real size genuinely outgrows the ~50-card estimate M03-06 was built against — true virtualization would need its own decision then, revisiting M03-06 directly, separately from Load More.
+
+**Full spec:** M03-15 — proposed 2026-09-09.
 
 ---
 

@@ -1105,6 +1105,37 @@ const move = async (id, from, to) => {
 **References:** F2-3.6 · F2-2.4 · Mockup 03
 
 ---
+
+## M03-14 · `SortableStateCard` + `DragOverlay` ✅
+
+🔧 Split `ApplicationCard`'s current `useDraggable` into two pieces: a presentational card (existing markup, no drag hooks) and a new `SortableApplicationCard` wrapper using `useSortable` (`@dnd-kit/sortable`, already installed — first real consumer of `SortableContext`/`useSortable`/`arrayMove` in this codebase).
+🔧 Each `StageColumn` body wraps its cards in a `SortableContext` (`items` = that column's application IDs, `strategy={verticalListSortingStrategy}`).
+🔧 `BoardScreen`'s `DndContext` renders a `<DragOverlay>` containing the presentational card for whichever application is currently active — portal-rendered outside every scrolling ancestor, fixing the confirmed visual-clipping bug in the original `useDraggable`-only build (card was clipped mid-drag by `StageColumn`'s and the board wrapper's `overflow` ancestors).
+⚠️ 🔧 **The sortable wrapper is never rendered inside `DragOverlay`.** Only the plain presentational card is — a second `useSortable` instance inside the overlay would double-register the same drag ID.
+🔧 **Cross-column drag (status change): unchanged.** Still calls the existing `PATCH .../:id { status }` path (F2-2.4) — this task does not touch that behaviour.
+🔧 **Within-column reorder: only active when `sort === "manual"`.** Under the other 4 sort modes, `onDragEnd` for a same-column drop is a no-op — there is nothing to persist, and the next re-render's live computed order would discard any visual reorder anyway (L129).
+🔧 Reorder calls the new `PATCH .../:id { position }` (F2-2.10), optimistic with the same rollback-on-failure shape as `OptimisticMove` (M03-13) — same error toast, same instant-then-rollback pattern.
+🔧 `SortControl` gains a 5th option, "Manual" (`components/board/SortControl.tsx`).
+🔧 **A11y:** keyboard reorder (Space lifts · arrows move · Space drops) continues to work via `sortableKeyboardCoordinates`, already wired in M03-12's sensors.
+🔧 **Responsive:** unchanged from M03-12 — `TouchSensor` `delay: 200` still applies.
+
+**References:** L129 · F2-2.10 · M03-12 · M03-13 · Mockup 03
+
+---
+
+## M03-15 · Load more (per column) ✅
+
+🔧 Each `StageColumn` renders at most the 10 most-recently-loaded cards for its status by default — a client-side slice of the array `GET /api/applications` already returns in full. No new query params, no server change (L130).
+🔧 A "Load more" affordance appears below the 10th card when a column has more than 10 matching applications; clicking reveals the next 10 (or all remaining, whichever is smaller) from the already-fetched array.
+🔧 **Not virtualization.** Every revealed card stays mounted for the rest of the session — nothing unmounts on scroll, so it doesn't interact with `@dnd-kit`'s drag auto-scroll (L130). M03-06's no-virtualization decision is untouched by this task.
+🔧 Reveal state resets on a fresh board load (new fetch) — not persisted across sessions or requests, unrelated to the `collapsedStages` cookie from M03-07/M03-11.
+⚠️ 🔧 **Interaction with M03-14's drag:** a card can only be dragged among the currently-revealed set within a column. Dropping into a column does not force-reveal its hidden cards — the moved card is appended to the end of the already-visible set, consistent with F2-2.10's `max(position)+1` append behaviour.
+🔧 **A11y:** "Load more" is a real `<button>`, not a link; the count of remaining hidden cards is stated in its accessible name (e.g. "Load 12 more").
+🔧 **Responsive:** no change — same 10-card cap at every breakpoint.
+
+**References:** L130 · M03-06 · Mockup 03
+
+---
 ---
 
 # M04 — ADD APPLICATION
@@ -1724,7 +1755,7 @@ No row returned ⇒ refuse to enqueue. **Never trust the client's number.**
 | M04 Add | 6 | ✅ |
 | M05 Detail | 10 | ✅ |
 | M06 Generate | 9 | ✅ |
-| **Total** | **62** | **58 local · 3 config · 1 blocked** |
+| **Total** | **64** | **60 local · 3 config · 1 blocked** |
 
 **58 of 62 components build and verify entirely on your machine.**
 

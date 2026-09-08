@@ -163,6 +163,7 @@ F1 P3 Auth API      F1 P4 SSO
 | F2-1.3 | ✅ DONE — `application_events` — timeline | F2-1.1 | ✅ | Merged via PR #121 (2026-09-07). Append-only, never updated |
 | F2-1.4 | `documents.jd_snapshot` column | F2-1.1 | ✅ | ⚠️ Blocked — `documents` table doesn't exist yet (F3, not built). NULL = same as current JD (L090) |
 | F2-1.5 | ✅ DONE — `idx_applications_board` composite index | F2-1.1 | ✅ | Merged via PR #119 (2026-09-07), as part of 010_applications. `(user_id, status, last_activity_at DESC) WHERE deleted_at IS NULL` |
+| F2-1.6 | `applications.position` column + index (L129) | F2-1.1 | ✅ | Migration 012. `DOUBLE PRECISION`, nullable, fractional indexing, scoped per `user_id + status`. New composite index `(user_id, status, position)` for Manual sort only — `idx_applications_board` (F2-1.5) is untouched, still serves the 4 computed sorts |
 
 ## F2-API — Endpoints
 
@@ -177,6 +178,7 @@ F1 P3 Auth API      F1 P4 SSO
 | F2-2.7 | ✅ DONE — Timeline event service | F2-1.3 | ✅ | Merged via PR #129 (2026-09-07). `recordApplicationEvent` — the one path future callers use. `createApplication` (F2-2.1) now writes its `created` event transactionally, closing that loop |
 | F2-2.8 | JD copy-on-write on edit | F2-1.4 | ✅ | Copies old JD into dependent documents |
 | F2-2.9 | ✅ DONE — URL scheme validation | F2-1.2 | ✅ | Merged via PR #123 (2026-09-07), as part of F2-2.1 (`lib/security/url-scheme.ts`). `http`/`https` only. Reject `javascript:`, `data:`, `file:` (L110) |
+| F2-2.10 | `GET /api/applications?sort=manual` ordering + `PATCH` accepts `position` (L129) | F2-1.6, F2-2.2, F2-2.4 | ✅ | Manual sort orders by `position ASC` within each status; the other 4 sort modes compute live and ignore `position` entirely. Cross-column drag performed under Manual mode appends to the target column's end (`max(position)+1`), no reflow |
 
 ⚠️ **F2-2.2 and F2-2.3 are the two highest-priority soft-delete tests** — a leak here surfaces a withdrawn application to its own user, which reads as a bug but is an access-control failure (L123).
 
@@ -381,13 +383,13 @@ Independent of F1–F4. Same Next.js app, route groups (L030 — no second servi
 | Group | Tasks | Startable now |
 |---|---|---|
 | F1 (P1–P7 + T7.5) | 34 | 34 |
-| F2 | 14 | 14 |
+| F2 | 16 | 16 |
 | F3 | 17 | 17 (after F1's T5.1 and F2's F2-1.1 merge) |
 | F4 | 9 | 9 (3 blocked pending design) |
 | F0 | 11 | 11 |
 | F6 | 8 | 6 (F6-6 blocked on designer revision) |
 | P9 | 5 | 4 buildable now, T9.5 deploy-only (CI/GitHub Actions) |
-| **Total** | **98** | **95 fully startable** — F6-6 and 3 of F4 blocked on design |
+| **Total** | **100** | **97 fully startable** — F6-6 and 3 of F4 blocked on design |
 
 **Highest-risk tasks — extra review pass against `SECURITY_quarterfinal.md`:**
 
