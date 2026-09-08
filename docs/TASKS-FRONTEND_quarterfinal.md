@@ -1137,7 +1137,7 @@ const move = async (id, from, to) => {
 
 ---
 
-## M04-02 · `DrawerHeader` ✅
+## M04-02 · `DrawerHeader` ✅ DONE — merged via PR #173 (2026-09-08)
 
 🎨 padding `[24,28,20,28]` · `justify space-between` · align center
 🎨 Title "Add application" display `19`/600 · `letterSpacing -0.2` · `$m-ink`
