@@ -1425,7 +1425,7 @@ const prompt = `Write a cover letter for this job: ${jd}`;
 
 ---
 
-## M05-07 · `Timeline` ✅
+## M05-07 · `Timeline` ✅ DONE — merged via PR #195 (2026-09-08), added the first events read path
 
 🎨 fill `$m-surface` · stroke `$m-border` 1
 🎨 Event: padding `[13,16]` · gap `12` · align center · **`border-top` from the second onward**
@@ -1440,11 +1440,14 @@ const prompt = `Write a cover letter for this job: ${jd}`;
 | `phone` | `$m-primary` | "Call logged — salary discussed" | F5 |
 | `mail` | `$m-primary` | "Follow-up email sent" | F4 |
 | `file-text` | `$m-primary` | "Cover letter generated" | F3 |
+| `circle-plus` (added 2026-09-08) | `$m-primary` | "Application created" | F2 |
+
+⚠️ **`created` was missing from this table** despite being the one event type every application is guaranteed to have — built with `circle-plus`/`$m-primary`, matching the "others are primary" rule above. A generic `circle` `$m-primary` fallback covers any future/unlisted type too.
 
 ⚠️ 🎨 **The status-change icon takes the colour of the stage moved to.** Others are `$m-primary`.
 
 🔧 **Database:** `application_events` — **append-only, never updated.**
-⚠️ 🔧 **Debounce status events 2s.**
+⚠️ 🔧 **Debounce status events 2s.** ⚠️ **Still not built (2026-09-08)** — `application_events` is append-only by design (no update/delete function exists), which conflicts with debouncing rapid writes. `recordApplicationEvent`'s own code comment already says so: "not calling this too often is the caller's job." Not a live problem today (the board drag is gated by an 8px activation distance, one PATCH per drop; this screen's `StatusChip` requires a full menu-open-then-click), but genuinely unresolved — needs a real decision (dedupe on display vs. reopening the append-only rule) if a rapid-fire write path is ever added.
 🔧 **Empty state:** not drawn — a new application has one event ("Application added").
 🔧 **A11y:** `<ol>` — semantically an ordered list.
 
