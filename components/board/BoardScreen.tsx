@@ -18,6 +18,7 @@ import { Drawer } from "@/components/board/Drawer";
 import { DrawerHeader } from "@/components/board/DrawerHeader";
 import { EmptyColumn } from "@/components/board/EmptyColumn";
 import { ErrorToast } from "@/components/board/ErrorToast";
+import { JobDescriptionField } from "@/components/board/JobDescriptionField";
 import { StageColumn } from "@/components/board/StageColumn";
 import { STAGES } from "@/components/board/stages";
 import type { BoardView } from "@/components/board/ViewToggle";
@@ -35,6 +36,7 @@ const INITIAL_DRAFT: ApplicationFieldsValues = {
   dateApplied: "",
   source: "",
   sourceUrl: "",
+  jobDescription: "",
 };
 
 const dragAnnouncements: Announcements = {
@@ -247,6 +249,10 @@ export function BoardScreen({
         <DrawerHeader title="Add application" />
         <div className="flex flex-col gap-[18px] overflow-y-auto px-7 pt-6">
           <ApplicationFields values={draft} onChange={updateDraft} />
+          <JobDescriptionField
+            value={draft.jobDescription}
+            onChange={(value) => updateDraft({ jobDescription: value })}
+          />
         </div>
       </Drawer>
     </div>
