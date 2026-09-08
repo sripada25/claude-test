@@ -10,11 +10,12 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ApplicationCard } from "@/components/board/ApplicationCard";
 import { ApplicationFields, type ApplicationFieldsValues } from "@/components/board/ApplicationFields";
 import { BoardTopBar } from "@/components/board/BoardTopBar";
 import { Drawer } from "@/components/board/Drawer";
+import { DrawerActions } from "@/components/board/DrawerActions";
 import { DrawerHeader } from "@/components/board/DrawerHeader";
 import { EmptyColumn } from "@/components/board/EmptyColumn";
 import { ErrorToast } from "@/components/board/ErrorToast";
@@ -79,6 +80,7 @@ export function BoardScreen({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [draft, setDraft] = useState<ApplicationFieldsValues>(INITIAL_DRAFT);
   const [generateChecked, setGenerateChecked] = useState(false);
+  const [saving, setSaving] = useState(false);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
@@ -176,6 +178,56 @@ export function BoardScreen({
       (key) => draft[key as keyof ApplicationFieldsValues] !== INITIAL_DRAFT[key as keyof ApplicationFieldsValues],
     );
 
+  const canSave = draft.company.trim() !== "" && draft.role.trim() !== "";
+
+  async function handleSave(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!canSave || saving) {
+      return;
+    }
+    setSaving(true);
+    try {
+      const response = await fetch("/api/applications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", [CSRF_HEADER_NAME]: getCsrfToken() },
+        body: JSON.stringify({
+          company: draft.company,
+          role: draft.role,
+          status: draft.status,
+          dateApplied: draft.dateApplied || null,
+          source: draft.source || null,
+          sourceUrl: draft.sourceUrl || null,
+          jobDescription: draft.jobDescription || null,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error("save_failed");
+      }
+      const created = await response.json();
+      setApplications((current) => [
+        ...current,
+        {
+          id: created.id,
+          status: created.status,
+          source: created.source,
+          company: created.company,
+          role: created.role,
+          lastActivityAt: created.lastActivityAt,
+          followUpDue: false,
+          assessmentDueAt: created.assessmentDueAt,
+          interviewAt: created.interviewAt,
+        },
+      ]);
+      setAddDrawerOpen(false);
+      setDraft(INITIAL_DRAFT);
+      setGenerateChecked(false);
+    } catch {
+      setErrorMessage("Could not save — please try again");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const hasAnySource = useMemo(
     () => applications.some((application) => application.source != null),
     [applications],
@@ -252,14 +304,17 @@ export function BoardScreen({
       )}
       <Drawer open={addDrawerOpen} onClose={closeAddDrawer} isDirty={isDraftDirty}>
         <DrawerHeader title="Add application" />
-        <div className="flex flex-col gap-[18px] overflow-y-auto px-7 pt-6">
-          <ApplicationFields values={draft} onChange={updateDraft} />
-          <JobDescriptionField
-            value={draft.jobDescription}
-            onChange={(value) => updateDraft({ jobDescription: value })}
-          />
-          <GenerateCheckbox checked={generateChecked} onChange={setGenerateChecked} open={addDrawerOpen} />
-        </div>
+        <form onSubmit={handleSave} className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex flex-1 flex-col gap-[18px] overflow-y-auto px-7 pt-6">
+            <ApplicationFields values={draft} onChange={updateDraft} />
+            <JobDescriptionField
+              value={draft.jobDescription}
+              onChange={(value) => updateDraft({ jobDescription: value })}
+            />
+            <GenerateCheckbox checked={generateChecked} onChange={setGenerateChecked} open={addDrawerOpen} />
+          </div>
+          <DrawerActions saving={saving} canSave={canSave} />
+        </form>
       </Drawer>
     </div>
   );
