@@ -14,6 +14,10 @@ interface BoardApplication {
   source: string | null;
   company: string;
   role: string;
+  lastActivityAt: string;
+  followUpDue: boolean;
+  assessmentDueAt: string | null;
+  interviewAt: string | null;
 }
 
 export function BoardScreen({
@@ -123,6 +127,10 @@ export function BoardScreen({
                         company={application.company}
                         role={application.role}
                         colorClass={stage.colorClass}
+                        lastActivityAt={application.lastActivityAt}
+                        followUpDue={application.followUpDue}
+                        assessmentDueAt={application.assessmentDueAt}
+                        interviewAt={application.interviewAt}
                       />
                     ))}
                   </StageColumn>
