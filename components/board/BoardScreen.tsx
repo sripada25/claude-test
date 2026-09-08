@@ -18,6 +18,7 @@ import { Drawer } from "@/components/board/Drawer";
 import { DrawerHeader } from "@/components/board/DrawerHeader";
 import { EmptyColumn } from "@/components/board/EmptyColumn";
 import { ErrorToast } from "@/components/board/ErrorToast";
+import { GenerateCheckbox } from "@/components/board/GenerateCheckbox";
 import { JobDescriptionField } from "@/components/board/JobDescriptionField";
 import { StageColumn } from "@/components/board/StageColumn";
 import { STAGES } from "@/components/board/stages";
@@ -77,6 +78,7 @@ export function BoardScreen({
   const [applications, setApplications] = useState<BoardApplication[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [draft, setDraft] = useState<ApplicationFieldsValues>(INITIAL_DRAFT);
+  const [generateChecked, setGenerateChecked] = useState(false);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
@@ -165,11 +167,14 @@ export function BoardScreen({
   function closeAddDrawer() {
     setAddDrawerOpen(false);
     setDraft(INITIAL_DRAFT);
+    setGenerateChecked(false);
   }
 
-  const isDraftDirty = Object.keys(INITIAL_DRAFT).some(
-    (key) => draft[key as keyof ApplicationFieldsValues] !== INITIAL_DRAFT[key as keyof ApplicationFieldsValues],
-  );
+  const isDraftDirty =
+    generateChecked ||
+    Object.keys(INITIAL_DRAFT).some(
+      (key) => draft[key as keyof ApplicationFieldsValues] !== INITIAL_DRAFT[key as keyof ApplicationFieldsValues],
+    );
 
   const hasAnySource = useMemo(
     () => applications.some((application) => application.source != null),
@@ -253,6 +258,7 @@ export function BoardScreen({
             value={draft.jobDescription}
             onChange={(value) => updateDraft({ jobDescription: value })}
           />
+          <GenerateCheckbox checked={generateChecked} onChange={setGenerateChecked} open={addDrawerOpen} />
         </div>
       </Drawer>
     </div>
