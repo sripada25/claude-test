@@ -178,7 +178,7 @@ F1 P3 Auth API      F1 P4 SSO
 | F2-2.7 | ✅ DONE — Timeline event service | F2-1.3 | ✅ | Merged via PR #129 (2026-09-07). `recordApplicationEvent` — the one path future callers use. `createApplication` (F2-2.1) now writes its `created` event transactionally, closing that loop |
 | F2-2.8 | JD copy-on-write on edit | F2-1.4 | ✅ | Copies old JD into dependent documents |
 | F2-2.9 | ✅ DONE — URL scheme validation | F2-1.2 | ✅ | Merged via PR #123 (2026-09-07), as part of F2-2.1 (`lib/security/url-scheme.ts`). `http`/`https` only. Reject `javascript:`, `data:`, `file:` (L110) |
-| F2-2.10 | `GET /api/applications?sort=manual` ordering + `PATCH` accepts `position` (L129) | F2-1.6, F2-2.2, F2-2.4 | ✅ | Manual sort orders by `position ASC` within each status; the other 4 sort modes compute live and ignore `position` entirely. Cross-column drag performed under Manual mode appends to the target column's end (`max(position)+1`), no reflow |
+| F2-2.10 | ✅ DONE — `GET /api/applications?sort=manual` ordering + `PATCH` accepts `position` (L129) | F2-1.6, F2-2.2, F2-2.4 | ✅ | Merged via PR #201 (2026-09-08). Manual sort orders by `position ASC NULLS LAST`; the other 4 sort modes compute live and ignore `position` entirely. Position-only updates never bump `last_activity_at` or write a timeline event. Cross-column drag performed under Manual mode appends to the target column's end (`max(position)+1`), computed client-side (M03-14), no reflow |
 
 ⚠️ **F2-2.2 and F2-2.3 are the two highest-priority soft-delete tests** — a leak here surfaces a withdrawn application to its own user, which reads as a bug but is an access-control failure (L123).
 
