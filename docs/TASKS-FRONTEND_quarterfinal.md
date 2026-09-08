@@ -1457,7 +1457,7 @@ const prompt = `Write a cover letter for this job: ${jd}`;
 
 ---
 
-## M05-08 · `NotesField` ✅
+## M05-08 · `NotesField` ✅ DONE — merged via PR #197 (2026-09-08)
 
 🎨 Label "NOTES" mono `10.5`/600 · gap `8`
 🎨 Box: fill `$m-surface` · stroke `$m-border` 1 · padding `[12,14]` · height `70` · body `13` `lineHeight 1.5`
