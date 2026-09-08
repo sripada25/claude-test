@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useRef, type KeyboardEvent } from "react";
+import { JobDescriptionPanel } from "@/components/detail/JobDescriptionPanel";
 
 const TABS = [
   { key: "overview", label: "Overview", count: 0 },
@@ -16,7 +17,7 @@ const EMPTY_STATES: Record<string, string> = {
   reminders: "No reminders yet.",
 };
 
-export function DetailTabs() {
+export function DetailTabs({ jobDescription }: { jobDescription: string | null }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -86,7 +87,9 @@ export function DetailTabs() {
           tabIndex={0}
           hidden={tab.key !== active}
         >
-          {tab.key !== "overview" && (
+          {tab.key === "overview" ? (
+            <JobDescriptionPanel jobDescription={jobDescription} />
+          ) : (
             <p className="font-body text-[13px] text-muted">{EMPTY_STATES[tab.key]}</p>
           )}
         </div>
