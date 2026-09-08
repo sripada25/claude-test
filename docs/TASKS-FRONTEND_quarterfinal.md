@@ -1328,12 +1328,14 @@ const prompt = `Write a cover letter for this job: ${jd}`;
 
 ---
 
-## M05-02 · `StatusChip` ✅
+## M05-02 · `StatusChip` ✅ DONE — merged via PR #185 (2026-09-08), also starts the screen's real data fetch
 
 🎨 fill `$m-violet-soft` · stroke `$m-violet` 1 · padding `[8,12]` · gap `8`
 🎨 Text "Status: Interview" body `12.5`/600 `$m-violet` · icon `chevron-down` `13×13`
 
 ⚠️ 🎨 **Fill and text derive from the stage colour.** Every `-soft` pair exists for this.
+
+⚠️ **Except `Saved` (found 2026-09-08):** there's no `muted-soft`/border pair anywhere in the design system. Used the `surface-2`/`border`/`ink-2` neutral treatment `CardTag` already established for this exact gap (M03-09) — same fallback will apply anywhere else a "Saved"-colored soft chip is needed.
 ⚠️ 🔧 **Static map required** — Tailwind purges interpolated class names.
 
 🔧 **onClick:** dropdown of six stages.
