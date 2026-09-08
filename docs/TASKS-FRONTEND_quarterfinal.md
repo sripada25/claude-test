@@ -1125,12 +1125,15 @@ const move = async (id, from, to) => {
 
 ## M03-15 · Load more (per column) ✅
 
+🎨 **Pen-verified 2026-09-09** — `RFVkJ` ("Mockup — 03 Pipeline board"), node `P0QJ4`/`n8QfAJ` inside the Saved column: frame `fill:#FFFFFF` (`$m-surface`) · `stroke:#C2BAA9` (`$m-border-strong`) 1 · `padding:[6,12]` · `gap:5` · `justifyContent/alignItems: center`. Label text `IBM Plex Mono 10.5/600` `fill:#54524A` (`$m-ink-2`), content literally **"Load more"** — no count embedded in the label. No icon (single text child only). Total drawn bounds `81×26`.
+⚠️ 🎨 **The mockup draws 5 cards under a "10" total badge, then the button.** The 10-per-batch reveal count itself comes from the user's own explicit instruction ("show only 10 most recent cards + Load more"), not from this drawing — 5-drawn-of-10 reads as the mockup's usual illustrative shorthand (draw enough to show the pattern, not the literal count), consistent with other truncated mockup lists elsewhere in this doc set. Flagging the discrepancy rather than silently picking one number.
 🔧 Each `StageColumn` renders at most the 10 most-recently-loaded cards for its status by default — a client-side slice of the array `GET /api/applications` already returns in full. No new query params, no server change (L130).
 🔧 A "Load more" affordance appears below the 10th card when a column has more than 10 matching applications; clicking reveals the next 10 (or all remaining, whichever is smaller) from the already-fetched array.
+⚠️ 🎨 **Button label is static "Load more" — never a dynamic count.** Matches the mockup exactly and follows WCAG 2.5.3 (Label in Name): the accessible name must match the visible text, so no separate count-bearing `aria-label` either.
 🔧 **Not virtualization.** Every revealed card stays mounted for the rest of the session — nothing unmounts on scroll, so it doesn't interact with `@dnd-kit`'s drag auto-scroll (L130). M03-06's no-virtualization decision is untouched by this task.
 🔧 Reveal state resets on a fresh board load (new fetch) — not persisted across sessions or requests, unrelated to the `collapsedStages` cookie from M03-07/M03-11.
 ⚠️ 🔧 **Interaction with M03-14's drag:** a card can only be dragged among the currently-revealed set within a column. Dropping into a column does not force-reveal its hidden cards — the moved card is appended to the end of the already-visible set, consistent with F2-2.10's `max(position)+1` append behaviour.
-🔧 **A11y:** "Load more" is a real `<button>`, not a link; the count of remaining hidden cards is stated in its accessible name (e.g. "Load 12 more").
+🔧 **A11y:** "Load more" is a real `<button>`, not a link. Visible text and accessible name are identical — "Load more", no embedded count.
 🔧 **Responsive:** no change — same 10-card cap at every breakpoint.
 
 **References:** L130 · M03-06 · Mockup 03
