@@ -1106,7 +1106,7 @@ const move = async (id, from, to) => {
 
 ---
 
-## M03-14 · `SortableStateCard` + `DragOverlay` ✅
+## M03-14 · `SortableStateCard` + `DragOverlay` ✅ DONE — merged via PR #203 (2026-09-08)
 
 🔧 Split `ApplicationCard`'s current `useDraggable` into two pieces: a presentational card (existing markup, no drag hooks) and a new `SortableApplicationCard` wrapper using `useSortable` (`@dnd-kit/sortable`, already installed — first real consumer of `SortableContext`/`useSortable`/`arrayMove` in this codebase).
 🔧 Each `StageColumn` body wraps its cards in a `SortableContext` (`items` = that column's application IDs, `strategy={verticalListSortingStrategy}`).
