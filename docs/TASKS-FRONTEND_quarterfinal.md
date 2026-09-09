@@ -1139,6 +1139,15 @@ const move = async (id, from, to) => {
 **References:** L130 · M03-06 · Mockup 03
 
 ---
+
+## M03-16 · Load more: 5-card cap instead of 10 ✅ DONE — merged via PR #209 (2026-09-09)
+
+🔧 **Revises M03-15.** `DEFAULT_REVEAL_COUNT` and `LOAD_MORE_STEP`: `10` → `5`. No other M03-15 behaviour changed — reset-on-refetch, drag-among-revealed-set, and the header count staying the true total are all untouched.
+🎨 **Resolves M03-15's own flagged discrepancy.** The mockup (`RFVkJ`) draws exactly 5 cards under a "10" total badge before the Load more button — 5 turns out to be the real number, not illustrative shorthand.
+
+**References:** L130 · M03-15 · Mockup 03
+
+---
 ---
 
 # M04 — ADD APPLICATION
@@ -1758,7 +1767,7 @@ No row returned ⇒ refuse to enqueue. **Never trust the client's number.**
 | M04 Add | 6 | ✅ |
 | M05 Detail | 10 | ✅ |
 | M06 Generate | 9 | ✅ |
-| **Total** | **64** | **60 local · 3 config · 1 blocked** |
+| **Total** | **65** | **61 local · 3 config · 1 blocked** |
 
 **58 of 62 components build and verify entirely on your machine.**
 
