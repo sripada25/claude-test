@@ -44,8 +44,8 @@ const INITIAL_DRAFT: ApplicationFieldsValues = {
   jobDescription: "",
 };
 
-const DEFAULT_REVEAL_COUNT = 10;
-const LOAD_MORE_STEP = 10;
+const DEFAULT_REVEAL_COUNT = 5;
+const LOAD_MORE_STEP = 5;
 
 const dragAnnouncements: Announcements = {
   onDragStart: () => "Picked up application card.",
