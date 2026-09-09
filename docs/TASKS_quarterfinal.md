@@ -72,6 +72,7 @@ F1 P3 Auth API      F1 P4 SSO
 | T1.9 | ✅ DONE — `oauth_states` table | T1.6 | ✅ | Merged via PR #14 (2026-09-06). Required by T4.1 — state/PKCE storage (L075). Depends on T1.6, not T1.2 — reuses T1.6's `oauth_provider` enum (corrected while scoping T1.9) |
 | T1.7 | ✅ DONE — `subscriptions` + `generation_quota` | T1.2 | ✅ | Merged via PR #16 (2026-09-06). `trial_generations_limit` default 40 (L111) |
 | T1.8 | ✅ DONE — `auth_attempts` + `security_events` | T1.2 | ✅ | Merged via PR #18 (2026-09-06). Neither cascades from `users`. Depends on T1.2, not T1.1 — `security_events.user_id` is an FK (corrected while implementing T1.8) |
+| T1.10 | ✅ DONE — `employment_history` table | T1.2 | ✅ | Merged via PR #217 (2026-09-09). Added 2026-09-09 to unblock F3-2.2 — `generateResume()` had shipped as a permanent stub since T5.2 for lack of exactly this data. One shared history per user, not per-application (matches `skills`/`years_experience`) |
 
 **Reads:** `DATABASE_quarterfinal.md` §2
 
@@ -382,14 +383,14 @@ Independent of F1–F4. Same Next.js app, route groups (L030 — no second servi
 
 | Group | Tasks | Startable now |
 |---|---|---|
-| F1 (P1–P7 + T7.5) | 34 | 34 |
+| F1 (P1–P7 + T7.5) | 35 | 35 |
 | F2 | 16 | 16 |
 | F3 | 17 | 17 (after F1's T5.1 and F2's F2-1.1 merge) |
 | F4 | 9 | 9 (3 blocked pending design) |
 | F0 | 11 | 11 |
 | F6 | 8 | 6 (F6-6 blocked on designer revision) |
 | P9 | 5 | 4 buildable now, T9.5 deploy-only (CI/GitHub Actions) |
-| **Total** | **100** | **97 fully startable** — F6-6 and 3 of F4 blocked on design |
+| **Total** | **101** | **98 fully startable** — F6-6 and 3 of F4 blocked on design |
 
 **Highest-risk tasks — extra review pass against `SECURITY_quarterfinal.md`:**
 

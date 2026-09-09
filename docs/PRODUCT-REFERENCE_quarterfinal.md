@@ -52,7 +52,7 @@ Replaces the single-point-in-time `F1-READINESS.md`. This table is designed to b
 
 | | |
 |---|---|
-| **Backend** | 34 tasks, `TASKS_quarterfinal.md` §F1. All dependencies resolved. |
+| **Backend** | 35 tasks, `TASKS_quarterfinal.md` §F1. All dependencies resolved. |
 | **Frontend** | 12 components (Sidebar ×4 + M01 ×12 — wait, see exact count below), all pen-verified |
 | **Schema** | Complete — `DATABASE_quarterfinal.md` §2 |
 | **Security** | 10 OWASP gaps closed, `SECURITY_quarterfinal.md` §2–§12, §15–§17 |
