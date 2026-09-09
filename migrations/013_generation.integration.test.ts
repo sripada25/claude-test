@@ -213,7 +213,19 @@ describe("013_generation migration (real Postgres)", () => {
 
   it("is fully reversible: down() drops everything, and up() re-applies cleanly", async () => {
     await migrate.up();
-    await migrate.down();
+
+    // down() only reverts the single most-recently-applied migration, so
+    // keep reverting until 013 itself is undone - resilient to any
+    // migration added after this one (e.g. 014).
+    async function documentsTableExists(): Promise<boolean> {
+      const result = await pool.query(
+        `SELECT 1 FROM information_schema.tables WHERE table_name = 'documents'`,
+      );
+      return result.rows.length > 0;
+    }
+    while (await documentsTableExists()) {
+      await migrate.down();
+    }
 
     for (const table of ["documents", "generation_jobs", "ai_usage"]) {
       const result = await pool.query(

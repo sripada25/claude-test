@@ -114,6 +114,27 @@ CREATE TABLE profiles (
 -- Neither the PRD (p.11, p.13) nor mockup 02 specified an enum.
 ```
 
+**`employment_history` (added 2026-09-09, T1.10)** — one user's past employers/titles/dates, separate from `profiles` since it's one-to-many. Exists to back `AI-RULES.md` §5's fabrication check for résumé tailoring (F3-2.2), which had shipped as a permanent stub since T5.2 for lack of exactly this data.
+
+```sql
+CREATE TABLE employment_history (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  employer    TEXT NOT NULL,
+  title       TEXT NOT NULL,
+  start_date  DATE NOT NULL,
+  end_date    DATE,                    -- NULL = current position, same convention as documents.jd_snapshot
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+  CONSTRAINT employment_dates_ordered CHECK (end_date IS NULL OR end_date >= start_date)
+);
+
+CREATE INDEX idx_employment_history_user ON employment_history(user_id, start_date DESC);
+```
+
+One shared employment history per user, reused across every application's tailored résumé — not scoped per-application, matching how `skills`/`years_experience` already work. `ON DELETE CASCADE` matches `profiles`, not `ai_usage`'s deliberate cost-history `SET NULL`. No entry-count cap at the database level — an API-layer concern if one is ever needed.
+
 ## 2.3 · sessions
 
 ```sql
@@ -586,6 +607,7 @@ Deleting a user is **one transaction, no orphans** — DPDP requirement (L064). 
 | `idx_auth_attempts` | Rate-limit window | Every login attempt |
 | `idx_email_log_quota` | Daily Brevo count | Per send |
 | `idx_ai_usage_*` | Cost and support queries | Rare, useless without |
+| `idx_employment_history_user` | Résumé-tailoring fabrication check; M02 profile builder | Every résumé generation, every profile-screen load once built |
 
 **Not indexed:** `users.email` (UNIQUE already creates one) · `profiles.skills` (no search in MVP — add GIN when one exists) · `applications.company` (search runs over ~240 rows; revisit past ~10,000 per user).
 
