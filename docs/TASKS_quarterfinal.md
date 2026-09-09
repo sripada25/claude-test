@@ -321,10 +321,10 @@ Independent of F1–F4. Same Next.js app, route groups (L030 — no second servi
 
 | ID | Task | Depends | Env | Notes |
 |---|---|---|---|---|
-| F3-1.1 | `documents` table migration | F2-1.1, T5.1 | ✅ | `jd_snapshot` NULL = copy-on-write default (L090). `provider`/`model` columns for traceability |
-| F3-1.2 | `generation_jobs` table migration | F2-1.1 | ✅ | `prompt_inputs JSONB` — profile + JD **snapshotted at enqueue**, not fetched at execution (L095) |
-| F3-1.3 | `ai_usage` table migration | T1.2 | ✅ | ⚠️ **From the first generation, no exceptions** — cost/failure history cannot be reconstructed retroactively (L097) |
-| F3-1.4 | `idx_jobs_queue` + `idx_ai_usage_*` indexes | F3-1.2, F3-1.3 | ✅ | Worker polling and cost-query performance |
+| F3-1.1 | ✅ DONE — `documents` table migration | F2-1.1, T5.1 | ✅ | Merged via PR #215 (2026-09-09), migration 013, combined with F3-1.2/1.3/1.4. `jd_snapshot` NULL = copy-on-write default (L090). `provider`/`model` columns for traceability |
+| F3-1.2 | ✅ DONE — `generation_jobs` table migration | F2-1.1 | ✅ | Merged via PR #215 (2026-09-09), as part of migration 013. `prompt_inputs JSONB` — profile + JD **snapshotted at enqueue**, not fetched at execution (L095) |
+| F3-1.3 | ✅ DONE — `ai_usage` table migration | T1.2 | ✅ | Merged via PR #215 (2026-09-09), as part of migration 013. ⚠️ **From the first generation, no exceptions** — cost/failure history cannot be reconstructed retroactively (L097) |
+| F3-1.4 | ✅ DONE — `idx_jobs_queue` + `idx_ai_usage_*` indexes | F3-1.2, F3-1.3 | ✅ | Merged via PR #215 (2026-09-09), as part of migration 013. Worker polling and cost-query performance |
 
 ## F3-Backend
 
