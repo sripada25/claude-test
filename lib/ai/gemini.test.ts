@@ -25,6 +25,7 @@ describe("geminiAdapter", () => {
     monthsExperience: 6,
     skills: ["react", "typescript"],
     location: "Bengaluru",
+    employmentHistory: [],
   };
 
   beforeAll(async () => {
