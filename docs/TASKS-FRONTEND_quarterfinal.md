@@ -1516,7 +1516,7 @@ const prompt = `Write a cover letter for this job: ${jd}`;
 
 ---
 
-## M05-09 · `ActionButtons` ✅ — four
+## M05-09 · `ActionButtons` ✅ DONE — merged via PR #212 (2026-09-09) — four
 
 🎨 **Primary:** fill `$m-primary` · stroke `$m-primary` 1 · padding `[11,16]` · gap `9` · icon `15` `#FFFFFF` · text body `13`/600 `#FFFFFF`
 🎨 **Secondary:** fill `$m-surface` · stroke `$m-border-strong` 1 · icon `15` `$m-ink-2` · text `$m-ink`
@@ -1543,6 +1543,8 @@ const prompt = `Write a cover letter for this job: ${jd}`;
 🔧 **A11y:** each disabled reason is adjacent text, not a `title` — `title` is invisible to touch and most screen readers.
 
 🔧 **Responsive:** ⚠️ **The right column moves ABOVE the left below `lg`.** This is the action surface — generation and call logging are why the user opened the screen. Actions below a long timeline would be invisible on mobile.
+
+🔧 **Built 2026-09-09:** the three blocking conditions gate the two primary "Generate…" buttons only — L040/L098 confirm this is specifically an AI-generation gate, not general app access, so "Log a call"/"Set a reminder" are never disabled by them. Quota check is a real read against `generation_quota` (T1.7) — nothing writes to it yet (F3 not built), so it correctly reports "available" for every user today. No destinations exist for any of the 4 buttons (M06/F4/F5 unbuilt) — all are visible but non-functional when enabled, matching M01-08/M05-03's precedent; the quota message's "upgrade link" wasn't built for the same reason (no F6 destination) and is plain text only.
 
 **References:** F2-3.20 · L040 · L092 · L098 · Mockup 05
 
