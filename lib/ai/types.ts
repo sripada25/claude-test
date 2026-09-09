@@ -46,6 +46,11 @@ export interface ProfileSnapshot {
   monthsExperience: number | null;
   skills: string[];
   location: string | null;
+  // AI-RULES.md §5's fabrication check validates every employer/date in a
+  // tailored resume against this list. Inlined rather than imported from
+  // lib/repositories/employment-history.ts - this file has no repository
+  // imports, keeping AI-facing types decoupled from DB row shapes.
+  employmentHistory: { employer: string; title: string; startDate: string; endDate: string | null }[];
 }
 
 export interface GenerationInput {
