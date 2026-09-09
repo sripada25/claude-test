@@ -1123,7 +1123,7 @@ const move = async (id, from, to) => {
 
 ---
 
-## M03-15 · Load more (per column) ✅
+## M03-15 · Load more (per column) ✅ DONE — merged via PR #205 (2026-09-09)
 
 🎨 **Pen-verified 2026-09-09** — `RFVkJ` ("Mockup — 03 Pipeline board"), node `P0QJ4`/`n8QfAJ` inside the Saved column: frame `fill:#FFFFFF` (`$m-surface`) · `stroke:#C2BAA9` (`$m-border-strong`) 1 · `padding:[6,12]` · `gap:5` · `justifyContent/alignItems: center`. Label text `IBM Plex Mono 10.5/600` `fill:#54524A` (`$m-ink-2`), content literally **"Load more"** — no count embedded in the label. No icon (single text child only). Total drawn bounds `81×26`.
 ⚠️ 🎨 **The mockup draws 5 cards under a "10" total badge, then the button.** The 10-per-batch reveal count itself comes from the user's own explicit instruction ("show only 10 most recent cards + Load more"), not from this drawing — 5-drawn-of-10 reads as the mockup's usual illustrative shorthand (draw enough to show the pattern, not the literal count), consistent with other truncated mockup lists elsewhere in this doc set. Flagging the discrepancy rather than silently picking one number.
