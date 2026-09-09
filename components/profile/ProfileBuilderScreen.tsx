@@ -2,6 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import {
+  EmploymentHistoryFields,
+  type EmploymentEntryErrors,
+  type EmploymentEntryForm,
+} from "@/components/profile/EmploymentHistoryFields";
 import { LocationSegmented, type LocationPreference } from "@/components/profile/LocationSegmented";
 import { ProfileActions } from "@/components/profile/ProfileActions";
 import { ProfileFields, type ProfileFieldsValues } from "@/components/profile/ProfileFields";
@@ -26,6 +31,7 @@ export function ProfileBuilderScreen() {
   const [extractedProfile, setExtractedProfile] = useState<ExtractedProfile | null>(null);
   const [profileForm, setProfileForm] = useState<ProfileFieldsValues>(EMPTY_PROFILE_FORM);
   const [skills, setSkills] = useState<string[]>([]);
+  const [employmentHistory, setEmploymentHistory] = useState<EmploymentEntryForm[]>([]);
   const [salary, setSalary] = useState<SalaryValues>({ currency: "INR", amount: "", period: "" });
   const [locationPreference, setLocationPreference] = useState<LocationPreference | "">("");
   const [fieldErrors, setFieldErrors] = useState<{
@@ -33,6 +39,7 @@ export function ProfileBuilderScreen() {
     targetRole?: string;
     skills?: string;
   }>({});
+  const [employmentErrors, setEmploymentErrors] = useState<EmploymentEntryErrors[]>([]);
   const [salaryError, setSalaryError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -76,6 +83,7 @@ export function ProfileBuilderScreen() {
     profileForm.yearsExperience !== "0" ||
     profileForm.monthsExperience !== "0" ||
     skills.length > 0 ||
+    employmentHistory.length > 0 ||
     salary.amount !== "" ||
     salary.period !== "" ||
     locationPreference !== "";
@@ -85,6 +93,23 @@ export function ProfileBuilderScreen() {
       return;
     }
     router.back();
+  }
+
+  function validateEmploymentEntry(entry: EmploymentEntryForm): EmploymentEntryErrors {
+    const errors: EmploymentEntryErrors = {};
+    if (!entry.employer.trim()) {
+      errors.employer = "Enter the employer";
+    }
+    if (!entry.title.trim()) {
+      errors.title = "Enter your title";
+    }
+    if (!entry.startDate) {
+      errors.startDate = "Enter a start date";
+    }
+    if (entry.endDate && entry.startDate && entry.endDate < entry.startDate) {
+      errors.endDate = "End date can't be before the start date";
+    }
+    return errors;
   }
 
   async function handleSave() {
@@ -100,13 +125,17 @@ export function ProfileBuilderScreen() {
     }
     setFieldErrors(nextFieldErrors);
 
+    const nextEmploymentErrors = employmentHistory.map(validateEmploymentEntry);
+    setEmploymentErrors(nextEmploymentErrors);
+    const employmentValid = nextEmploymentErrors.every((errors) => Object.keys(errors).length === 0);
+
     const salaryStarted = salary.amount !== "" || salary.period !== "";
     const salaryValid = !salaryStarted || (salary.amount !== "" && salary.period !== "" && salary.currency !== "");
     setSalaryError(
       salaryValid ? null : "Complete all three - amount, currency, and period - or leave salary blank.",
     );
 
-    if (Object.keys(nextFieldErrors).length > 0 || !salaryValid) {
+    if (Object.keys(nextFieldErrors).length > 0 || !employmentValid || !salaryValid) {
       return;
     }
 
@@ -126,15 +155,31 @@ export function ProfileBuilderScreen() {
       locationPreference: locationPreference || null,
     };
 
-    const response = await fetch("/api/profile", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", [CSRF_HEADER_NAME]: getCsrfToken() },
-      body: JSON.stringify(body),
-    }).catch(() => null);
+    const employmentBody = {
+      entries: employmentHistory.map((entry) => ({
+        employer: entry.employer,
+        title: entry.title,
+        startDate: entry.startDate,
+        endDate: entry.endDate || null,
+      })),
+    };
+
+    const [profileResponse, employmentResponse] = await Promise.all([
+      fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", [CSRF_HEADER_NAME]: getCsrfToken() },
+        body: JSON.stringify(body),
+      }).catch(() => null),
+      fetch("/api/profile/employment", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", [CSRF_HEADER_NAME]: getCsrfToken() },
+        body: JSON.stringify(employmentBody),
+      }).catch(() => null),
+    ]);
 
     setSaving(false);
 
-    if (!response?.ok) {
+    if (!profileResponse?.ok || !employmentResponse?.ok) {
       setSaveError("Something went wrong - try again.");
       return;
     }
@@ -158,6 +203,11 @@ export function ProfileBuilderScreen() {
             values={profileForm}
             onChange={(patch) => setProfileForm((current) => ({ ...current, ...patch }))}
             errors={fieldErrors}
+          />
+          <EmploymentHistoryFields
+            entries={employmentHistory}
+            onChange={setEmploymentHistory}
+            errors={employmentErrors}
           />
           <SkillsTagInput skills={skills} onChange={setSkills} error={fieldErrors.skills} />
           <SalaryField
