@@ -5,6 +5,7 @@ import { ActionButtons } from "@/components/detail/ActionButtons";
 import { DetailHeader } from "@/components/detail/DetailHeader";
 import { DetailTabs } from "@/components/detail/DetailTabs";
 import { DetailTopBar } from "@/components/detail/DetailTopBar";
+import { LastCallPanel } from "@/components/detail/LastCallPanel";
 import { Sidebar } from "@/components/shell/Sidebar";
 
 export interface ApplicationDetail {
@@ -83,6 +84,7 @@ export function DetailScreen({ id }: { id: string }) {
                   </div>
                   <div className="flex w-full flex-col gap-[14px] lg:w-[236px]">
                     <ActionButtons />
+                    <LastCallPanel />
                   </div>
                 </div>
               </div>
