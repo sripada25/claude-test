@@ -23,6 +23,7 @@ import { EmptyColumn } from "@/components/board/EmptyColumn";
 import { ErrorToast } from "@/components/board/ErrorToast";
 import { GenerateCheckbox } from "@/components/board/GenerateCheckbox";
 import { JobDescriptionField } from "@/components/board/JobDescriptionField";
+import { LoadMoreButton } from "@/components/board/LoadMoreButton";
 import { StageColumn } from "@/components/board/StageColumn";
 import { STAGES } from "@/components/board/stages";
 import type { BoardView } from "@/components/board/ViewToggle";
@@ -42,6 +43,9 @@ const INITIAL_DRAFT: ApplicationFieldsValues = {
   sourceUrl: "",
   jobDescription: "",
 };
+
+const DEFAULT_REVEAL_COUNT = 10;
+const LOAD_MORE_STEP = 10;
 
 const dragAnnouncements: Announcements = {
   onDragStart: () => "Picked up application card.",
@@ -110,6 +114,7 @@ export function BoardScreen({
   const [generateChecked, setGenerateChecked] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [revealCounts, setRevealCounts] = useState<Record<string, number>>({});
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
@@ -139,6 +144,7 @@ export function BoardScreen({
       const data = await response.json();
       if (!cancelled) {
         setApplications(data);
+        setRevealCounts({});
       }
     }
 
@@ -367,6 +373,8 @@ export function BoardScreen({
               <div className="flex gap-4">
                 {STAGES.map((stage) => {
                   const stageApplications = applications.filter((a) => a.status === stage.value);
+                  const revealCount = revealCounts[stage.value] ?? DEFAULT_REVEAL_COUNT;
+                  const visibleApplications = stageApplications.slice(0, revealCount);
                   return (
                   <StageColumn
                       key={stage.value}
@@ -376,24 +384,36 @@ export function BoardScreen({
                       count={stageApplications.length}
                       collapsed={collapsedStages.includes(stage.value)}
                       onToggleCollapse={() => toggleCollapsed(stage.value)}
-                      cardIds={stageApplications.map((a) => a.id)}
+                      cardIds={visibleApplications.map((a) => a.id)}
                     >
                       {stageApplications.length === 0 ? (
                         <EmptyColumn />
                       ) : (
-                        stageApplications.map((application) => (
-                          <SortableApplicationCard
-                            key={application.id}
-                            id={application.id}
-                            company={application.company}
-                            role={application.role}
-                            colorClass={stage.colorClass}
-                            lastActivityAt={application.lastActivityAt}
-                            followUpDue={application.followUpDue}
-                            assessmentDueAt={application.assessmentDueAt}
-                            interviewAt={application.interviewAt}
-                          />
-                        ))
+                        <>
+                          {visibleApplications.map((application) => (
+                            <SortableApplicationCard
+                              key={application.id}
+                              id={application.id}
+                              company={application.company}
+                              role={application.role}
+                              colorClass={stage.colorClass}
+                              lastActivityAt={application.lastActivityAt}
+                              followUpDue={application.followUpDue}
+                              assessmentDueAt={application.assessmentDueAt}
+                              interviewAt={application.interviewAt}
+                            />
+                          ))}
+                          {stageApplications.length > visibleApplications.length && (
+                            <LoadMoreButton
+                              onClick={() =>
+                                setRevealCounts((current) => ({
+                                  ...current,
+                                  [stage.value]: revealCount + LOAD_MORE_STEP,
+                                }))
+                              }
+                            />
+                          )}
+                        </>
                       )}
                     </StageColumn>
                   );
