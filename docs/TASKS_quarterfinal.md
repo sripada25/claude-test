@@ -129,6 +129,7 @@ F1 P3 Auth API      F1 P4 SSO
 | T5.4 | ✅ DONE — `POST /api/profile/parse-resume` | T5.2 | ⚙️ | Merged via PR #77 (2026-09-07). Validate → extract → **persist nothing** (L049). Added `lib/ai/provider.ts`'s `AI_PROVIDER` factory (deferred from T5.1) |
 | T5.5 | ✅ DONE — `GET`/`PUT /api/profile` | T1.3, T2.3 | ✅ | Merged via PR #71 (2026-09-07). Session-derived ownership, field whitelist. `completed_at` untouched - reserved for T5.6 |
 | T5.6 | ✅ DONE — Profile completeness rule → `completed_at` | T5.5 | ✅ | Merged via PR #73 (2026-09-07). Gates generation (L047). Recomputed on every PUT, not a one-time milestone - can go back to NULL |
+| T5.7 | ✅ DONE — `GET`/`PUT /api/profile/employment` | T1.10 | ✅ | Merged via PR #219 (2026-09-10). Added 2026-09-09 alongside T1.10 to unblock F3-2.2. Sibling resource to T5.5, whole-list replace (matches `skills`). `ProfileSnapshot.employmentHistory` wired for F3-2.2's fabrication check |
 
 **Reads:** `AI-RULES.md` §2 (all AI ops), §3 (résumé extraction)
 
@@ -383,14 +384,14 @@ Independent of F1–F4. Same Next.js app, route groups (L030 — no second servi
 
 | Group | Tasks | Startable now |
 |---|---|---|
-| F1 (P1–P7 + T7.5) | 35 | 35 |
+| F1 (P1–P7 + T7.5) | 36 | 36 |
 | F2 | 16 | 16 |
 | F3 | 17 | 17 (after F1's T5.1 and F2's F2-1.1 merge) |
 | F4 | 9 | 9 (3 blocked pending design) |
 | F0 | 11 | 11 |
 | F6 | 8 | 6 (F6-6 blocked on designer revision) |
 | P9 | 5 | 4 buildable now, T9.5 deploy-only (CI/GitHub Actions) |
-| **Total** | **101** | **98 fully startable** — F6-6 and 3 of F4 blocked on design |
+| **Total** | **102** | **99 fully startable** — F6-6 and 3 of F4 blocked on design |
 
 **Highest-risk tasks — extra review pass against `SECURITY_quarterfinal.md`:**
 

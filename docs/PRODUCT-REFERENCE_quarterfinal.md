@@ -32,7 +32,7 @@ CLAUDE.md                          — the rules an implementing agent follows
 
 | Feature | PRD reference | Status |
 |---|---|---|
-| **F1** User Accounts | p.13 "User accounts" | ✅ Fully specified — 34 backend tasks, 12 screen-note components |
+| **F1** User Accounts | p.13 "User accounts" | ✅ Fully specified — 36 backend tasks, 12 screen-note components |
 | **F2** Application Tracker | p.13 "Application tracker" | ✅ Fully specified — 14 backend tasks, 30 screen-note components |
 | **F3** AI Generation | p.13 "AI generation" | ✅ Rules specified (`AI-RULES.md`), 12 UI components (M06). No dedicated task breakdown yet — folded into F1/F2 tasks that touch it (T5.1–T5.4, F2-2.x) |
 | **F4** Follow-up System | p.13 "Follow-up system" | ✅ Fully specified — 9 backend tasks. 🔴 One open decision (L038) gates 3 of them |
@@ -52,7 +52,7 @@ Replaces the single-point-in-time `F1-READINESS.md`. This table is designed to b
 
 | | |
 |---|---|
-| **Backend** | 35 tasks, `TASKS_quarterfinal.md` §F1. All dependencies resolved. |
+| **Backend** | 36 tasks, `TASKS_quarterfinal.md` §F1. All dependencies resolved. |
 | **Frontend** | 12 components (Sidebar ×4 + M01 ×12 — wait, see exact count below), all pen-verified |
 | **Schema** | Complete — `DATABASE_quarterfinal.md` §2 |
 | **Security** | 10 OWASP gaps closed, `SECURITY_quarterfinal.md` §2–§12, §15–§17 |
