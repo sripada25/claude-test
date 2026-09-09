@@ -95,11 +95,21 @@ describe("012_applications_position migration (real Postgres)", () => {
 
   it("is fully reversible: down() drops the index and column, and up() re-applies cleanly", async () => {
     await migrate.up();
-    await migrate.down();
 
-    const columns = await pool.query(
+    // down() only reverts the single most-recently-applied migration, so
+    // one call only undoes 012 when it's the last migration on disk. Keep
+    // reverting until 012 itself is undone - makes this test resilient to
+    // any migration added after 012 (e.g. 013), instead of re-breaking
+    // every time the migrations folder grows.
+    let columns = await pool.query(
       `SELECT 1 FROM information_schema.columns WHERE table_name = 'applications' AND column_name = 'position'`,
     );
+    while (columns.rows.length > 0) {
+      await migrate.down();
+      columns = await pool.query(
+        `SELECT 1 FROM information_schema.columns WHERE table_name = 'applications' AND column_name = 'position'`,
+      );
+    }
     expect(columns.rows).toHaveLength(0);
 
     const indexes = await pool.query(
