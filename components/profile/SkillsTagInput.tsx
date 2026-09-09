@@ -6,9 +6,11 @@ import { Tag } from "@/components/ui/Tag";
 export function SkillsTagInput({
   skills,
   onChange,
+  error,
 }: {
   skills: string[];
   onChange: (skills: string[]) => void;
+  error?: string;
 }) {
   const [draft, setDraft] = useState("");
 
@@ -39,7 +41,9 @@ export function SkillsTagInput({
       </label>
       <div
         role="list"
-        className="flex flex-wrap items-center gap-2 border border-border bg-surface px-[12px] py-[10px] focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary"
+        aria-invalid={!!error}
+        aria-describedby={error ? "skills-error" : undefined}
+        className="flex flex-wrap items-center gap-2 border border-border bg-surface px-[12px] py-[10px] focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary aria-[invalid=true]:border-danger"
       >
         {skills.map((skill) => (
           <span key={skill} role="listitem">
@@ -64,6 +68,11 @@ export function SkillsTagInput({
           className="min-w-[120px] flex-1 border-0 bg-transparent font-body text-[13px] text-ink placeholder:text-muted focus:outline-none"
         />
       </div>
+      {error && (
+        <p id="skills-error" className="font-body text-[12px] text-danger">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

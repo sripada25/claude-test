@@ -28,7 +28,11 @@ export function ProfileBuilderScreen() {
   const [skills, setSkills] = useState<string[]>([]);
   const [salary, setSalary] = useState<SalaryValues>({ currency: "INR", amount: "", period: "" });
   const [locationPreference, setLocationPreference] = useState<LocationPreference | "">("");
-  const [fieldErrors, setFieldErrors] = useState<{ fullName?: string; targetRole?: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<{
+    fullName?: string;
+    targetRole?: string;
+    skills?: string;
+  }>({});
   const [salaryError, setSalaryError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -84,12 +88,15 @@ export function ProfileBuilderScreen() {
   }
 
   async function handleSave() {
-    const nextFieldErrors: { fullName?: string; targetRole?: string } = {};
+    const nextFieldErrors: { fullName?: string; targetRole?: string; skills?: string } = {};
     if (!profileForm.fullName.trim()) {
       nextFieldErrors.fullName = "Enter your name";
     }
     if (!profileForm.targetRole.trim()) {
       nextFieldErrors.targetRole = "Enter the role you're targeting";
+    }
+    if (skills.length === 0) {
+      nextFieldErrors.skills = "Add at least one skill";
     }
     setFieldErrors(nextFieldErrors);
 
@@ -152,7 +159,7 @@ export function ProfileBuilderScreen() {
             onChange={(patch) => setProfileForm((current) => ({ ...current, ...patch }))}
             errors={fieldErrors}
           />
-          <SkillsTagInput skills={skills} onChange={setSkills} />
+          <SkillsTagInput skills={skills} onChange={setSkills} error={fieldErrors.skills} />
           <SalaryField
             values={salary}
             onChange={(patch) => setSalary((current) => ({ ...current, ...patch }))}
