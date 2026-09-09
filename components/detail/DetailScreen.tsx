@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import { ActionButtons } from "@/components/detail/ActionButtons";
 import { DetailHeader } from "@/components/detail/DetailHeader";
 import { DetailTabs } from "@/components/detail/DetailTabs";
 import { DetailTopBar } from "@/components/detail/DetailTopBar";
@@ -80,7 +81,9 @@ export function DetailScreen({ id }: { id: string }) {
                       />
                     </Suspense>
                   </div>
-                  <div className="flex w-full flex-col gap-[14px] lg:w-[236px]" />
+                  <div className="flex w-full flex-col gap-[14px] lg:w-[236px]">
+                    <ActionButtons />
+                  </div>
                 </div>
               </div>
             </>
