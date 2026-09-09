@@ -330,8 +330,8 @@ Independent of F1–F4. Same Next.js app, route groups (L030 — no second servi
 
 | ID | Task | Depends | Env | Notes |
 |---|---|---|---|---|
-| F3-2.1 | `GeminiAdapter.generateCoverLetter()` | T5.2 | ⚙️ | `AI-RULES.md` §4. Plain text output, no JSON — nothing to parse means nothing to fail parsing |
-| F3-2.2 | `GeminiAdapter.generateResume()` | T5.2 | ⚙️ | `AI-RULES.md` §5 — ⚠️ **strictest operation.** Every employer/date in output must appear in input, or the job is **rejected**, never saved |
+| F3-2.1 | ✅ DONE — `GeminiAdapter.generateCoverLetter()` | T5.2 | ⚙️ | Already built and tested as part of T5.2 (PR #75, 2026-09-07), ahead of F3's own task sequence — `lib/ai/gemini.ts` implements `AI-RULES.md` §4's system instruction and all 4 validation rules, `lib/ai/gemini.test.ts` covers each. Plain text output, no JSON — nothing to parse means nothing to fail parsing |
+| F3-2.2 | `GeminiAdapter.generateResume()` | T5.2 | ⚙️ | `AI-RULES.md` §5 — ⚠️ **strictest operation.** Every employer/date in output must appear in input, or the job is **rejected**, never saved. ⚠️ **Blocked (confirmed 2026-09-07, still true 2026-09-09):** `ProfileSnapshot` carries no employment history to validate against — ships as a stub that always fails until that schema gap is closed. See the new employment-history tasks below |
 | F3-2.3 | Output validation module | F3-2.1, F3-2.2 | ✅ | Length bounds, injection-marker detection, placeholder-bracket detection (`AI-RULES.md` §2.3) |
 | F3-2.4 | Job queue worker (in-process, no Redis) | F3-1.2, T5.1 | ✅ | Polls `idx_jobs_queue`. Respects Gemini's 15 RPM (L034) — this is the actual reason a queue exists, not a nice-to-have |
 | F3-2.5 | Quota enforcement — atomic decrement at enqueue | T1.7 | ✅ | The exact statement from `DATABASE_quarterfinal.md` §5. ⚠️ **A bug here is a billing event, not a UI bug** — designer's own words on M06 |
