@@ -760,6 +760,21 @@ const planLabel =
 **References:** T8.5 · T5.5 · T5.6 · L047 · Mockup 02
 
 ---
+
+## M02-09 · `EmploymentHistoryFields` ✅ DONE — merged via PR #221 (2026-09-10)
+
+⚠️ **No mockup exists for this section** — added 2026-09-09 to unblock F3-2.2 (`generateResume`'s fabrication check needs real employment data). Designed to match M02's existing visual language directly (Claude, per explicit user confirmation), not pen-verified.
+
+🔧 Repeating entry card: Employer / Title (`Field`, same grid as `ProfileFields`) · Start date / End date (`Field type="date"`, end optional — hint "Leave blank if this is your current role" instead of a checkbox, keeping to M02's existing control vocabulary). Icon-only remove button per card, same treatment as `Tag`'s removable-chip `X` / `DrawerHeader`'s close button. "Add employment" trigger below the list — `Button variant="secondary" size="sm"`, same pattern as `AddApplicationButton`.
+
+🔧 **Validation:** employer/title required, start date required, end date (if given) not before start date — mirrors T5.7's service exactly, errors shown via `Field`'s existing `error` prop.
+🔧 **Save:** `PUT /api/profile/employment` fires in parallel with the existing `PUT /api/profile` (`Promise.all`) — both must succeed, same generic error message on either failure. No cross-endpoint transaction (L030's no-queue/no-Redis simplicity).
+🔧 **Database:** `employment_history` (T1.10), via T5.7's endpoint only — no direct SQL from this component.
+🔧 Screen never fetches existing values on load (confirmed pre-existing across all of M02) — this field matches that, not fixed here.
+
+**References:** T5.7 · T1.10 · Mockup — none (see above)
+
+---
 ---
 
 # M03 — PIPELINE BOARD
@@ -1764,12 +1779,12 @@ No row returned ⇒ refuse to enqueue. **Never trust the client's number.**
 |---|---|---|
 | Sidebar | 4 | ✅ |
 | M01 Sign in | 12 | ⚙️ 3 config · ⏸ 1 |
-| M02 Profile | 8 | ✅ |
+| M02 Profile | 9 | ✅ |
 | M03 Board | 13 | ✅ |
 | M04 Add | 6 | ✅ |
 | M05 Detail | 10 | ✅ |
 | M06 Generate | 9 | ✅ |
-| **Total** | **65** | **61 local · 3 config · 1 blocked** |
+| **Total** | **66** | **62 local · 3 config · 1 blocked** |
 
 **58 of 62 components build and verify entirely on your machine.**
 
