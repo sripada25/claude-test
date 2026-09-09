@@ -1550,7 +1550,7 @@ const prompt = `Write a cover letter for this job: ${jd}`;
 
 ---
 
-## M05-10 · `LastCallPanel` ✅
+## M05-10 · `LastCallPanel` ✅ DONE — merged via PR #213 (2026-09-09), M05 complete
 
 🎨 Label "FROM THE LAST CALL" + `info` icon
 🎨 Panel: fill `$m-surface` · stroke `$m-border` 1
