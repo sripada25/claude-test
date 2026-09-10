@@ -5,6 +5,7 @@ describe("generation service (real Postgres)", () => {
   let container: StartedPostgreSqlContainer;
   let enqueueGeneration: typeof import("./generation.ts")["enqueueGeneration"];
   let getGenerationStatus: typeof import("./generation.ts")["getGenerationStatus"];
+  let regenerateDocument: typeof import("./generation.ts")["regenerateDocument"];
   let migrate: typeof import("../../scripts/migrate.ts");
   let pool: typeof import("../db.ts")["pool"];
 
@@ -14,7 +15,7 @@ describe("generation service (real Postgres)", () => {
 
     migrate = await import("../../scripts/migrate.ts");
     ({ pool } = await import("../db.ts"));
-    ({ enqueueGeneration, getGenerationStatus } = await import("./generation.ts"));
+    ({ enqueueGeneration, getGenerationStatus, regenerateDocument } = await import("./generation.ts"));
 
     await migrate.up();
   }, 60_000);
@@ -293,6 +294,64 @@ describe("generation service (real Postgres)", () => {
       const result = await getGenerationStatus(userId, "00000000-0000-0000-0000-000000000000");
 
       expect(result).toEqual({ success: false, reason: "not_found" });
+    });
+  });
+
+  describe("regenerateDocument", () => {
+    async function insertRawDocument(
+      userId: string,
+      applicationId: string,
+      type: "cover_letter" | "resume",
+    ): Promise<string> {
+      const result = await pool.query<{ id: string }>(
+        `INSERT INTO documents (application_id, user_id, type, content, provider, model)
+         VALUES ($1, $2, $3, 'content', 'gemini', 'gemini-flash-latest') RETURNING id`,
+        [applicationId, userId, type],
+      );
+      return result.rows[0].id;
+    }
+
+    it("enqueues a new job for the source document's application and type", async () => {
+      const { userId, applicationId } = await setupReadyToGenerate("regen-happy-path@example.com");
+      const documentId = await insertRawDocument(userId, applicationId, "resume");
+
+      const result = await regenerateDocument(userId, documentId);
+
+      expect(result.success).toBe(true);
+      if (!result.success) return;
+      const job = await pool.query("SELECT application_id, type, status FROM generation_jobs WHERE id = $1", [
+        result.jobId,
+      ]);
+      expect(job.rows[0]).toMatchObject({ application_id: applicationId, type: "resume", status: "queued" });
+    });
+
+    it("returns not_found for a document belonging to a different user", async () => {
+      const { userId, applicationId } = await setupReadyToGenerate("regen-victim@example.com");
+      const { userId: attackerId } = await setupReadyToGenerate("regen-attacker@example.com");
+      const documentId = await insertRawDocument(userId, applicationId, "cover_letter");
+
+      const result = await regenerateDocument(attackerId, documentId);
+
+      expect(result).toEqual({ success: false, reason: "not_found" });
+    });
+
+    it("returns not_found for a nonexistent document", async () => {
+      const { userId } = await setupReadyToGenerate("regen-missing@example.com");
+
+      const result = await regenerateDocument(userId, "00000000-0000-0000-0000-000000000000");
+
+      expect(result).toEqual({ success: false, reason: "not_found" });
+    });
+
+    it("passes through enqueueGeneration's other rejection reasons unchanged", async () => {
+      const { userId, applicationId } = await setupReadyToGenerate("regen-quota-exhausted@example.com", {
+        quotaUsed: 5,
+      });
+      const documentId = await insertRawDocument(userId, applicationId, "cover_letter");
+
+      const result = await regenerateDocument(userId, documentId);
+
+      expect(result).toEqual({ success: false, reason: "quota_exhausted" });
     });
   });
 });

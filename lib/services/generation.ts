@@ -11,7 +11,7 @@ import {
   insertGenerationJob,
   type DocumentType,
 } from "../repositories/generation-jobs.ts";
-import { findDocumentByJobId, type GeneratedDocument } from "../repositories/documents.ts";
+import { findDocumentByJobId, findDocumentForUser, type GeneratedDocument } from "../repositories/documents.ts";
 
 // L094: 2 pending jobs free/trial, 5 Pro.
 const QUEUE_DEPTH_CAP_DEFAULT = 2;
@@ -138,4 +138,16 @@ export async function getGenerationStatus(userId: string, jobId: string): Promis
     throw new Error(`Job ${jobId} is succeeded but has no matching document`);
   }
   return { success: true, status: "succeeded", document };
+}
+
+// Regenerating is a fresh generation for the same application/type - a
+// thin wrapper, not a second generation pathway. Every precondition
+// enqueueGeneration already enforces (quota, queue depth, profile, email)
+// applies identically here, unchanged.
+export async function regenerateDocument(userId: string, documentId: string): Promise<EnqueueGenerationResult> {
+  const document = await findDocumentForUser(documentId, userId);
+  if (!document) {
+    return { success: false, reason: "not_found" };
+  }
+  return enqueueGeneration(userId, document.applicationId, document.type);
 }

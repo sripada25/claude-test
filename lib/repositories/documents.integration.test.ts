@@ -5,6 +5,7 @@ describe("documents repository (real Postgres)", () => {
   let container: StartedPostgreSqlContainer;
   let copyJobDescriptionToSnapshotlessDocuments: typeof import("./documents.ts")["copyJobDescriptionToSnapshotlessDocuments"];
   let findDocumentByJobId: typeof import("./documents.ts")["findDocumentByJobId"];
+  let findDocumentForUser: typeof import("./documents.ts")["findDocumentForUser"];
   let migrate: typeof import("../../scripts/migrate.ts");
   let pool: typeof import("../db.ts")["pool"];
 
@@ -14,7 +15,8 @@ describe("documents repository (real Postgres)", () => {
 
     migrate = await import("../../scripts/migrate.ts");
     ({ pool } = await import("../db.ts"));
-    ({ copyJobDescriptionToSnapshotlessDocuments, findDocumentByJobId } = await import("./documents.ts"));
+    ({ copyJobDescriptionToSnapshotlessDocuments, findDocumentByJobId, findDocumentForUser } =
+      await import("./documents.ts"));
 
     await migrate.up();
   }, 60_000);
@@ -110,6 +112,35 @@ describe("documents repository (real Postgres)", () => {
 
   it("findDocumentByJobId returns null when no document has that job_id", async () => {
     const found = await findDocumentByJobId(crypto.randomUUID());
+
+    expect(found).toBeNull();
+  });
+
+  it("findDocumentForUser returns the document for its owner", async () => {
+    const userId = await insertUser("find-for-user-owner@example.com");
+    const applicationId = await insertApplication(userId);
+    const documentId = await insertDocument(userId, applicationId, null);
+
+    const found = await findDocumentForUser(documentId, userId);
+
+    expect(found).toEqual({ id: documentId, applicationId, type: "cover_letter" });
+  });
+
+  it("findDocumentForUser returns null for a document belonging to a different user", async () => {
+    const userId = await insertUser("find-for-user-victim@example.com");
+    const otherUserId = await insertUser("find-for-user-attacker@example.com");
+    const applicationId = await insertApplication(userId);
+    const documentId = await insertDocument(userId, applicationId, null);
+
+    const found = await findDocumentForUser(documentId, otherUserId);
+
+    expect(found).toBeNull();
+  });
+
+  it("findDocumentForUser returns null for a nonexistent document", async () => {
+    const userId = await insertUser("find-for-user-missing@example.com");
+
+    const found = await findDocumentForUser("00000000-0000-0000-0000-000000000000", userId);
 
     expect(found).toBeNull();
   });

@@ -35,6 +35,27 @@ export async function findDocumentByJobId(jobId: string): Promise<GeneratedDocum
   };
 }
 
+export interface OwnedDocument {
+  id: string;
+  applicationId: string;
+  type: DocumentType;
+}
+
+// Scoped by user_id in the same query, not checked afterward - "doesn't
+// exist" and "isn't yours" are the same null result, matching this
+// codebase's established generic-404 convention (same pattern as
+// findJobForUser in generation-jobs.ts).
+export async function findDocumentForUser(documentId: string, userId: string): Promise<OwnedDocument | null> {
+  const result = await pool.query<{ id: string; application_id: string; type: DocumentType }>(
+    `SELECT id, application_id, type FROM documents WHERE id = $1 AND user_id = $2`,
+    [documentId, userId],
+  );
+  if (!result.rows[0]) {
+    return null;
+  }
+  return { id: result.rows[0].id, applicationId: result.rows[0].application_id, type: result.rows[0].type };
+}
+
 // L090's copy-on-write: NULL jd_snapshot means "same as the application's
 // current JD," so a document relying on that must get the *old* JD copied
 // in before the application's JD actually changes underneath it. Defensive
