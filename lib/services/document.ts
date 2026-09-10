@@ -1,4 +1,9 @@
-import { updateDocumentContent as updateDocumentContentRepo, type GeneratedDocument } from "../repositories/documents.ts";
+import {
+  listDocumentsByApplication,
+  updateDocumentContent as updateDocumentContentRepo,
+  type GeneratedDocument,
+} from "../repositories/documents.ts";
+import { getApplication } from "./application.ts";
 
 export type UpdateDocumentResult =
   | { success: true; document: GeneratedDocument }
@@ -24,4 +29,21 @@ export async function updateDocumentContent(
   }
 
   return { success: true, document };
+}
+
+export type ListDocumentsResult =
+  | { success: true; documents: GeneratedDocument[] }
+  | { success: false; reason: "not_found" };
+
+// Populates M05's Documents tab. Ownership is enforced via the existing
+// application lookup - a user can never list another user's documents by
+// guessing an applicationId.
+export async function listDocuments(userId: string, applicationId: string): Promise<ListDocumentsResult> {
+  const application = await getApplication(userId, applicationId);
+  if (!application) {
+    return { success: false, reason: "not_found" };
+  }
+
+  const documents = await listDocumentsByApplication(applicationId);
+  return { success: true, documents };
 }

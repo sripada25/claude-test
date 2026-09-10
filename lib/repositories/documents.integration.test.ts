@@ -7,6 +7,7 @@ describe("documents repository (real Postgres)", () => {
   let findDocumentByJobId: typeof import("./documents.ts")["findDocumentByJobId"];
   let findDocumentForUser: typeof import("./documents.ts")["findDocumentForUser"];
   let updateDocumentContent: typeof import("./documents.ts")["updateDocumentContent"];
+  let listDocumentsByApplication: typeof import("./documents.ts")["listDocumentsByApplication"];
   let migrate: typeof import("../../scripts/migrate.ts");
   let pool: typeof import("../db.ts")["pool"];
 
@@ -16,8 +17,13 @@ describe("documents repository (real Postgres)", () => {
 
     migrate = await import("../../scripts/migrate.ts");
     ({ pool } = await import("../db.ts"));
-    ({ copyJobDescriptionToSnapshotlessDocuments, findDocumentByJobId, findDocumentForUser, updateDocumentContent } =
-      await import("./documents.ts"));
+    ({
+      copyJobDescriptionToSnapshotlessDocuments,
+      findDocumentByJobId,
+      findDocumentForUser,
+      updateDocumentContent,
+      listDocumentsByApplication,
+    } = await import("./documents.ts"));
 
     await migrate.up();
   }, 60_000);
@@ -189,5 +195,37 @@ describe("documents repository (real Postgres)", () => {
     const updated = await updateDocumentContent("00000000-0000-0000-0000-000000000000", userId, "content");
 
     expect(updated).toBeNull();
+  });
+
+  it("listDocumentsByApplication returns documents newest-first", async () => {
+    const userId = await insertUser("list-order@example.com");
+    const applicationId = await insertApplication(userId);
+    const olderId = await insertDocument(userId, applicationId, null);
+    await pool.query("UPDATE documents SET created_at = now() - interval '1 hour' WHERE id = $1", [olderId]);
+    const newerId = await insertDocument(userId, applicationId, null);
+
+    const documents = await listDocumentsByApplication(applicationId);
+
+    expect(documents.map((doc) => doc.id)).toEqual([newerId, olderId]);
+  });
+
+  it("listDocumentsByApplication returns an empty array when there are none", async () => {
+    const userId = await insertUser("list-empty@example.com");
+    const applicationId = await insertApplication(userId);
+
+    const documents = await listDocumentsByApplication(applicationId);
+
+    expect(documents).toEqual([]);
+  });
+
+  it("listDocumentsByApplication does not return documents from a different application", async () => {
+    const userId = await insertUser("list-scoped@example.com");
+    const applicationId = await insertApplication(userId);
+    const otherApplicationId = await insertApplication(userId);
+    await insertDocument(userId, otherApplicationId, null);
+
+    const documents = await listDocumentsByApplication(applicationId);
+
+    expect(documents).toEqual([]);
   });
 });

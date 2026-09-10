@@ -35,6 +35,22 @@ export async function findDocumentByJobId(jobId: string): Promise<GeneratedDocum
   };
 }
 
+// F3-3.5: populates M05's Documents tab. Newest-first, matching
+// idx_documents_application(application_id, created_at DESC) - the index
+// only makes sense for this query pattern.
+export async function listDocumentsByApplication(applicationId: string): Promise<GeneratedDocument[]> {
+  const result = await pool.query<DocumentRow>(
+    `SELECT id, type, content, created_at FROM documents WHERE application_id = $1 ORDER BY created_at DESC`,
+    [applicationId],
+  );
+  return result.rows.map((row) => ({
+    id: row.id,
+    type: row.type,
+    content: row.content,
+    createdAt: row.created_at,
+  }));
+}
+
 export interface OwnedDocument {
   id: string;
   applicationId: string;
