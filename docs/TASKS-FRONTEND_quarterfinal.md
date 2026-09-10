@@ -1684,7 +1684,7 @@ No row returned ⇒ refuse to enqueue. **Never trust the client's number.**
 
 ---
 
-## M06-06 · `ResultActions` ✅
+## M06-06 · `ResultActions` ✅ DONE — merged via PR #257 (2026-09-10)
 
 🎨 **Ghost treatment** — ⚠️ a fourth button variant
 🎨 fill `$m-surface-2` · **no stroke** · padding `[6,10]` · gap `5` · icon `12×12` `$m-ink-2` · text body `12`/600 `$m-ink-2`
