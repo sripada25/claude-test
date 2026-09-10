@@ -141,6 +141,78 @@ describe("generation-worker service (real Postgres)", () => {
     expect(generateCoverLetter).not.toHaveBeenCalled();
   });
 
+  it("requeues on a retryable failure at attempt 1, rather than marking it failed", async () => {
+    const userId = await insertUser("retry-transient@example.com");
+    const applicationId = await insertApplication(userId);
+    const promptInputs = { profile: { skills: [] }, jobDescription: "JD", companyName: "Acme" };
+    const jobId = await insertJob(userId, applicationId, "cover_letter", promptInputs);
+
+    const generateCoverLetter = vi.fn().mockResolvedValue({
+      success: false,
+      error: { errorClass: "rate_limited", message: "too many requests" },
+    });
+    getAIProviderMock.mockReturnValue(fakeProvider({ generateCoverLetter }));
+
+    const outcome = await processNextJob();
+
+    expect(outcome).toBe("retrying");
+    const job = await pool.query<{ status: string; attempts: number; next_attempt_at: Date }>(
+      "SELECT status, attempts, next_attempt_at FROM generation_jobs WHERE id = $1",
+      [jobId],
+    );
+    expect(job.rows[0].status).toBe("queued");
+    expect(job.rows[0].attempts).toBe(1);
+    expect(job.rows[0].next_attempt_at.getTime()).toBeGreaterThan(Date.now());
+
+    const documents = await pool.query("SELECT id FROM documents WHERE application_id = $1", [applicationId]);
+    expect(documents.rows).toHaveLength(0);
+  });
+
+  it("fails terminally on a retryable-class failure once attempts is already at the cap", async () => {
+    const userId = await insertUser("retry-exhausted@example.com");
+    const applicationId = await insertApplication(userId);
+    const promptInputs = { profile: { skills: [] }, jobDescription: "JD", companyName: "Acme" };
+    const jobId = await insertJob(userId, applicationId, "cover_letter", promptInputs);
+    await pool.query("UPDATE generation_jobs SET attempts = 1 WHERE id = $1", [jobId]);
+
+    const generateCoverLetter = vi.fn().mockResolvedValue({
+      success: false,
+      error: { errorClass: "unavailable", message: "still down" },
+    });
+    getAIProviderMock.mockReturnValue(fakeProvider({ generateCoverLetter }));
+
+    const outcome = await processNextJob();
+
+    expect(outcome).toBe("failed");
+    const job = await pool.query<{ status: string; error_class: string }>(
+      "SELECT status, error_class FROM generation_jobs WHERE id = $1",
+      [jobId],
+    );
+    expect(job.rows[0]).toMatchObject({ status: "failed", error_class: "unavailable" });
+  });
+
+  it("fails terminally on a permanent-class failure even with attempts remaining", async () => {
+    const userId = await insertUser("permanent-failure@example.com");
+    const applicationId = await insertApplication(userId);
+    const promptInputs = { profile: { skills: [] }, jobDescription: "JD", companyName: "Acme" };
+    const jobId = await insertJob(userId, applicationId, "cover_letter", promptInputs);
+
+    const generateCoverLetter = vi.fn().mockResolvedValue({
+      success: false,
+      error: { errorClass: "safety_block", message: "blocked" },
+    });
+    getAIProviderMock.mockReturnValue(fakeProvider({ generateCoverLetter }));
+
+    const outcome = await processNextJob();
+
+    expect(outcome).toBe("failed");
+    const job = await pool.query<{ status: string; attempts: number; error_class: string }>(
+      "SELECT status, attempts, error_class FROM generation_jobs WHERE id = $1",
+      [jobId],
+    );
+    expect(job.rows[0]).toMatchObject({ status: "failed", attempts: 1, error_class: "safety_block" });
+  });
+
   it("marks a job failed with its real error class and writes no document", async () => {
     const userId = await insertUser("failure@example.com");
     const applicationId = await insertApplication(userId);

@@ -91,6 +91,7 @@ describe("013_generation migration (real Postgres)", () => {
       { name: "prompt_inputs", type: "jsonb", nullable: false },
       { name: "created_at", type: "timestamptz", nullable: false },
       { name: "completed_at", type: "timestamptz", nullable: true },
+      { name: "next_attempt_at", type: "timestamptz", nullable: true }, // added by 015
     ]);
   });
 
