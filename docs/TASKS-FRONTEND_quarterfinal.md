@@ -1627,7 +1627,7 @@ No row returned ⇒ refuse to enqueue. **Never trust the client's number.**
 
 ---
 
-## M06-03 · `DocumentTypeToggle` ✅
+## M06-03 · `DocumentTypeToggle` ✅ DONE — merged via PR #251 (2026-09-10)
 
 🎨 vertical · gap `9`
 🎨 **Selected:** fill `$m-primary` · padding `[12,16]` · centred · body `13.5`/600 `#FFFFFF`
