@@ -19,6 +19,7 @@ export interface SubscriptionView {
   quotaExhausted: boolean;
   generationsUsed: number;
   generationsLimit: number | null; // null = unlimited (Pro)
+  resetDate: string | null; // ISO YYYY-MM-DD, free tier (non-trialing) only - L041
 }
 
 function daysRemaining(trialEndsAt: Date): number {
@@ -29,6 +30,27 @@ function daysRemaining(trialEndsAt: Date): number {
 function currentPeriodStart(): Date {
   const now = new Date();
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+}
+
+// M06-09's PaywallPanel: the free-tier monthly quota resets on the 1st of next
+// calendar month IN THE USER'S TIMEZONE (L041), never UTC and never the
+// browser's local time. Computed from the timezone-local year/month via
+// formatToParts, not instant arithmetic, so DST/offset edge cases never shift
+// the calendar date.
+function computeResetDate(timezone: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "numeric",
+  }).formatToParts(new Date());
+
+  const year = Number(parts.find((part) => part.type === "year")?.value);
+  const month = Number(parts.find((part) => part.type === "month")?.value); // 1-12
+
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
+
+  return `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
 }
 
 // Every account-creation path inserts a subscriptions row - a missing one
@@ -51,6 +73,11 @@ export async function getSubscription(userId: string): Promise<SubscriptionView>
   const { used: generationsUsed, limit: generationsLimit } = await getQuotaCounts(userId, subscription);
   const quotaExhausted = generationsLimit !== null && generationsUsed >= generationsLimit;
 
+  const resetDate =
+    subscription.tier === "free" && subscription.status !== "trialing"
+      ? computeResetDate(user?.timezone ?? "UTC")
+      : null;
+
   return {
     tier: subscription.tier,
     status: subscription.status,
@@ -61,6 +88,7 @@ export async function getSubscription(userId: string): Promise<SubscriptionView>
     quotaExhausted,
     generationsUsed,
     generationsLimit,
+    resetDate,
   };
 }
 

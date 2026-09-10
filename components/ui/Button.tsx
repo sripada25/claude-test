@@ -2,7 +2,7 @@ import { Loader2 } from "lucide-react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 type ButtonSize = "base" | "sm" | "md";
-type ButtonVariant = "primary" | "secondary";
+type ButtonVariant = "primary" | "secondary" | "accent";
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
   base: "px-[22px] py-[13px] text-[13.5px]",
@@ -15,6 +15,8 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
     "bg-primary text-primary-foreground hover:bg-primary-hover disabled:bg-surface-2 disabled:text-muted",
   secondary:
     "border border-border-strong bg-surface text-ink hover:border-ink-2 disabled:border-border disabled:text-muted",
+  accent:
+    "bg-accent text-accent-foreground hover:bg-accent-hover disabled:bg-surface-2 disabled:text-muted",
 };
 
 export function Button({
