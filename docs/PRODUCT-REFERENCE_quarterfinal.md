@@ -34,7 +34,7 @@ CLAUDE.md                          — the rules an implementing agent follows
 |---|---|---|
 | **F1** User Accounts | p.13 "User accounts" | ✅ Fully specified — 36 backend tasks, 12 screen-note components |
 | **F2** Application Tracker | p.13 "Application tracker" | ✅ Fully specified — 14 backend tasks, 30 screen-note components |
-| **F3** AI Generation | p.13 "AI generation" | ✅ Backend complete — all 17 tasks merged (2026-09-10). Rules (`AI-RULES.md`), schema, both AI operations, output validation, queue worker, retry, usage logging, JD copy-on-write, all 5 API endpoints. M06 frontend (9 components) not started |
+| **F3** AI Generation | p.13 "AI generation" | ✅ Complete — all 17 backend tasks merged (2026-09-10). Rules (`AI-RULES.md`), schema, both AI operations, output validation, queue worker, retry, usage logging, JD copy-on-write, all 5 API endpoints. M06 frontend (9 components) also complete (2026-09-10) |
 | **F4** Follow-up System | p.13 "Follow-up system" | ✅ Fully specified — 9 backend tasks. 🔴 One open decision (L038) gates 3 of them |
 | **F5** Post-Call Quick Log | p.13 "Post-call quick log" | ⏸ Wireframe only (plate 07). Prompt spec exists (`AI-RULES.md` §6.1). No tasks |
 | **F6** Payments | p.13 "Payments" | ⏸ Provider decided (Razorpay, INR-only). No schema, no tasks, no design. Nine open questions |
@@ -75,9 +75,9 @@ Replaces the single-point-in-time `F1-READINESS.md`. This table is designed to b
 | | |
 |---|---|
 | **Rules** | Complete — `AI-RULES.md`, all 5 operations specced (résumé extraction, cover letter, résumé tailoring, call notes, follow-up drafts) |
-| **Frontend** | M06 (9 components), `TASKS-FRONTEND_quarterfinal.md` |
+| **Frontend** | ✅ **9/9 components done, `TASKS-FRONTEND_quarterfinal.md` §M06** — merged 2026-09-10 |
 | **Backend** | ✅ **17/17 tasks done, `TASKS_quarterfinal.md` §F3** — migrations for `documents`/`generation_jobs`/`ai_usage`, the generation endpoint, quota enforcement, retry policy, output validation |
-| **Blocking** | None — F1's T5.1 (`AIProvider`) and F2's `applications` table were both merged, then F3 itself was completed in full (2026-09-10) |
+| **Blocking** | None — F1's T5.1 (`AIProvider`) and F2's `applications` table were both merged, then F3 itself (backend and M06 frontend) was completed in full (2026-09-10) |
 | **Highest-risk tasks** | F3-2.2 (résumé tailoring — must reject fabricated content, not save it) · F3-2.5 (quota decrement — a bug here is a billing event) |
 
 ## F4 — Follow-up System
