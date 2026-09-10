@@ -92,6 +92,7 @@ describe("013_generation migration (real Postgres)", () => {
       { name: "created_at", type: "timestamptz", nullable: false },
       { name: "completed_at", type: "timestamptz", nullable: true },
       { name: "next_attempt_at", type: "timestamptz", nullable: true }, // added by 015
+      { name: "quota_mechanism", type: "text", nullable: true }, // added by 016
     ]);
   });
 

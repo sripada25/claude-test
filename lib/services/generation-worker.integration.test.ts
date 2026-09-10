@@ -4,10 +4,15 @@ import type { AIProvider } from "../ai/types.ts";
 
 const getAIProviderMock = vi.fn();
 const getAIProviderMetadataMock = vi.fn();
+const refundGenerationQuotaMock = vi.fn();
 
 vi.mock("../ai/provider.ts", () => ({
   getAIProvider: () => getAIProviderMock(),
   getAIProviderMetadata: () => getAIProviderMetadataMock(),
+}));
+
+vi.mock("./subscription.ts", () => ({
+  refundGenerationQuota: (...args: unknown[]) => refundGenerationQuotaMock(...args),
 }));
 
 describe("generation-worker service (real Postgres)", () => {
@@ -35,6 +40,7 @@ describe("generation-worker service (real Postgres)", () => {
     await pool.query("DELETE FROM users");
     getAIProviderMock.mockReset();
     getAIProviderMetadataMock.mockReset();
+    refundGenerationQuotaMock.mockReset();
   });
 
   afterAll(async () => {
@@ -63,11 +69,12 @@ describe("generation-worker service (real Postgres)", () => {
     applicationId: string,
     type: "cover_letter" | "resume",
     promptInputs: unknown,
+    quotaMechanism: "trial" | "free" | null = null,
   ): Promise<string> {
     const result = await pool.query<{ id: string }>(
-      `INSERT INTO generation_jobs (user_id, application_id, type, prompt_inputs)
-       VALUES ($1, $2, $3, $4) RETURNING id`,
-      [userId, applicationId, type, JSON.stringify(promptInputs)],
+      `INSERT INTO generation_jobs (user_id, application_id, type, prompt_inputs, quota_mechanism)
+       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      [userId, applicationId, type, JSON.stringify(promptInputs), quotaMechanism],
     );
     return result.rows[0].id;
   }
@@ -274,6 +281,65 @@ describe("generation-worker service (real Postgres)", () => {
       [jobId],
     );
     expect(job.rows[0]).toMatchObject({ status: "failed", attempts: 1, error_class: "safety_block" });
+    expect(refundGenerationQuotaMock).not.toHaveBeenCalled();
+  });
+
+  it("refunds the correct quota mechanism on a terminal failure", async () => {
+    const userId = await insertUser("refund-terminal@example.com");
+    const applicationId = await insertApplication(userId);
+    const promptInputs = { profile: { skills: [] }, jobDescription: "JD", companyName: "Acme" };
+    await insertJob(userId, applicationId, "cover_letter", promptInputs, "trial");
+
+    const generateCoverLetter = vi.fn().mockResolvedValue({
+      success: false,
+      error: { errorClass: "safety_block", message: "blocked" },
+    });
+    getAIProviderMock.mockReturnValue(fakeProvider({ generateCoverLetter }));
+
+    const outcome = await processNextJob();
+
+    expect(outcome).toBe("failed");
+    expect(refundGenerationQuotaMock).toHaveBeenCalledExactlyOnceWith(userId, "trial");
+  });
+
+  it("does not refund on a retry - only on the eventual terminal outcome", async () => {
+    const userId = await insertUser("refund-not-on-retry@example.com");
+    const applicationId = await insertApplication(userId);
+    const promptInputs = { profile: { skills: [] }, jobDescription: "JD", companyName: "Acme" };
+    const jobId = await insertJob(userId, applicationId, "cover_letter", promptInputs, "free");
+
+    const generateCoverLetter = vi
+      .fn()
+      .mockResolvedValueOnce({ success: false, error: { errorClass: "timeout", message: "timed out" } })
+      .mockResolvedValueOnce({ success: false, error: { errorClass: "unavailable", message: "still down" } });
+    getAIProviderMock.mockReturnValue(fakeProvider({ generateCoverLetter }));
+
+    const firstOutcome = await processNextJob();
+    expect(firstOutcome).toBe("retrying");
+    expect(refundGenerationQuotaMock).not.toHaveBeenCalled();
+
+    await pool.query("UPDATE generation_jobs SET next_attempt_at = NULL WHERE id = $1", [jobId]);
+    const secondOutcome = await processNextJob();
+
+    expect(secondOutcome).toBe("failed");
+    expect(refundGenerationQuotaMock).toHaveBeenCalledExactlyOnceWith(userId, "free");
+  });
+
+  it("does not refund on success", async () => {
+    const userId = await insertUser("no-refund-success@example.com");
+    const applicationId = await insertApplication(userId);
+    const promptInputs = { profile: { skills: [] }, jobDescription: "JD", companyName: "Acme" };
+    await insertJob(userId, applicationId, "cover_letter", promptInputs, "trial");
+
+    const generateCoverLetter = vi
+      .fn()
+      .mockResolvedValue({ success: true, data: { content: "Dear Acme, ...", tokensIn: 100, tokensOut: 50 } });
+    getAIProviderMock.mockReturnValue(fakeProvider({ generateCoverLetter }));
+
+    const outcome = await processNextJob();
+
+    expect(outcome).toBe("succeeded");
+    expect(refundGenerationQuotaMock).not.toHaveBeenCalled();
   });
 
   it("marks a job failed with its real error class and writes no document", async () => {

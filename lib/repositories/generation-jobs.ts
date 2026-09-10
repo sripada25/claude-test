@@ -2,6 +2,7 @@ import { pool, type Queryable } from "../db.ts";
 import type { GenerationInput } from "../ai/types.ts";
 
 export type DocumentType = "cover_letter" | "resume";
+export type QuotaMechanism = "trial" | "free";
 
 export interface QueuedJob {
   id: string;
@@ -10,6 +11,7 @@ export interface QueuedJob {
   type: DocumentType;
   promptInputs: GenerationInput;
   attempts: number;
+  quotaMechanism: QuotaMechanism | null;
 }
 
 interface QueuedJobRow {
@@ -19,6 +21,7 @@ interface QueuedJobRow {
   type: DocumentType;
   prompt_inputs: GenerationInput;
   attempts: number;
+  quota_mechanism: QuotaMechanism | null;
 }
 
 // FOR UPDATE SKIP LOCKED guards against a second worker instance double-
@@ -36,7 +39,7 @@ export async function claimNextQueuedJob(): Promise<QueuedJob | null> {
        LIMIT 1
        FOR UPDATE SKIP LOCKED
      )
-     RETURNING id, user_id, application_id, type, prompt_inputs, attempts`,
+     RETURNING id, user_id, application_id, type, prompt_inputs, attempts, quota_mechanism`,
   );
 
   if (result.rows.length === 0) {
@@ -51,7 +54,37 @@ export async function claimNextQueuedJob(): Promise<QueuedJob | null> {
     type: row.type,
     promptInputs: row.prompt_inputs,
     attempts: row.attempts,
+    quotaMechanism: row.quota_mechanism,
   };
+}
+
+export interface NewGenerationJob {
+  userId: string;
+  applicationId: string;
+  type: DocumentType;
+  promptInputs: GenerationInput;
+  quotaMechanism: QuotaMechanism;
+}
+
+// The first function that creates a job row - everything above only claims
+// or updates existing ones, since nothing enqueued real jobs until F3-3.1.
+export async function insertGenerationJob(job: NewGenerationJob): Promise<string> {
+  const result = await pool.query<{ id: string }>(
+    `INSERT INTO generation_jobs (user_id, application_id, type, prompt_inputs, quota_mechanism)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING id`,
+    [job.userId, job.applicationId, job.type, JSON.stringify(job.promptInputs), job.quotaMechanism],
+  );
+  return result.rows[0].id;
+}
+
+// L094's queue depth cap: counts jobs not yet resolved for this user.
+export async function countPendingJobsForUser(userId: string): Promise<number> {
+  const result = await pool.query<{ count: string }>(
+    `SELECT count(*) FROM generation_jobs WHERE user_id = $1 AND status IN ('queued', 'running')`,
+    [userId],
+  );
+  return Number(result.rows[0].count);
 }
 
 // Re-queues a job after a transient failure, backing off for delaySeconds

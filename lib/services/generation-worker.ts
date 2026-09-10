@@ -8,6 +8,7 @@ import {
   markJobSucceeded,
   requeueForRetry,
 } from "../repositories/generation-jobs.ts";
+import { refundGenerationQuota } from "./subscription.ts";
 
 // One tick every 4s = 15/min by construction - Gemini's own RPM cap (L034),
 // no separate token-bucket needed. This is the actual reason a queue exists
@@ -69,6 +70,14 @@ export async function processNextJob(): Promise<"no-job" | "succeeded" | "failed
     if (canRetry) {
       await requeueForRetry(pool, job.id, backoffSecondsForAttempt(job.attempts));
       return "retrying";
+    }
+
+    // "The user never pays for our failure" (AI-RULES.md §7) - refunded
+    // exactly once here, at the terminal outcome, never per attempt. A job
+    // enqueued before F3-3.1 (or any future path that doesn't set this) has
+    // no mechanism to refund - nothing to do in that case.
+    if (job.quotaMechanism) {
+      await refundGenerationQuota(job.userId, job.quotaMechanism);
     }
     await markJobFailed(pool, job.id, result.error.errorClass);
     return "failed";
