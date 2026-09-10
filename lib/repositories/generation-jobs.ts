@@ -108,3 +108,25 @@ export async function markJobFailed(db: Queryable, jobId: string, errorClass: st
     [jobId, errorClass],
   );
 }
+
+export type JobStatus = "queued" | "running" | "succeeded" | "failed";
+
+export interface JobStatusRecord {
+  id: string;
+  status: JobStatus;
+  errorClass: string | null;
+}
+
+// Scoped by user_id in the same query, not checked afterward - "doesn't
+// exist" and "isn't yours" are the same null result, matching this
+// codebase's established generic-404 convention (never leaks existence).
+export async function findJobForUser(jobId: string, userId: string): Promise<JobStatusRecord | null> {
+  const result = await pool.query<{ id: string; status: JobStatus; error_class: string | null }>(
+    `SELECT id, status, error_class FROM generation_jobs WHERE id = $1 AND user_id = $2`,
+    [jobId, userId],
+  );
+  if (!result.rows[0]) {
+    return null;
+  }
+  return { id: result.rows[0].id, status: result.rows[0].status, errorClass: result.rows[0].error_class };
+}

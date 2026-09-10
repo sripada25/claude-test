@@ -74,6 +74,7 @@ describe("013_generation migration (real Postgres)", () => {
       { name: "model", type: "text", nullable: false },
       { name: "r2_key", type: "text", nullable: true },
       { name: "created_at", type: "timestamptz", nullable: false },
+      { name: "job_id", type: "uuid", nullable: true }, // added by 017
     ]);
   });
 

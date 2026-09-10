@@ -4,6 +4,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 describe("generation service (real Postgres)", () => {
   let container: StartedPostgreSqlContainer;
   let enqueueGeneration: typeof import("./generation.ts")["enqueueGeneration"];
+  let getGenerationStatus: typeof import("./generation.ts")["getGenerationStatus"];
   let migrate: typeof import("../../scripts/migrate.ts");
   let pool: typeof import("../db.ts")["pool"];
 
@@ -13,7 +14,7 @@ describe("generation service (real Postgres)", () => {
 
     migrate = await import("../../scripts/migrate.ts");
     ({ pool } = await import("../db.ts"));
-    ({ enqueueGeneration } = await import("./generation.ts"));
+    ({ enqueueGeneration, getGenerationStatus } = await import("./generation.ts"));
 
     await migrate.up();
   }, 60_000);
@@ -220,5 +221,78 @@ describe("generation service (real Postgres)", () => {
     const result = await enqueueGeneration(userId, applicationId, "cover_letter");
 
     expect(result).toEqual({ success: false, reason: "not_implemented" });
+  });
+
+  describe("getGenerationStatus", () => {
+    async function insertRawJob(userId: string, applicationId: string, status: string): Promise<string> {
+      const result = await pool.query<{ id: string }>(
+        `INSERT INTO generation_jobs (user_id, application_id, type, prompt_inputs, status)
+         VALUES ($1, $2, 'cover_letter', '{}', $3) RETURNING id`,
+        [userId, applicationId, status],
+      );
+      return result.rows[0].id;
+    }
+
+    it("reports queued", async () => {
+      const { userId, applicationId } = await setupReadyToGenerate("status-queued@example.com");
+      const jobId = await insertRawJob(userId, applicationId, "queued");
+
+      expect(await getGenerationStatus(userId, jobId)).toEqual({ success: true, status: "queued" });
+    });
+
+    it("reports running", async () => {
+      const { userId, applicationId } = await setupReadyToGenerate("status-running@example.com");
+      const jobId = await insertRawJob(userId, applicationId, "running");
+
+      expect(await getGenerationStatus(userId, jobId)).toEqual({ success: true, status: "running" });
+    });
+
+    it("reports failed with the error class", async () => {
+      const { userId, applicationId } = await setupReadyToGenerate("status-failed@example.com");
+      const jobId = await insertRawJob(userId, applicationId, "failed");
+      await pool.query("UPDATE generation_jobs SET error_class = 'safety_block' WHERE id = $1", [jobId]);
+
+      expect(await getGenerationStatus(userId, jobId)).toEqual({
+        success: true,
+        status: "failed",
+        errorClass: "safety_block",
+      });
+    });
+
+    it("reports succeeded with the generated document", async () => {
+      const { userId, applicationId } = await setupReadyToGenerate("status-succeeded@example.com");
+      const jobId = await insertRawJob(userId, applicationId, "succeeded");
+      const documentResult = await pool.query<{ id: string }>(
+        `INSERT INTO documents (application_id, user_id, type, content, provider, model, job_id)
+         VALUES ($1, $2, 'cover_letter', 'Dear Acme, ...', 'gemini', 'gemini-flash-latest', $3) RETURNING id`,
+        [applicationId, userId, jobId],
+      );
+
+      const result = await getGenerationStatus(userId, jobId);
+
+      expect(result.success).toBe(true);
+      if (!result.success || result.status !== "succeeded") throw new Error("expected succeeded");
+      expect(result.document).toMatchObject({
+        id: documentResult.rows[0].id,
+        type: "cover_letter",
+        content: "Dear Acme, ...",
+      });
+    });
+
+    it("returns not_found for a job belonging to a different user", async () => {
+      const { userId, applicationId } = await setupReadyToGenerate("status-victim@example.com");
+      const { userId: attackerId } = await setupReadyToGenerate("status-attacker@example.com");
+      const jobId = await insertRawJob(userId, applicationId, "queued");
+
+      expect(await getGenerationStatus(attackerId, jobId)).toEqual({ success: false, reason: "not_found" });
+    });
+
+    it("returns not_found for a nonexistent job", async () => {
+      const { userId } = await setupReadyToGenerate("status-missing@example.com");
+
+      const result = await getGenerationStatus(userId, "00000000-0000-0000-0000-000000000000");
+
+      expect(result).toEqual({ success: false, reason: "not_found" });
+    });
   });
 });

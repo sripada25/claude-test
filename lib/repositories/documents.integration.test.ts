@@ -4,6 +4,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 describe("documents repository (real Postgres)", () => {
   let container: StartedPostgreSqlContainer;
   let copyJobDescriptionToSnapshotlessDocuments: typeof import("./documents.ts")["copyJobDescriptionToSnapshotlessDocuments"];
+  let findDocumentByJobId: typeof import("./documents.ts")["findDocumentByJobId"];
   let migrate: typeof import("../../scripts/migrate.ts");
   let pool: typeof import("../db.ts")["pool"];
 
@@ -13,7 +14,7 @@ describe("documents repository (real Postgres)", () => {
 
     migrate = await import("../../scripts/migrate.ts");
     ({ pool } = await import("../db.ts"));
-    ({ copyJobDescriptionToSnapshotlessDocuments } = await import("./documents.ts"));
+    ({ copyJobDescriptionToSnapshotlessDocuments, findDocumentByJobId } = await import("./documents.ts"));
 
     await migrate.up();
   }, 60_000);
@@ -47,11 +48,12 @@ describe("documents repository (real Postgres)", () => {
     userId: string,
     applicationId: string,
     jdSnapshot: string | null,
+    jobId: string | null = null,
   ): Promise<string> {
     const result = await pool.query<{ id: string }>(
-      `INSERT INTO documents (application_id, user_id, type, content, jd_snapshot, provider, model)
-       VALUES ($1, $2, 'cover_letter', 'content', $3, 'gemini', 'gemini-flash-latest') RETURNING id`,
-      [applicationId, userId, jdSnapshot],
+      `INSERT INTO documents (application_id, user_id, type, content, jd_snapshot, provider, model, job_id)
+       VALUES ($1, $2, 'cover_letter', 'content', $3, 'gemini', 'gemini-flash-latest', $4) RETURNING id`,
+      [applicationId, userId, jdSnapshot, jobId],
     );
     return result.rows[0].id;
   }
@@ -93,5 +95,22 @@ describe("documents repository (real Postgres)", () => {
     await copyJobDescriptionToSnapshotlessDocuments(pool, applicationId, "Old JD text");
 
     expect(await jdSnapshotOf(documentId)).toBeNull();
+  });
+
+  it("findDocumentByJobId finds the document produced by that job", async () => {
+    const userId = await insertUser("find-by-job@example.com");
+    const applicationId = await insertApplication(userId);
+    const jobId = crypto.randomUUID();
+    const documentId = await insertDocument(userId, applicationId, null, jobId);
+
+    const found = await findDocumentByJobId(jobId);
+
+    expect(found).toMatchObject({ id: documentId, type: "cover_letter", content: "content" });
+  });
+
+  it("findDocumentByJobId returns null when no document has that job_id", async () => {
+    const found = await findDocumentByJobId(crypto.randomUUID());
+
+    expect(found).toBeNull();
   });
 });
