@@ -31,3 +31,24 @@ export async function findSubscriptionByUserId(userId: string): Promise<Subscrip
     trialGenerationsLimit: result.rows[0].trial_generations_limit,
   };
 }
+
+// Same atomic pattern as generation-quota.ts's consumeFreeQuota, against the
+// trial counter instead. Returns the new used count, or null if the trial's
+// 40-total cap (L111) was already reached.
+export async function incrementTrialGenerationsUsed(userId: string, limit: number): Promise<number | null> {
+  const result = await pool.query<{ trial_generations_used: number }>(
+    `UPDATE subscriptions SET trial_generations_used = trial_generations_used + 1
+     WHERE user_id = $1 AND trial_generations_used < $2
+     RETURNING trial_generations_used`,
+    [userId, limit],
+  );
+  return result.rows[0]?.trial_generations_used ?? null;
+}
+
+// Floored at 0 so a duplicate refund call can't push usage negative.
+export async function decrementTrialGenerationsUsed(userId: string): Promise<void> {
+  await pool.query(
+    `UPDATE subscriptions SET trial_generations_used = GREATEST(trial_generations_used - 1, 0) WHERE user_id = $1`,
+    [userId],
+  );
+}
