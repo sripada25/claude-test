@@ -1666,7 +1666,7 @@ No row returned ⇒ refuse to enqueue. **Never trust the client's number.**
 
 ---
 
-## M06-05 · `GenerateButton` ✅
+## M06-05 · `GenerateButton` ✅ DONE — merged via PR #255 (2026-09-10)
 
 🎨 `M/Button` instance, `fill_container`
 🎨 Helper: "Takes about 5 seconds. Uses one generation." body `11.5`/normal `lineHeight 1.5` `$m-muted`
