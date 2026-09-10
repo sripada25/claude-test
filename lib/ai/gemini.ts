@@ -14,7 +14,8 @@ import {
 } from "./types.ts";
 import { checkLength, checkNoInjectionMarkers, checkNoPlaceholderBrackets, checkNotEmpty } from "./validation.ts";
 
-const MODEL = "gemini-flash-latest";
+export const PROVIDER_NAME = "gemini";
+export const MODEL = "gemini-flash-latest";
 const MAX_SKILLS = 30;
 
 let client: GoogleGenAI | null = null;
