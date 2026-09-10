@@ -1592,7 +1592,7 @@ Salary · Contact · Next step.
 
 ⚠️ 🎨 **No sidebar on this screen** — a focused task view, the only app screen without it.
 
-## M06-01 · `GenerateTopBar` ✅
+## M06-01 · `GenerateTopBar` ✅ DONE — merged via PR #247 (2026-09-10)
 
 🎨 fill `$m-surface` · border-bottom 1 · height `64` 🔧 (normalised from 🎨 56) · padding `[0,32]`
 🎨 Back: icon `arrow-left` `15` + **the application title**, body `13`/500 `$m-ink-2`
