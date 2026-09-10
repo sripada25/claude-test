@@ -1642,7 +1642,7 @@ No row returned ⇒ refuse to enqueue. **Never trust the client's number.**
 
 ---
 
-## M06-04 · `InputsPanel` ✅ — a preflight checklist
+## M06-04 · `InputsPanel` ✅ DONE — merged via PR #253 (2026-09-10) — a preflight checklist
 
 🎨 fill `$m-surface` · stroke `$m-border` 1
 🎨 Row: padding `[12,14]` · `justify space-between` · `border-top` from the second
