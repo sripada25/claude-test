@@ -455,7 +455,8 @@ CREATE TABLE documents (
   provider       TEXT NOT NULL,              -- 'gemini' (L060)
   model          TEXT NOT NULL,
   r2_key         TEXT,                       -- only when a Pro user saves a PDF (L062)
-  created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  job_id         UUID                        -- bare UUID, no FK - same style as ai_usage.job_id (migration 017, F3-3.2)
 );
 
 CREATE INDEX idx_documents_application ON documents(application_id, created_at DESC);

@@ -5,7 +5,13 @@ import { getProfile } from "./profile.ts";
 import { consumeGenerationQuota } from "./subscription.ts";
 import { findSubscriptionByUserId } from "../repositories/subscription.ts";
 import { findUserById } from "../repositories/user.ts";
-import { countPendingJobsForUser, insertGenerationJob, type DocumentType } from "../repositories/generation-jobs.ts";
+import {
+  countPendingJobsForUser,
+  findJobForUser,
+  insertGenerationJob,
+  type DocumentType,
+} from "../repositories/generation-jobs.ts";
+import { findDocumentByJobId, type GeneratedDocument } from "../repositories/documents.ts";
 
 // L094: 2 pending jobs free/trial, 5 Pro.
 const QUEUE_DEPTH_CAP_DEFAULT = 2;
@@ -101,4 +107,35 @@ export async function enqueueGeneration(
   });
 
   return { success: true, jobId };
+}
+
+export type GenerationStatusResult =
+  | { success: false; reason: "not_found" }
+  | { success: true; status: "queued" | "running" }
+  | { success: true; status: "succeeded"; document: GeneratedDocument }
+  | { success: true; status: "failed"; errorClass: string };
+
+// AI-RULES.md §8.1: retries are invisible - a job mid-retry still reports
+// "queued", the same as it would before its first attempt. Only the four
+// real job_status values are ever exposed; there's no separate "retrying"
+// state.
+export async function getGenerationStatus(userId: string, jobId: string): Promise<GenerationStatusResult> {
+  const job = await findJobForUser(jobId, userId);
+  if (!job) {
+    return { success: false, reason: "not_found" };
+  }
+
+  if (job.status === "queued" || job.status === "running") {
+    return { success: true, status: job.status };
+  }
+
+  if (job.status === "failed") {
+    return { success: true, status: "failed", errorClass: job.errorClass ?? "unavailable" };
+  }
+
+  const document = await findDocumentByJobId(jobId);
+  if (!document) {
+    throw new Error(`Job ${jobId} is succeeded but has no matching document`);
+  }
+  return { success: true, status: "succeeded", document };
 }

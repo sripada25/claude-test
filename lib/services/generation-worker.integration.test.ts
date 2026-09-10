@@ -118,7 +118,7 @@ describe("generation-worker service (real Postgres)", () => {
     expect(job.rows[0].status).toBe("succeeded");
 
     const document = await pool.query(
-      "SELECT application_id, user_id, type, content, jd_snapshot, provider, model FROM documents WHERE application_id = $1",
+      "SELECT application_id, user_id, type, content, jd_snapshot, provider, model, job_id FROM documents WHERE application_id = $1",
       [applicationId],
     );
     expect(document.rows).toHaveLength(1);
@@ -128,6 +128,7 @@ describe("generation-worker service (real Postgres)", () => {
       type: "cover_letter",
       content: "Dear Acme Corp, ...",
       jd_snapshot: "Original JD text",
+      job_id: jobId,
       provider: "gemini",
       model: "gemini-flash-latest",
     });

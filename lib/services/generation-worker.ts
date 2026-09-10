@@ -110,8 +110,8 @@ export async function processNextJob(): Promise<"no-job" | "succeeded" | "failed
     // snapshotted text, so it must say so, not silently point at whatever
     // the application shows today.
     await client.query(
-      `INSERT INTO documents (application_id, user_id, type, content, jd_snapshot, provider, model)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      `INSERT INTO documents (application_id, user_id, type, content, jd_snapshot, provider, model, job_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [
         job.applicationId,
         job.userId,
@@ -120,6 +120,7 @@ export async function processNextJob(): Promise<"no-job" | "succeeded" | "failed
         job.promptInputs.jobDescription,
         providerName,
         model,
+        job.id,
       ],
     );
     await markJobSucceeded(client, job.id);

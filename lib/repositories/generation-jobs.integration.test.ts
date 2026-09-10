@@ -20,6 +20,7 @@ describe("generation-jobs repository (real Postgres)", () => {
   let requeueForRetry: typeof import("./generation-jobs.ts")["requeueForRetry"];
   let insertGenerationJob: typeof import("./generation-jobs.ts")["insertGenerationJob"];
   let countPendingJobsForUser: typeof import("./generation-jobs.ts")["countPendingJobsForUser"];
+  let findJobForUser: typeof import("./generation-jobs.ts")["findJobForUser"];
   let migrate: typeof import("../../scripts/migrate.ts");
   let pool: typeof import("../db.ts")["pool"];
 
@@ -29,8 +30,15 @@ describe("generation-jobs repository (real Postgres)", () => {
 
     migrate = await import("../../scripts/migrate.ts");
     ({ pool } = await import("../db.ts"));
-    ({ claimNextQueuedJob, markJobSucceeded, markJobFailed, requeueForRetry, insertGenerationJob, countPendingJobsForUser } =
-      await import("./generation-jobs.ts"));
+    ({
+      claimNextQueuedJob,
+      markJobSucceeded,
+      markJobFailed,
+      requeueForRetry,
+      insertGenerationJob,
+      countPendingJobsForUser,
+      findJobForUser,
+    } = await import("./generation-jobs.ts"));
 
     await migrate.up();
   }, 60_000);
@@ -265,5 +273,34 @@ describe("generation-jobs repository (real Postgres)", () => {
 
     expect(await countPendingJobsForUser(userId)).toBe(2);
     expect(await countPendingJobsForUser(otherUserId)).toBe(1);
+  });
+
+  it("findJobForUser returns the job for its owner", async () => {
+    const userId = await insertUser("find-job-owner@example.com");
+    const applicationId = await insertApplication(userId);
+    const jobId = await insertJob(userId, applicationId);
+
+    const found = await findJobForUser(jobId, userId);
+
+    expect(found).toMatchObject({ id: jobId, status: "queued", errorClass: null });
+  });
+
+  it("findJobForUser returns null for a job belonging to a different user", async () => {
+    const userId = await insertUser("find-job-victim@example.com");
+    const otherUserId = await insertUser("find-job-attacker@example.com");
+    const applicationId = await insertApplication(userId);
+    const jobId = await insertJob(userId, applicationId);
+
+    const found = await findJobForUser(jobId, otherUserId);
+
+    expect(found).toBeNull();
+  });
+
+  it("findJobForUser returns null for a nonexistent job", async () => {
+    const userId = await insertUser("find-job-missing@example.com");
+
+    const found = await findJobForUser("00000000-0000-0000-0000-000000000000", userId);
+
+    expect(found).toBeNull();
   });
 });
