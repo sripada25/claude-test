@@ -83,7 +83,7 @@ export function DetailScreen({ id }: { id: string }) {
                     </Suspense>
                   </div>
                   <div className="flex w-full flex-col gap-[14px] lg:w-[236px]">
-                    <ActionButtons />
+                    <ActionButtons applicationId={application.id} />
                     <LastCallPanel />
                   </div>
                 </div>
