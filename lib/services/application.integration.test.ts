@@ -58,12 +58,13 @@ describe("application service (real Postgres)", () => {
       lastActivityAt?: Date;
       deletedAt?: Date | null;
       position?: number | null;
+      jobDescription?: string | null;
     } = {},
   ): Promise<string> {
     const result = await pool.query<{ id: string }>(
       `INSERT INTO applications
-         (user_id, company, role, status, source, date_applied, last_activity_at, deleted_at, position)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+         (user_id, company, role, status, source, date_applied, last_activity_at, deleted_at, position, job_description)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
       [
         userId,
         overrides.company ?? "Acme",
@@ -74,9 +75,31 @@ describe("application service (real Postgres)", () => {
         overrides.lastActivityAt ?? new Date(),
         overrides.deletedAt ?? null,
         overrides.position ?? null,
+        overrides.jobDescription ?? null,
       ],
     );
     return result.rows[0].id;
+  }
+
+  async function insertDocument(
+    userId: string,
+    applicationId: string,
+    jdSnapshot: string | null,
+  ): Promise<string> {
+    const result = await pool.query<{ id: string }>(
+      `INSERT INTO documents (application_id, user_id, type, content, jd_snapshot, provider, model)
+       VALUES ($1, $2, 'cover_letter', 'content', $3, 'gemini', 'gemini-flash-latest') RETURNING id`,
+      [applicationId, userId, jdSnapshot],
+    );
+    return result.rows[0].id;
+  }
+
+  async function jdSnapshotOf(documentId: string): Promise<string | null> {
+    const result = await pool.query<{ jd_snapshot: string | null }>(
+      "SELECT jd_snapshot FROM documents WHERE id = $1",
+      [documentId],
+    );
+    return result.rows[0].jd_snapshot;
   }
 
   async function insertEvent(applicationId: string, userId: string, type: string): Promise<void> {
@@ -427,6 +450,39 @@ describe("application service (real Postgres)", () => {
     expect(result.application.notes).toBe("Called recruiter");
     expect(result.application.lastActivityAt.getTime()).toBeGreaterThan(oldActivity.getTime());
     expect(await eventsFor(id)).toEqual([{ type: "note_updated", description: "Note updated" }]);
+  });
+
+  it("changing jobDescription copies the old value into a snapshotless document", async () => {
+    const userId = await insertUser("patch-jd-copies@example.com");
+    const id = await insertRawApplication(userId, { jobDescription: "Old JD" });
+    const documentId = await insertDocument(userId, id, null);
+
+    const result = await updateApplication(userId, id, { jobDescription: "New JD" });
+
+    expect(result.success).toBe(true);
+    expect(await jdSnapshotOf(documentId)).toBe("Old JD");
+  });
+
+  it("changing jobDescription leaves an already-snapshotted document untouched", async () => {
+    const userId = await insertUser("patch-jd-preserves@example.com");
+    const id = await insertRawApplication(userId, { jobDescription: "Old JD" });
+    const documentId = await insertDocument(userId, id, "Its own snapshot");
+
+    const result = await updateApplication(userId, id, { jobDescription: "New JD" });
+
+    expect(result.success).toBe(true);
+    expect(await jdSnapshotOf(documentId)).toBe("Its own snapshot");
+  });
+
+  it("changing a field other than jobDescription does not touch documents", async () => {
+    const userId = await insertUser("patch-non-jd@example.com");
+    const id = await insertRawApplication(userId, { jobDescription: "Same JD" });
+    const documentId = await insertDocument(userId, id, null);
+
+    const result = await updateApplication(userId, id, { notes: "unrelated change" });
+
+    expect(result.success).toBe(true);
+    expect(await jdSnapshotOf(documentId)).toBeNull();
   });
 
   it("changing only company/role writes no event and does not bump last_activity_at", async () => {

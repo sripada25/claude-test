@@ -1,5 +1,6 @@
 import { pool } from "../db.ts";
 import { insertApplicationEvent } from "../repositories/application-event.ts";
+import { copyJobDescriptionToSnapshotlessDocuments } from "../repositories/documents.ts";
 import {
   findUserApplicationById,
   findUserApplications,
@@ -264,6 +265,10 @@ export async function updateApplication(
         type: "note_updated",
         description: "Note updated",
       });
+    }
+
+    if (jobDescriptionChanged) {
+      await copyJobDescriptionToSnapshotlessDocuments(client, id, current.jobDescription);
     }
 
     await client.query("COMMIT");
