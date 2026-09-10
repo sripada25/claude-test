@@ -1,9 +1,17 @@
 import {
+  findDocumentForUser,
   listDocumentsByApplication,
   updateDocumentContent as updateDocumentContentRepo,
+  type DocumentType,
   type GeneratedDocument,
 } from "../repositories/documents.ts";
 import { getApplication } from "./application.ts";
+import { recordApplicationEvent } from "./application-event.ts";
+
+const DOCUMENT_TYPE_LABEL: Record<DocumentType, string> = {
+  cover_letter: "Cover letter",
+  resume: "Resume",
+};
 
 export type UpdateDocumentResult =
   | { success: true; document: GeneratedDocument }
@@ -46,4 +54,29 @@ export async function listDocuments(userId: string, applicationId: string): Prom
 
   const documents = await listDocumentsByApplication(applicationId);
   return { success: true, documents };
+}
+
+export type SaveToApplicationResult = { success: true } | { success: false; reason: "not_found" };
+
+// M06-08's "Save to application": an attach-and-return confirmation, not the
+// actual persistence step - the document is already linked to the application
+// from generation time (L116). Writes an M05 activity-timeline entry only;
+// the board's Doc tag is unconditional on `documents` row existence
+// (SCREEN-SPEC-M03.md), not on this event, despite M06's own spec text
+// claiming otherwise.
+export async function saveToApplication(userId: string, documentId: string): Promise<SaveToApplicationResult> {
+  const document = await findDocumentForUser(documentId, userId);
+  if (!document) {
+    return { success: false, reason: "not_found" };
+  }
+
+  await recordApplicationEvent({
+    applicationId: document.applicationId,
+    userId,
+    type: "document_generated",
+    description: `${DOCUMENT_TYPE_LABEL[document.type]} generated`,
+    metadata: { documentId },
+  });
+
+  return { success: true };
 }
