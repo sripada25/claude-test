@@ -197,11 +197,13 @@ F1 P3 Auth API      F1 P4 SSO
 
 | ID | Task | Depends | Env |
 |---|---|---|---|
-| F4-1.1 | `reminders` table | T1.2, F2-1.1 | ✅ |
-| F4-1.2 | `applications.follow_up_snoozed_until` column | F2-1.1 | ✅ |
-| F4-1.3 | `idx_reminders_queue` index | F4-1.1 | ✅ |
+| F4-1.1 | ✅ DONE — `reminders` table | T1.2, F2-1.1 | ✅ |
+| F4-1.2 | ✅ DONE — `applications.follow_up_snoozed_until` column | F2-1.1 | ✅ |
+| F4-1.3 | ✅ DONE — `idx_reminders_queue` index | F4-1.1 | ✅ |
 
 ⚠️ **F4-1.2 lives on `applications`, not `reminders`** — the board's derived tag must remain computable from F2 tables alone (L120).
+
+Merged via PR #265 (2026-09-10), migration 018, combined into one migration for all three tasks (same pattern as migration 013 for F3-1.1–1.4).
 
 ## F4-Scheduler
 
