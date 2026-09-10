@@ -1,0 +1,166 @@
+import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { AIProvider } from "../ai/types.ts";
+
+const getAIProviderMock = vi.fn();
+const getAIProviderMetadataMock = vi.fn();
+
+vi.mock("../ai/provider.ts", () => ({
+  getAIProvider: () => getAIProviderMock(),
+  getAIProviderMetadata: () => getAIProviderMetadataMock(),
+}));
+
+describe("generation-worker service (real Postgres)", () => {
+  let container: StartedPostgreSqlContainer;
+  let processNextJob: typeof import("./generation-worker.ts")["processNextJob"];
+  let migrate: typeof import("../../scripts/migrate.ts");
+  let pool: typeof import("../db.ts")["pool"];
+
+  beforeAll(async () => {
+    container = await new PostgreSqlContainer("postgres:16-alpine").start();
+    process.env.DATABASE_URL = container.getConnectionUri();
+
+    migrate = await import("../../scripts/migrate.ts");
+    ({ pool } = await import("../db.ts"));
+    ({ processNextJob } = await import("./generation-worker.ts"));
+
+    await migrate.up();
+  }, 60_000);
+
+  beforeEach(() => {
+    getAIProviderMetadataMock.mockReturnValue({ provider: "gemini", model: "gemini-flash-latest" });
+  });
+
+  afterEach(async () => {
+    await pool.query("DELETE FROM users");
+    getAIProviderMock.mockReset();
+    getAIProviderMetadataMock.mockReset();
+  });
+
+  afterAll(async () => {
+    await pool.end();
+    await container.stop();
+  });
+
+  async function insertUser(email: string): Promise<string> {
+    const result = await pool.query<{ id: string }>(
+      "INSERT INTO users (email, timezone) VALUES ($1, 'Asia/Kolkata') RETURNING id",
+      [email],
+    );
+    return result.rows[0].id;
+  }
+
+  async function insertApplication(userId: string): Promise<string> {
+    const result = await pool.query<{ id: string }>(
+      "INSERT INTO applications (user_id, company, role) VALUES ($1, 'Acme Corp', 'Engineer') RETURNING id",
+      [userId],
+    );
+    return result.rows[0].id;
+  }
+
+  async function insertJob(
+    userId: string,
+    applicationId: string,
+    type: "cover_letter" | "resume",
+    promptInputs: unknown,
+  ): Promise<string> {
+    const result = await pool.query<{ id: string }>(
+      `INSERT INTO generation_jobs (user_id, application_id, type, prompt_inputs)
+       VALUES ($1, $2, $3, $4) RETURNING id`,
+      [userId, applicationId, type, JSON.stringify(promptInputs)],
+    );
+    return result.rows[0].id;
+  }
+
+  function fakeProvider(overrides: Partial<AIProvider>): AIProvider {
+    return {
+      extractProfile: vi.fn(),
+      generateCoverLetter: vi.fn(),
+      generateResume: vi.fn(),
+      structureCallNote: vi.fn(),
+      draftFollowUp: vi.fn(),
+      ...overrides,
+    };
+  }
+
+  it("returns no-job when the queue is empty", async () => {
+    getAIProviderMock.mockReturnValue(fakeProvider({}));
+
+    const outcome = await processNextJob();
+
+    expect(outcome).toBe("no-job");
+  });
+
+  it("succeeds a cover_letter job: writes a documents row and marks it succeeded", async () => {
+    const userId = await insertUser("coverletter@example.com");
+    const applicationId = await insertApplication(userId);
+    const promptInputs = { profile: { skills: [] }, jobDescription: "Original JD text", companyName: "Acme Corp" };
+    const jobId = await insertJob(userId, applicationId, "cover_letter", promptInputs);
+
+    const generateCoverLetter = vi.fn().mockResolvedValue({ success: true, data: "Dear Acme Corp, ..." });
+    getAIProviderMock.mockReturnValue(fakeProvider({ generateCoverLetter }));
+
+    const outcome = await processNextJob();
+
+    expect(outcome).toBe("succeeded");
+    expect(generateCoverLetter).toHaveBeenCalledWith(promptInputs);
+
+    const job = await pool.query("SELECT status FROM generation_jobs WHERE id = $1", [jobId]);
+    expect(job.rows[0].status).toBe("succeeded");
+
+    const document = await pool.query(
+      "SELECT application_id, user_id, type, content, jd_snapshot, provider, model FROM documents WHERE application_id = $1",
+      [applicationId],
+    );
+    expect(document.rows).toHaveLength(1);
+    expect(document.rows[0]).toMatchObject({
+      application_id: applicationId,
+      user_id: userId,
+      type: "cover_letter",
+      content: "Dear Acme Corp, ...",
+      jd_snapshot: "Original JD text",
+      provider: "gemini",
+      model: "gemini-flash-latest",
+    });
+  });
+
+  it("dispatches a resume job to generateResume, not generateCoverLetter", async () => {
+    const userId = await insertUser("resume@example.com");
+    const applicationId = await insertApplication(userId);
+    const promptInputs = { profile: { skills: [] }, jobDescription: "JD", companyName: "Acme" };
+    await insertJob(userId, applicationId, "resume", promptInputs);
+
+    const generateResume = vi.fn().mockResolvedValue({ success: true, data: "A tailored resume." });
+    const generateCoverLetter = vi.fn();
+    getAIProviderMock.mockReturnValue(fakeProvider({ generateResume, generateCoverLetter }));
+
+    const outcome = await processNextJob();
+
+    expect(outcome).toBe("succeeded");
+    expect(generateResume).toHaveBeenCalledWith(promptInputs);
+    expect(generateCoverLetter).not.toHaveBeenCalled();
+  });
+
+  it("marks a job failed with its real error class and writes no document", async () => {
+    const userId = await insertUser("failure@example.com");
+    const applicationId = await insertApplication(userId);
+    const promptInputs = { profile: { skills: [] }, jobDescription: "JD", companyName: "Acme" };
+    const jobId = await insertJob(userId, applicationId, "cover_letter", promptInputs);
+
+    const generateCoverLetter = vi.fn().mockResolvedValue({
+      success: false,
+      error: { errorClass: "safety_block", message: "blocked" },
+    });
+    getAIProviderMock.mockReturnValue(fakeProvider({ generateCoverLetter }));
+
+    const outcome = await processNextJob();
+
+    expect(outcome).toBe("failed");
+
+    const job = await pool.query("SELECT status, error_class FROM generation_jobs WHERE id = $1", [jobId]);
+    expect(job.rows[0]).toMatchObject({ status: "failed", error_class: "safety_block" });
+
+    const documents = await pool.query("SELECT id FROM documents WHERE application_id = $1", [applicationId]);
+    expect(documents.rows).toHaveLength(0);
+  });
+});
