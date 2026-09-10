@@ -180,6 +180,34 @@ describe("subscription service (real Postgres)", () => {
     expect((await getSubscription(userId)).quotaExhausted).toBe(true);
   });
 
+  it("reports real generationsUsed/generationsLimit for a trialing user", async () => {
+    const userId = await insertUserWithSubscription({ email: "counts-trial@example.com", used: 12 });
+
+    const result = await getSubscription(userId);
+
+    expect(result.generationsUsed).toBe(12);
+    expect(result.generationsLimit).toBe(40);
+  });
+
+  it("reports real generationsUsed/generationsLimit for an active free user", async () => {
+    const userId = await insertUserWithSubscription({ email: "counts-free@example.com", status: "active" });
+    await setQuotaUsed(userId, 3);
+
+    const result = await getSubscription(userId);
+
+    expect(result.generationsUsed).toBe(3);
+    expect(result.generationsLimit).toBe(5);
+  });
+
+  it("reports generationsLimit null (unlimited) for a pro user", async () => {
+    const userId = await insertUserWithSubscription({ email: "counts-pro@example.com", tier: "pro" });
+    await setQuotaUsed(userId, 50);
+
+    const result = await getSubscription(userId);
+
+    expect(result.generationsLimit).toBeNull();
+  });
+
   describe("consumeGenerationQuota / refundGenerationQuota", () => {
     it("consumes via the trial mechanism for a trialing user", async () => {
       const userId = await insertUserWithSubscription({ email: "consume-trial@example.com", used: 10 });
