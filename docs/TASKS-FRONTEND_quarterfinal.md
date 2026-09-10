@@ -1726,7 +1726,7 @@ No row returned ⇒ refuse to enqueue. **Never trust the client's number.**
 
 ---
 
-## M06-08 · `DownloadRow` ✅
+## M06-08 · `DownloadRow` ✅ DONE — merged via PR #261 (2026-09-10)
 
 🎨 gap `12` · `justify end`
 🎨 **Download:** fill `$m-surface` · stroke `$m-border-strong` 1 · padding `[12,20]` · gap `9` · icon `download` `15` · body `13.5`/600
