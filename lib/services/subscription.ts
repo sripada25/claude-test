@@ -17,6 +17,8 @@ export interface SubscriptionView {
   trialGenerationsLimit: number;
   emailVerified: boolean;
   quotaExhausted: boolean;
+  generationsUsed: number;
+  generationsLimit: number | null; // null = unlimited (Pro)
 }
 
 function daysRemaining(trialEndsAt: Date): number {
@@ -46,7 +48,8 @@ export async function getSubscription(userId: string): Promise<SubscriptionView>
   const user = await findUserById(userId);
   const emailVerified = user?.emailVerifiedAt != null;
 
-  const quotaExhausted = await isQuotaExhausted(userId, subscription);
+  const { used: generationsUsed, limit: generationsLimit } = await getQuotaCounts(userId, subscription);
+  const quotaExhausted = generationsLimit !== null && generationsUsed >= generationsLimit;
 
   return {
     tier: subscription.tier,
@@ -56,23 +59,34 @@ export async function getSubscription(userId: string): Promise<SubscriptionView>
     trialGenerationsLimit: subscription.trialGenerationsLimit,
     emailVerified,
     quotaExhausted,
+    generationsUsed,
+    generationsLimit,
   };
 }
 
-// AI-RULES.md §7's three tiers, one branch per mechanism. Trialing users are
-// checked against the trial's 40-total counter (already fetched on
-// `subscription`, no extra query) - not the free tier's monthly cap, which
-// this used to conflate with trial status (fixed as part of F3-2.5).
-async function isQuotaExhausted(userId: string, subscription: Subscription): Promise<boolean> {
+interface QuotaCounts {
+  used: number;
+  limit: number | null; // null = unlimited
+}
+
+// AI-RULES.md §7's three tiers, one branch per mechanism, one source of
+// truth for both the display numbers (M06-02's QuotaBadge) and the
+// exhausted boolean - previously two separate computations that used to
+// conflate trial status with the free tier's monthly cap (fixed as part of
+// F3-2.5). Trialing users are checked against the trial's 40-total counter
+// (already fetched on `subscription`, no extra query).
+async function getQuotaCounts(userId: string, subscription: Subscription): Promise<QuotaCounts> {
   if (subscription.tier === "pro") {
     // Pro's 20/hr·50/day·300/month fair-use cap (L093) isn't implemented -
-    // unreachable until F6 ships a way to ever set tier to "pro".
-    return false;
+    // unreachable until F6 ships a way to ever set tier to "pro". Treated
+    // as unlimited for display and enforcement alike.
+    return { used: 0, limit: null };
   }
   if (subscription.status === "trialing") {
-    return subscription.trialGenerationsUsed >= subscription.trialGenerationsLimit;
+    return { used: subscription.trialGenerationsUsed, limit: subscription.trialGenerationsLimit };
   }
-  return (await findGenerationQuotaUsed(userId, currentPeriodStart())) >= FREE_TIER_MONTHLY_QUOTA;
+  const used = await findGenerationQuotaUsed(userId, currentPeriodStart());
+  return { used, limit: FREE_TIER_MONTHLY_QUOTA };
 }
 
 export type QuotaMechanism = "trial" | "free";
