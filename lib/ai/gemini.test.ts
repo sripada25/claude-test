@@ -158,6 +158,41 @@ describe("geminiAdapter", () => {
       expect(result.success).toBe(true);
     });
 
+    it("reports token usage from the response for ai_usage logging", async () => {
+      generateContentMock.mockResolvedValue({
+        text: "A".repeat(250) + " Acme Corp " + "B".repeat(10),
+        usageMetadata: { promptTokenCount: 2200, candidatesTokenCount: 600 },
+      });
+
+      const result = await geminiAdapter.generateCoverLetter({
+        profile,
+        jobDescription: "JD text",
+        companyName: "Acme Corp",
+      });
+
+      expect(result.success).toBe(true);
+      if (!result.success) throw new Error("expected success");
+      expect(result.data.tokensIn).toBe(2200);
+      expect(result.data.tokensOut).toBe(600);
+    });
+
+    it("defaults token usage to 0 when the response omits usageMetadata", async () => {
+      generateContentMock.mockResolvedValue({
+        text: "A".repeat(250) + " Acme Corp " + "B".repeat(10),
+      });
+
+      const result = await geminiAdapter.generateCoverLetter({
+        profile,
+        jobDescription: "JD text",
+        companyName: "Acme Corp",
+      });
+
+      expect(result.success).toBe(true);
+      if (!result.success) throw new Error("expected success");
+      expect(result.data.tokensIn).toBe(0);
+      expect(result.data.tokensOut).toBe(0);
+    });
+
     it("rejects output under 200 characters", async () => {
       generateContentMock.mockResolvedValue({ text: "Too short Acme Corp" });
 
@@ -297,6 +332,29 @@ describe("geminiAdapter", () => {
 
       expect(result.success).toBe(true);
       expect(generateContentMock).toHaveBeenCalledTimes(2);
+    });
+
+    it("sums token usage across both the generation and the verification call", async () => {
+      generateContentMock
+        .mockResolvedValueOnce({
+          text: "Worked at Acme Corp and Globex, tailored for the role.",
+          usageMetadata: { promptTokenCount: 1500, candidatesTokenCount: 500 },
+        })
+        .mockResolvedValueOnce({
+          text: JSON.stringify([{ employer: "Acme Corp", start_date: "2021", end_date: "2023" }]),
+          usageMetadata: { promptTokenCount: 300, candidatesTokenCount: 100 },
+        });
+
+      const result = await geminiAdapter.generateResume({
+        profile: profileWithHistory,
+        jobDescription: "JD",
+        companyName: "Acme Corp",
+      });
+
+      expect(result.success).toBe(true);
+      if (!result.success) throw new Error("expected success");
+      expect(result.data.tokensIn).toBe(1800);
+      expect(result.data.tokensOut).toBe(600);
     });
 
     it("rejects a resume that mentions an employer not in the profile", async () => {
