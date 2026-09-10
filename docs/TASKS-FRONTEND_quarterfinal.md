@@ -1753,7 +1753,7 @@ No row returned ⇒ refuse to enqueue. **Never trust the client's number.**
 
 ---
 
-## M06-09 · `PaywallPanel` ✅
+## M06-09 · `PaywallPanel` ✅ DONE — merged via PR #263 (2026-09-10)
 
 🎨 fill `$m-accent-soft` · stroke `$m-accent` 1 · padding `[18,20]` · gap `20` · `justify space-between`
 🎨 Head: icon `lock` `14×14` `$m-accent` + "You've used all 5 free generations this month" body `13.5`/**700** `$m-accent`
