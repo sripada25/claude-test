@@ -1,13 +1,36 @@
 import { pool } from "../db.ts";
 import { getAIProvider, getAIProviderMetadata } from "../ai/provider.ts";
-import { claimNextQueuedJob, markJobFailed, markJobSucceeded } from "../repositories/generation-jobs.ts";
+import type { AIErrorClass } from "../ai/types.ts";
+import {
+  claimNextQueuedJob,
+  markJobFailed,
+  markJobSucceeded,
+  requeueForRetry,
+} from "../repositories/generation-jobs.ts";
 
 // One tick every 4s = 15/min by construction - Gemini's own RPM cap (L034),
 // no separate token-bucket needed. This is the actual reason a queue exists
 // (F3-2.4), not a nice-to-have.
 const POLL_INTERVAL_MS = 4000;
 
-export async function processNextJob(): Promise<"no-job" | "succeeded" | "failed"> {
+// AI-RULES.md §8.1: timeout/429/503 auto-retry, everything else is
+// permanent (bad_request/safety_block/validation_failed never retry).
+const RETRYABLE_ERROR_CLASSES = new Set<AIErrorClass>(["timeout", "rate_limited", "unavailable"]);
+
+// 2 attempts total, unambiguous across every doc reference (L096, the
+// attempts column comment, this task's own line) - so only one retry ever
+// happens, and only backoff[0] can ever fire. backoff[1] (8s) is kept for
+// the documented schedule rather than discarded, and the lookup extends
+// cleanly if MAX_ATTEMPTS is ever raised.
+const MAX_ATTEMPTS = 2;
+const BACKOFF_SECONDS = [2, 8];
+
+function backoffSecondsForAttempt(attempts: number): number {
+  const index = Math.min(attempts - 1, BACKOFF_SECONDS.length - 1);
+  return BACKOFF_SECONDS[index];
+}
+
+export async function processNextJob(): Promise<"no-job" | "succeeded" | "failed" | "retrying"> {
   const job = await claimNextQueuedJob();
   if (!job) {
     return "no-job";
@@ -20,6 +43,11 @@ export async function processNextJob(): Promise<"no-job" | "succeeded" | "failed
       : await provider.generateResume(job.promptInputs);
 
   if (!result.success) {
+    const canRetry = RETRYABLE_ERROR_CLASSES.has(result.error.errorClass) && job.attempts < MAX_ATTEMPTS;
+    if (canRetry) {
+      await requeueForRetry(pool, job.id, backoffSecondsForAttempt(job.attempts));
+      return "retrying";
+    }
     await markJobFailed(pool, job.id, result.error.errorClass);
     return "failed";
   }

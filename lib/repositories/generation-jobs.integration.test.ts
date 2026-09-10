@@ -6,6 +6,7 @@ describe("generation-jobs repository (real Postgres)", () => {
   let claimNextQueuedJob: typeof import("./generation-jobs.ts")["claimNextQueuedJob"];
   let markJobSucceeded: typeof import("./generation-jobs.ts")["markJobSucceeded"];
   let markJobFailed: typeof import("./generation-jobs.ts")["markJobFailed"];
+  let requeueForRetry: typeof import("./generation-jobs.ts")["requeueForRetry"];
   let migrate: typeof import("../../scripts/migrate.ts");
   let pool: typeof import("../db.ts")["pool"];
 
@@ -15,7 +16,7 @@ describe("generation-jobs repository (real Postgres)", () => {
 
     migrate = await import("../../scripts/migrate.ts");
     ({ pool } = await import("../db.ts"));
-    ({ claimNextQueuedJob, markJobSucceeded, markJobFailed } = await import("./generation-jobs.ts"));
+    ({ claimNextQueuedJob, markJobSucceeded, markJobFailed, requeueForRetry } = await import("./generation-jobs.ts"));
 
     await migrate.up();
   }, 60_000);
@@ -123,6 +124,50 @@ describe("generation-jobs repository (real Postgres)", () => {
 
     const claimedIds = [claimedA?.id, claimedB?.id].sort();
     expect(claimedIds).toEqual([jobIdA, jobIdB].sort());
+  });
+
+  it("skips a queued job whose next_attempt_at is still in the future", async () => {
+    const userId = await insertUser("backing-off@example.com");
+    const applicationId = await insertApplication(userId);
+    const jobId = await insertJob(userId, applicationId);
+    await pool.query("UPDATE generation_jobs SET status = 'queued', next_attempt_at = now() + interval '1 hour' WHERE id = $1", [
+      jobId,
+    ]);
+
+    const claimed = await claimNextQueuedJob();
+
+    expect(claimed).toBeNull();
+  });
+
+  it("claims a queued job whose next_attempt_at has already passed", async () => {
+    const userId = await insertUser("backoff-elapsed@example.com");
+    const applicationId = await insertApplication(userId);
+    const jobId = await insertJob(userId, applicationId);
+    await pool.query(
+      "UPDATE generation_jobs SET status = 'queued', next_attempt_at = now() - interval '1 second' WHERE id = $1",
+      [jobId],
+    );
+
+    const claimed = await claimNextQueuedJob();
+
+    expect(claimed?.id).toBe(jobId);
+  });
+
+  it("requeues a job for retry, setting status back to queued and next_attempt_at in the future, without touching attempts", async () => {
+    const userId = await insertUser("requeue@example.com");
+    const applicationId = await insertApplication(userId);
+    const jobId = await insertJob(userId, applicationId);
+    await claimNextQueuedJob();
+
+    await requeueForRetry(pool, jobId, 2);
+
+    const row = await pool.query<{ status: string; attempts: number; next_attempt_at: Date }>(
+      "SELECT status, attempts, next_attempt_at FROM generation_jobs WHERE id = $1",
+      [jobId],
+    );
+    expect(row.rows[0].status).toBe("queued");
+    expect(row.rows[0].attempts).toBe(1);
+    expect(row.rows[0].next_attempt_at.getTime()).toBeGreaterThan(Date.now());
   });
 
   it("marks a job succeeded", async () => {

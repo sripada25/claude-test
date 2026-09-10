@@ -476,7 +476,8 @@ CREATE TABLE generation_jobs (
   error_class    TEXT,
   prompt_inputs  JSONB NOT NULL,                     -- profile + JD snapshotted at enqueue (L095)
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
-  completed_at   TIMESTAMPTZ
+  completed_at   TIMESTAMPTZ,
+  next_attempt_at TIMESTAMPTZ                        -- NULL = eligible now; set on a retryable failure (migration 015, F3-2.6)
 );
 
 CREATE INDEX idx_jobs_queue ON generation_jobs(status, created_at) WHERE status IN ('queued','running');
