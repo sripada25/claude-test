@@ -1700,7 +1700,7 @@ No row returned ⇒ refuse to enqueue. **Never trust the client's number.**
 
 ---
 
-## M06-07 · `ResultCard` ✅
+## M06-07 · `ResultCard` ✅ DONE — merged via PR #259 (2026-09-10)
 
 🎨 fill `$m-surface` · stroke `$m-border` 1 · padding `[26,28]` · gap `14`
 🎨 Salutation body `13.5`/600 `$m-ink`
