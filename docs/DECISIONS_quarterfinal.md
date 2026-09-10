@@ -105,6 +105,8 @@ docs/
 | L116 | **Document persisted on generation**, not on "Save to application" | ✅ NEW |
 | L129 | **`applications.position` column + "Manual" sort — reorder only persists under Manual sort** | ✅ NEW |
 | L130 | **"Load more" ≠ virtualization — doesn't reopen M03-06's no-virtualization call** | ✅ NEW |
+| L131 | **`POST /api/applications/:id/generate` is one endpoint, `type` in the body** — resolves the F3 🔴 open question per its own stated recommendation (matches M06's single toggle) | ✅ NEW |
+| L132 | **`generation_jobs.quota_mechanism` stores which counter (trial/free) enqueue charged, refunded exactly once on terminal failure** — F3-3.1 is the first real caller of `consumeGenerationQuota()`, making the AI-RULES.md §7 refund guarantee ("the user never pays for our failure") a live consequence rather than an untested primitive | ✅ NEW |
 
 ## Follow-up system (F4)
 

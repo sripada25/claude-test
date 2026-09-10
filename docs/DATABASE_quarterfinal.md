@@ -477,7 +477,8 @@ CREATE TABLE generation_jobs (
   prompt_inputs  JSONB NOT NULL,                     -- profile + JD snapshotted at enqueue (L095)
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
   completed_at   TIMESTAMPTZ,
-  next_attempt_at TIMESTAMPTZ                        -- NULL = eligible now; set on a retryable failure (migration 015, F3-2.6)
+  next_attempt_at TIMESTAMPTZ,                       -- NULL = eligible now; set on a retryable failure (migration 015, F3-2.6)
+  quota_mechanism TEXT                               -- 'trial'|'free', which counter enqueue charged - refunded from this on terminal failure (migration 016, F3-3.1, L132)
 );
 
 CREATE INDEX idx_jobs_queue ON generation_jobs(status, created_at) WHERE status IN ('queued','running');

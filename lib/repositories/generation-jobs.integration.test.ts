@@ -1,12 +1,25 @@
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
+const testProfile = {
+  fullName: "Jane Doe",
+  currentRole: null,
+  targetRole: "Senior Engineer",
+  yearsExperience: 3,
+  monthsExperience: 0,
+  skills: ["testing"],
+  location: null,
+  employmentHistory: [],
+};
+
 describe("generation-jobs repository (real Postgres)", () => {
   let container: StartedPostgreSqlContainer;
   let claimNextQueuedJob: typeof import("./generation-jobs.ts")["claimNextQueuedJob"];
   let markJobSucceeded: typeof import("./generation-jobs.ts")["markJobSucceeded"];
   let markJobFailed: typeof import("./generation-jobs.ts")["markJobFailed"];
   let requeueForRetry: typeof import("./generation-jobs.ts")["requeueForRetry"];
+  let insertGenerationJob: typeof import("./generation-jobs.ts")["insertGenerationJob"];
+  let countPendingJobsForUser: typeof import("./generation-jobs.ts")["countPendingJobsForUser"];
   let migrate: typeof import("../../scripts/migrate.ts");
   let pool: typeof import("../db.ts")["pool"];
 
@@ -16,7 +29,8 @@ describe("generation-jobs repository (real Postgres)", () => {
 
     migrate = await import("../../scripts/migrate.ts");
     ({ pool } = await import("../db.ts"));
-    ({ claimNextQueuedJob, markJobSucceeded, markJobFailed, requeueForRetry } = await import("./generation-jobs.ts"));
+    ({ claimNextQueuedJob, markJobSucceeded, markJobFailed, requeueForRetry, insertGenerationJob, countPendingJobsForUser } =
+      await import("./generation-jobs.ts"));
 
     await migrate.up();
   }, 60_000);
@@ -193,5 +207,63 @@ describe("generation-jobs repository (real Postgres)", () => {
     const status = await getJobStatus(jobId);
     expect(status.status).toBe("failed");
     expect(status.error_class).toBe("safety_block");
+  });
+
+  it("inserts a new job as queued with the given quota mechanism", async () => {
+    const userId = await insertUser("insert-job@example.com");
+    const applicationId = await insertApplication(userId);
+    const promptInputs = { profile: testProfile, jobDescription: "JD", companyName: "Acme" };
+
+    const jobId = await insertGenerationJob({
+      userId,
+      applicationId,
+      type: "resume",
+      promptInputs,
+      quotaMechanism: "trial",
+    });
+
+    const row = await pool.query<{ status: string; type: string; quota_mechanism: string; attempts: number }>(
+      "SELECT status, type, quota_mechanism, attempts FROM generation_jobs WHERE id = $1",
+      [jobId],
+    );
+    expect(row.rows[0]).toMatchObject({
+      status: "queued",
+      type: "resume",
+      quota_mechanism: "trial",
+      attempts: 0,
+    });
+  });
+
+  it("claimNextQueuedJob returns the quota mechanism stored at insert", async () => {
+    const userId = await insertUser("claim-mechanism@example.com");
+    const applicationId = await insertApplication(userId);
+    await insertGenerationJob({
+      userId,
+      applicationId,
+      type: "cover_letter",
+      promptInputs: { profile: testProfile, jobDescription: "JD", companyName: "Acme" },
+      quotaMechanism: "free",
+    });
+
+    const claimed = await claimNextQueuedJob();
+
+    expect(claimed?.quotaMechanism).toBe("free");
+  });
+
+  it("countPendingJobsForUser counts only this user's queued/running jobs", async () => {
+    const userId = await insertUser("pending-count@example.com");
+    const otherUserId = await insertUser("other-pending-count@example.com");
+    const applicationId = await insertApplication(userId);
+    const otherApplicationId = await insertApplication(otherUserId);
+
+    await insertJob(userId, applicationId); // queued
+    const runningId = await insertJob(userId, applicationId);
+    await pool.query("UPDATE generation_jobs SET status = 'running' WHERE id = $1", [runningId]);
+    const succeededId = await insertJob(userId, applicationId);
+    await pool.query("UPDATE generation_jobs SET status = 'succeeded' WHERE id = $1", [succeededId]);
+    await insertJob(otherUserId, otherApplicationId); // different user, must not count
+
+    expect(await countPendingJobsForUser(userId)).toBe(2);
+    expect(await countPendingJobsForUser(otherUserId)).toBe(1);
   });
 });

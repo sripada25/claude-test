@@ -355,7 +355,6 @@ Independent of F1–F4. Same Next.js app, route groups (L030 — no second servi
 
 | | Question |
 |---|---|
-| — | Does `POST /generate` accept a `type` param (cover_letter/resume) as one endpoint, or two separate routes? Recommend one endpoint, `type` in the body — matches M06's single toggle |
 | — | Job queue polling interval for F3-3.2 — 1s? 2s? Trade-off between responsiveness and request volume |
 
 **Reads:** `AI-RULES.md` in full · `DATABASE_quarterfinal.md` §4 · `TASKS-FRONTEND_quarterfinal.md` M06 section
