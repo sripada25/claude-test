@@ -4,6 +4,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 describe("document service (real Postgres)", () => {
   let container: StartedPostgreSqlContainer;
   let updateDocumentContent: typeof import("./document.ts")["updateDocumentContent"];
+  let listDocuments: typeof import("./document.ts")["listDocuments"];
   let migrate: typeof import("../../scripts/migrate.ts");
   let pool: typeof import("../db.ts")["pool"];
 
@@ -13,7 +14,7 @@ describe("document service (real Postgres)", () => {
 
     migrate = await import("../../scripts/migrate.ts");
     ({ pool } = await import("../db.ts"));
-    ({ updateDocumentContent } = await import("./document.ts"));
+    ({ updateDocumentContent, listDocuments } = await import("./document.ts"));
 
     await migrate.up();
   }, 60_000);
@@ -46,6 +47,23 @@ describe("document service (real Postgres)", () => {
       [applicationResult.rows[0].id, userId],
     );
     return documentResult.rows[0].id;
+  }
+
+  async function insertApplication(userId: string): Promise<string> {
+    const result = await pool.query<{ id: string }>(
+      "INSERT INTO applications (user_id, company, role) VALUES ($1, 'Acme', 'Engineer') RETURNING id",
+      [userId],
+    );
+    return result.rows[0].id;
+  }
+
+  async function insertDocumentFor(userId: string, applicationId: string): Promise<string> {
+    const result = await pool.query<{ id: string }>(
+      `INSERT INTO documents (application_id, user_id, type, content, provider, model)
+       VALUES ($1, $2, 'cover_letter', 'content', 'gemini', 'gemini-flash-latest') RETURNING id`,
+      [applicationId, userId],
+    );
+    return result.rows[0].id;
   }
 
   it("updates the content and returns the updated document", async () => {
@@ -94,5 +112,47 @@ describe("document service (real Postgres)", () => {
     const result = await updateDocumentContent(userId, "00000000-0000-0000-0000-000000000000", "content");
 
     expect(result).toEqual({ success: false, reason: "not_found" });
+  });
+
+  describe("listDocuments", () => {
+    it("returns the documents for a valid application", async () => {
+      const userId = await insertUser("list-valid@example.com");
+      const applicationId = await insertApplication(userId);
+      const documentId = await insertDocumentFor(userId, applicationId);
+
+      const result = await listDocuments(userId, applicationId);
+
+      expect(result.success).toBe(true);
+      if (!result.success) return;
+      expect(result.documents).toHaveLength(1);
+      expect(result.documents[0]).toMatchObject({ id: documentId, type: "cover_letter", content: "content" });
+    });
+
+    it("returns an empty list for an application with no documents", async () => {
+      const userId = await insertUser("list-empty@example.com");
+      const applicationId = await insertApplication(userId);
+
+      const result = await listDocuments(userId, applicationId);
+
+      expect(result).toEqual({ success: true, documents: [] });
+    });
+
+    it("returns not_found for an application belonging to a different user", async () => {
+      const userId = await insertUser("list-victim@example.com");
+      const attackerId = await insertUser("list-attacker@example.com");
+      const applicationId = await insertApplication(userId);
+
+      const result = await listDocuments(attackerId, applicationId);
+
+      expect(result).toEqual({ success: false, reason: "not_found" });
+    });
+
+    it("returns not_found for a nonexistent application", async () => {
+      const userId = await insertUser("list-missing@example.com");
+
+      const result = await listDocuments(userId, "00000000-0000-0000-0000-000000000000");
+
+      expect(result).toEqual({ success: false, reason: "not_found" });
+    });
   });
 });
