@@ -345,7 +345,7 @@ Independent of F1–F4. Same Next.js app, route groups (L030 — no second servi
 
 | ID | Endpoint | Depends | Env | Notes |
 |---|---|---|---|---|
-| F3-3.1 | `POST /api/applications/:id/generate` | F3-2.4, F3-2.5 | ✅ | Enqueues, returns **immediately** — never blocks on the Gemini call (5s holding a DB connection is a DoS vector) |
+| F3-3.1 | ✅ DONE — `POST /api/applications/:id/generate` | F3-2.4, F3-2.5 | ✅ | Merged via PR #237 (2026-09-10). Enqueues, returns **immediately** — never blocks on the Gemini call. One endpoint, `type` in body (L131). Every precondition (ownership, JD, email, profile, queue depth L094, quota) enforced server-side. `quota_mechanism` (migration 016) completes the refund loop (L132) — live-verified end-to-end |
 | F3-3.2 | `GET /api/generate/:jobId/status` | F3-2.4 | ✅ | Polling endpoint for the M06 "Generating…" state — same pattern as F6-3's payment-verification poll |
 | F3-3.3 | `POST /api/documents/:id/regenerate` | F3-3.1 | ✅ | ⚠️ **Decrements quota like any generation** (L109). Must show the cost before the click — M06 already specs this UI |
 | F3-3.4 | `PATCH /api/documents/:id` (manual edit) | F3-1.1 | ✅ | The "Edit" action on M06 — **no AI call, no quota** |
