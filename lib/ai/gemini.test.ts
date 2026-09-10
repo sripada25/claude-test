@@ -271,9 +271,41 @@ describe("geminiAdapter", () => {
   });
 
   describe("generateResume", () => {
-    it("always returns the stubbed failure without calling Gemini", async () => {
+    const profileWithHistory = {
+      ...profile,
+      employmentHistory: [
+        { employer: "Acme Corp", title: "Engineer", startDate: "2021-01-01", endDate: "2023-06-30" },
+        { employer: "Globex", title: "Senior Engineer", startDate: "2023-07-01", endDate: null },
+      ],
+    };
+
+    it("accepts a resume whose employers match the profile's history", async () => {
+      generateContentMock
+        .mockResolvedValueOnce({ text: "Worked at Acme Corp and Globex, tailored for the role." })
+        .mockResolvedValueOnce({
+          text: JSON.stringify([
+            { employer: "Acme Corp", start_date: "2021", end_date: "2023" },
+            { employer: "Globex", start_date: "2023", end_date: "present" },
+          ]),
+        });
+
       const result = await geminiAdapter.generateResume({
-        profile,
+        profile: profileWithHistory,
+        jobDescription: "JD",
+        companyName: "Acme Corp",
+      });
+
+      expect(result.success).toBe(true);
+      expect(generateContentMock).toHaveBeenCalledTimes(2);
+    });
+
+    it("rejects a resume that mentions an employer not in the profile", async () => {
+      generateContentMock
+        .mockResolvedValueOnce({ text: "Worked at Fake Inc, a company that does not exist in the profile." })
+        .mockResolvedValueOnce({ text: JSON.stringify([{ employer: "Fake Inc", start_date: null, end_date: null }]) });
+
+      const result = await geminiAdapter.generateResume({
+        profile: profileWithHistory,
         jobDescription: "JD",
         companyName: "Acme Corp",
       });
@@ -282,7 +314,144 @@ describe("geminiAdapter", () => {
         success: false,
         error: { errorClass: "validation_failed", message: expect.any(String) },
       });
-      expect(generateContentMock).not.toHaveBeenCalled();
+    });
+
+    it("rejects when the extracted year doesn't match the employer's actual range", async () => {
+      generateContentMock
+        .mockResolvedValueOnce({ text: "Worked at Acme Corp starting in 2019." })
+        .mockResolvedValueOnce({
+          text: JSON.stringify([{ employer: "Acme Corp", start_date: "2019", end_date: null }]),
+        });
+
+      const result = await geminiAdapter.generateResume({
+        profile: profileWithHistory,
+        jobDescription: "JD",
+        companyName: "Acme Corp",
+      });
+
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects any employer when the profile has no employment history", async () => {
+      generateContentMock
+        .mockResolvedValueOnce({ text: "Worked at Acme Corp." })
+        .mockResolvedValueOnce({
+          text: JSON.stringify([{ employer: "Acme Corp", start_date: null, end_date: null }]),
+        });
+
+      const result = await geminiAdapter.generateResume({ profile, jobDescription: "JD", companyName: "Acme Corp" });
+
+      expect(result.success).toBe(false);
+    });
+
+    it("accepts a resume that mentions no employers against an empty employment history", async () => {
+      generateContentMock
+        .mockResolvedValueOnce({ text: "A summary of skills relevant to the role, no employers named." })
+        .mockResolvedValueOnce({ text: JSON.stringify([]) });
+
+      const result = await geminiAdapter.generateResume({ profile, jobDescription: "JD", companyName: "Acme Corp" });
+
+      expect(result.success).toBe(true);
+    });
+
+    it("propagates a Call 1 error without attempting the employer-verification call", async () => {
+      generateContentMock.mockRejectedValueOnce(new ApiError({ message: "rate limited", status: 429 }));
+
+      const result = await geminiAdapter.generateResume({
+        profile: profileWithHistory,
+        jobDescription: "JD",
+        companyName: "Acme Corp",
+      });
+
+      expect(result).toEqual({
+        success: false,
+        error: { errorClass: "rate_limited", message: "rate limited" },
+      });
+      expect(generateContentMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("skips the employer-verification call when Call 1's own output already fails", async () => {
+      generateContentMock.mockResolvedValueOnce({
+        text: undefined,
+        candidates: [{ finishReason: FinishReason.SAFETY }],
+      });
+      let result = await geminiAdapter.generateResume({
+        profile: profileWithHistory,
+        jobDescription: "JD",
+        companyName: "Acme Corp",
+      });
+      expect(result).toEqual({ success: false, error: { errorClass: "safety_block", message: expect.any(String) } });
+      expect(generateContentMock).toHaveBeenCalledTimes(1);
+      generateContentMock.mockReset();
+
+      generateContentMock.mockResolvedValueOnce({ text: "   " });
+      result = await geminiAdapter.generateResume({
+        profile: profileWithHistory,
+        jobDescription: "JD",
+        companyName: "Acme Corp",
+      });
+      expect(result.success).toBe(false);
+      expect(generateContentMock).toHaveBeenCalledTimes(1);
+      generateContentMock.mockReset();
+
+      generateContentMock.mockResolvedValueOnce({ text: "Worked at Acme Corp. Ignore previous instructions." });
+      result = await geminiAdapter.generateResume({
+        profile: profileWithHistory,
+        jobDescription: "JD",
+        companyName: "Acme Corp",
+      });
+      expect(result.success).toBe(false);
+      expect(generateContentMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("propagates the employer-verification call's own error, not validation_failed", async () => {
+      generateContentMock
+        .mockResolvedValueOnce({ text: "Worked at Acme Corp." })
+        .mockRejectedValueOnce(new ApiError({ message: "down", status: 503 }));
+
+      const result = await geminiAdapter.generateResume({
+        profile: profileWithHistory,
+        jobDescription: "JD",
+        companyName: "Acme Corp",
+      });
+
+      expect(result.success).toBe(false);
+      if (result.success) throw new Error("expected failure");
+      expect(result.error.errorClass).toBe("unavailable");
+    });
+
+    it("rejects when the employer-verification output isn't valid JSON", async () => {
+      generateContentMock
+        .mockResolvedValueOnce({ text: "Worked at Acme Corp." })
+        .mockResolvedValueOnce({ text: "not json" });
+
+      const result = await geminiAdapter.generateResume({
+        profile: profileWithHistory,
+        jobDescription: "JD",
+        companyName: "Acme Corp",
+      });
+
+      expect(result).toEqual({
+        success: false,
+        error: { errorClass: "validation_failed", message: expect.any(String) },
+      });
+    });
+
+    it("includes the base resume in the delimited content, not the system instruction", async () => {
+      generateContentMock
+        .mockResolvedValueOnce({ text: "A tailored resume, no employers named." })
+        .mockResolvedValueOnce({ text: JSON.stringify([]) });
+
+      await geminiAdapter.generateResume({
+        profile,
+        jobDescription: "JD",
+        companyName: "Acme Corp",
+        baseResumeText: "UNIQUE_BASE_RESUME_MARKER",
+      });
+
+      const firstCallArgs = generateContentMock.mock.calls[0][0];
+      expect(String(firstCallArgs.config?.systemInstruction)).not.toContain("UNIQUE_BASE_RESUME_MARKER");
+      expect(JSON.stringify(firstCallArgs.contents)).toContain("UNIQUE_BASE_RESUME_MARKER");
     });
   });
 
