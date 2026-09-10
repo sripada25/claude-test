@@ -9,6 +9,7 @@ import {
   type ExtractedProfile,
   type FollowUpInput,
   type GenerationInput,
+  type GenerationOutput,
   type Result,
   type StructuredNote,
 } from "./types.ts";
@@ -179,7 +180,7 @@ function validateCoverLetterOutput(text: string, companyName: string): string | 
   return checkNoInjectionMarkers(text);
 }
 
-async function generateCoverLetter(input: GenerationInput): Promise<Result<string>> {
+async function generateCoverLetter(input: GenerationInput): Promise<Result<GenerationOutput>> {
   try {
     const response = await getClient().models.generateContent({
       model: MODEL,
@@ -213,7 +214,11 @@ async function generateCoverLetter(input: GenerationInput): Promise<Result<strin
       return err("validation_failed", validationError);
     }
 
-    return ok(text);
+    return ok({
+      content: text,
+      tokensIn: response.usageMetadata?.promptTokenCount ?? 0,
+      tokensOut: response.usageMetadata?.candidatesTokenCount ?? 0,
+    });
   } catch (error) {
     const { errorClass, message } = classifyError(error);
     return err(errorClass, message);
@@ -291,7 +296,13 @@ function matchesEmploymentHistory(
   });
 }
 
-async function extractResumeEmployers(resumeText: string): Promise<Result<ExtractedEmployer[]>> {
+interface ExtractedEmployers {
+  entries: ExtractedEmployer[];
+  tokensIn: number;
+  tokensOut: number;
+}
+
+async function extractResumeEmployers(resumeText: string): Promise<Result<ExtractedEmployers>> {
   try {
     const response = await getClient().models.generateContent({
       model: MODEL,
@@ -336,14 +347,18 @@ async function extractResumeEmployers(resumeText: string): Promise<Result<Extrac
         end_date: typeof item.end_date === "string" ? item.end_date : null,
       }));
 
-    return ok(entries);
+    return ok({
+      entries,
+      tokensIn: response.usageMetadata?.promptTokenCount ?? 0,
+      tokensOut: response.usageMetadata?.candidatesTokenCount ?? 0,
+    });
   } catch (error) {
     const { errorClass, message } = classifyError(error);
     return err(errorClass, message);
   }
 }
 
-async function generateResume(input: GenerationInput): Promise<Result<string>> {
+async function generateResume(input: GenerationInput): Promise<Result<GenerationOutput>> {
   try {
     const contentParts = [
       delimit("candidate_profile", JSON.stringify(input.profile)),
@@ -378,14 +393,21 @@ async function generateResume(input: GenerationInput): Promise<Result<string>> {
       return extraction;
     }
 
-    const fabricated = extraction.data.some(
+    const fabricated = extraction.data.entries.some(
       (entry) => !matchesEmploymentHistory(entry, input.profile.employmentHistory),
     );
     if (fabricated) {
       return err("validation_failed", "Resume references employment not found in your profile.");
     }
 
-    return ok(text);
+    // One "resume generation" from the user's perspective is genuinely 2
+    // Gemini calls (this one, plus the employer-verification call) - both
+    // contribute tokens to the single ai_usage row this operation logs.
+    return ok({
+      content: text,
+      tokensIn: (response.usageMetadata?.promptTokenCount ?? 0) + extraction.data.tokensIn,
+      tokensOut: (response.usageMetadata?.candidatesTokenCount ?? 0) + extraction.data.tokensOut,
+    });
   } catch (error) {
     const { errorClass, message } = classifyError(error);
     return err(errorClass, message);

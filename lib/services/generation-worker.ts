@@ -1,6 +1,7 @@
 import { pool } from "../db.ts";
 import { getAIProvider, getAIProviderMetadata } from "../ai/provider.ts";
 import type { AIErrorClass } from "../ai/types.ts";
+import { recordAiUsage } from "../repositories/ai-usage.ts";
 import {
   claimNextQueuedJob,
   markJobFailed,
@@ -37,12 +38,33 @@ export async function processNextJob(): Promise<"no-job" | "succeeded" | "failed
   }
 
   const provider = getAIProvider();
+  const { provider: providerName, model } = getAIProviderMetadata();
+
+  const startedAt = Date.now();
   const result =
     job.type === "cover_letter"
       ? await provider.generateCoverLetter(job.promptInputs)
       : await provider.generateResume(job.promptInputs);
+  const latencyMs = Date.now() - startedAt;
 
   if (!result.success) {
+    // Every attempt writes its own row, including one that goes on to be
+    // retried - AI-RULES.md §7's own warning applies here too: the failed
+    // call still cost real money even though the job isn't done yet.
+    await recordAiUsage({
+      userId: job.userId,
+      jobId: job.id,
+      provider: providerName,
+      model,
+      operation: job.type,
+      tokensIn: null,
+      tokensOut: null,
+      costEstimate: null,
+      latencyMs,
+      status: "failed",
+      errorClass: result.error.errorClass,
+    });
+
     const canRetry = RETRYABLE_ERROR_CLASSES.has(result.error.errorClass) && job.attempts < MAX_ATTEMPTS;
     if (canRetry) {
       await requeueForRetry(pool, job.id, backoffSecondsForAttempt(job.attempts));
@@ -52,7 +74,24 @@ export async function processNextJob(): Promise<"no-job" | "succeeded" | "failed
     return "failed";
   }
 
-  const { provider: providerName, model } = getAIProviderMetadata();
+  await recordAiUsage({
+    userId: job.userId,
+    jobId: job.id,
+    provider: providerName,
+    model,
+    operation: job.type,
+    tokensIn: result.data.tokensIn,
+    tokensOut: result.data.tokensOut,
+    // No documented per-token pricing rate exists to compute this from
+    // (AI-RULES.md only gives rough aggregate estimates per operation, not
+    // a formula) - left NULL rather than guessing, same as the schema
+    // allows.
+    costEstimate: null,
+    latencyMs,
+    status: "succeeded",
+    errorClass: null,
+  });
+
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -68,7 +107,7 @@ export async function processNextJob(): Promise<"no-job" | "succeeded" | "failed
         job.applicationId,
         job.userId,
         job.type,
-        result.data,
+        result.data.content,
         job.promptInputs.jobDescription,
         providerName,
         model,

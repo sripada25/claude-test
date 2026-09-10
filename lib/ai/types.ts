@@ -60,6 +60,15 @@ export interface GenerationInput {
   baseResumeText?: string;
 }
 
+// F3-2.7: ai_usage needs real token counts, which the plain-text `Result<string>`
+// every other operation uses has no room for. Scoped to just these 2 methods -
+// extractProfile/structureCallNote/draftFollowUp are untouched.
+export interface GenerationOutput {
+  content: string;
+  tokensIn: number;
+  tokensOut: number;
+}
+
 export interface CallNoteInput {
   question1Answer: string;
   question2Answer: string;
@@ -85,8 +94,8 @@ export interface FollowUpInput {
 
 export interface AIProvider {
   extractProfile(pdf: Buffer): Promise<Result<ExtractedProfile>>;
-  generateCoverLetter(input: GenerationInput): Promise<Result<string>>;
-  generateResume(input: GenerationInput): Promise<Result<string>>;
+  generateCoverLetter(input: GenerationInput): Promise<Result<GenerationOutput>>;
+  generateResume(input: GenerationInput): Promise<Result<GenerationOutput>>;
   structureCallNote(input: CallNoteInput): Promise<Result<StructuredNote>>;
   draftFollowUp(input: FollowUpInput): Promise<Result<string>>;
 }

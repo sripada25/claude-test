@@ -97,7 +97,9 @@ describe("generation-worker service (real Postgres)", () => {
     const promptInputs = { profile: { skills: [] }, jobDescription: "Original JD text", companyName: "Acme Corp" };
     const jobId = await insertJob(userId, applicationId, "cover_letter", promptInputs);
 
-    const generateCoverLetter = vi.fn().mockResolvedValue({ success: true, data: "Dear Acme Corp, ..." });
+    const generateCoverLetter = vi
+      .fn()
+      .mockResolvedValue({ success: true, data: { content: "Dear Acme Corp, ...", tokensIn: 2200, tokensOut: 600 } });
     getAIProviderMock.mockReturnValue(fakeProvider({ generateCoverLetter }));
 
     const outcome = await processNextJob();
@@ -122,6 +124,24 @@ describe("generation-worker service (real Postgres)", () => {
       provider: "gemini",
       model: "gemini-flash-latest",
     });
+
+    const usage = await pool.query(
+      "SELECT user_id, job_id, provider, model, operation, tokens_in, tokens_out, cost_estimate, status, error_class FROM ai_usage WHERE job_id = $1",
+      [jobId],
+    );
+    expect(usage.rows).toHaveLength(1);
+    expect(usage.rows[0]).toMatchObject({
+      user_id: userId,
+      job_id: jobId,
+      provider: "gemini",
+      model: "gemini-flash-latest",
+      operation: "cover_letter",
+      tokens_in: 2200,
+      tokens_out: 600,
+      cost_estimate: null,
+      status: "succeeded",
+      error_class: null,
+    });
   });
 
   it("dispatches a resume job to generateResume, not generateCoverLetter", async () => {
@@ -130,7 +150,9 @@ describe("generation-worker service (real Postgres)", () => {
     const promptInputs = { profile: { skills: [] }, jobDescription: "JD", companyName: "Acme" };
     await insertJob(userId, applicationId, "resume", promptInputs);
 
-    const generateResume = vi.fn().mockResolvedValue({ success: true, data: "A tailored resume." });
+    const generateResume = vi
+      .fn()
+      .mockResolvedValue({ success: true, data: { content: "A tailored resume.", tokensIn: 1800, tokensOut: 700 } });
     const generateCoverLetter = vi.fn();
     getAIProviderMock.mockReturnValue(fakeProvider({ generateResume, generateCoverLetter }));
 
@@ -166,6 +188,47 @@ describe("generation-worker service (real Postgres)", () => {
 
     const documents = await pool.query("SELECT id FROM documents WHERE application_id = $1", [applicationId]);
     expect(documents.rows).toHaveLength(0);
+
+    const usage = await pool.query(
+      "SELECT tokens_in, tokens_out, cost_estimate, status, error_class FROM ai_usage WHERE job_id = $1",
+      [jobId],
+    );
+    expect(usage.rows).toHaveLength(1);
+    expect(usage.rows[0]).toMatchObject({
+      tokens_in: null,
+      tokens_out: null,
+      cost_estimate: null,
+      status: "failed",
+      error_class: "rate_limited",
+    });
+  });
+
+  it("writes one ai_usage row per attempt when a job retries then succeeds", async () => {
+    const userId = await insertUser("retry-then-succeed@example.com");
+    const applicationId = await insertApplication(userId);
+    const promptInputs = { profile: { skills: [] }, jobDescription: "JD", companyName: "Acme" };
+    const jobId = await insertJob(userId, applicationId, "cover_letter", promptInputs);
+
+    const generateCoverLetter = vi
+      .fn()
+      .mockResolvedValueOnce({ success: false, error: { errorClass: "timeout", message: "timed out" } })
+      .mockResolvedValueOnce({ success: true, data: { content: "Dear Acme, ...", tokensIn: 100, tokensOut: 50 } });
+    getAIProviderMock.mockReturnValue(fakeProvider({ generateCoverLetter }));
+
+    const firstOutcome = await processNextJob();
+    expect(firstOutcome).toBe("retrying");
+
+    await pool.query("UPDATE generation_jobs SET next_attempt_at = NULL WHERE id = $1", [jobId]);
+    const secondOutcome = await processNextJob();
+    expect(secondOutcome).toBe("succeeded");
+
+    const usage = await pool.query("SELECT status, error_class FROM ai_usage WHERE job_id = $1 ORDER BY created_at", [
+      jobId,
+    ]);
+    expect(usage.rows).toEqual([
+      { status: "failed", error_class: "timeout" },
+      { status: "succeeded", error_class: null },
+    ]);
   });
 
   it("fails terminally on a retryable-class failure once attempts is already at the cap", async () => {
