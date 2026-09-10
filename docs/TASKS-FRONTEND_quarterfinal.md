@@ -1604,7 +1604,7 @@ Salary · Contact · Next step.
 
 ---
 
-## M06-02 · `QuotaBadge` ✅
+## M06-02 · `QuotaBadge` ✅ DONE — merged via PR #249 (2026-09-10)
 
 🎨 fill `$m-accent-soft` · padding `[7,12]` · gap `8`
 🎨 Text "3 of 5 generations left this month" body `12.5`/600 `$m-accent` · icon `info` `15×15` `$m-muted`
