@@ -56,6 +56,30 @@ export async function findDocumentForUser(documentId: string, userId: string): P
   return { id: result.rows[0].id, applicationId: result.rows[0].application_id, type: result.rows[0].type };
 }
 
+// F3-3.4: the "Edit" action on M06. Scoped in the UPDATE's own WHERE clause
+// (id and user_id together), not a separate lookup-then-update - no race
+// between checking ownership and writing. type/provider/model/jd_snapshot/
+// job_id are never touched here.
+export async function updateDocumentContent(
+  documentId: string,
+  userId: string,
+  content: string,
+): Promise<GeneratedDocument | null> {
+  const result = await pool.query<DocumentRow>(
+    `UPDATE documents SET content = $3 WHERE id = $1 AND user_id = $2 RETURNING id, type, content, created_at`,
+    [documentId, userId, content],
+  );
+  if (!result.rows[0]) {
+    return null;
+  }
+  return {
+    id: result.rows[0].id,
+    type: result.rows[0].type,
+    content: result.rows[0].content,
+    createdAt: result.rows[0].created_at,
+  };
+}
+
 // L090's copy-on-write: NULL jd_snapshot means "same as the application's
 // current JD," so a document relying on that must get the *old* JD copied
 // in before the application's JD actually changes underneath it. Defensive

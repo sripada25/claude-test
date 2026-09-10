@@ -6,6 +6,7 @@ describe("documents repository (real Postgres)", () => {
   let copyJobDescriptionToSnapshotlessDocuments: typeof import("./documents.ts")["copyJobDescriptionToSnapshotlessDocuments"];
   let findDocumentByJobId: typeof import("./documents.ts")["findDocumentByJobId"];
   let findDocumentForUser: typeof import("./documents.ts")["findDocumentForUser"];
+  let updateDocumentContent: typeof import("./documents.ts")["updateDocumentContent"];
   let migrate: typeof import("../../scripts/migrate.ts");
   let pool: typeof import("../db.ts")["pool"];
 
@@ -15,7 +16,7 @@ describe("documents repository (real Postgres)", () => {
 
     migrate = await import("../../scripts/migrate.ts");
     ({ pool } = await import("../db.ts"));
-    ({ copyJobDescriptionToSnapshotlessDocuments, findDocumentByJobId, findDocumentForUser } =
+    ({ copyJobDescriptionToSnapshotlessDocuments, findDocumentByJobId, findDocumentForUser, updateDocumentContent } =
       await import("./documents.ts"));
 
     await migrate.up();
@@ -143,5 +144,50 @@ describe("documents repository (real Postgres)", () => {
     const found = await findDocumentForUser("00000000-0000-0000-0000-000000000000", userId);
 
     expect(found).toBeNull();
+  });
+
+  it("updateDocumentContent updates the content for the owner", async () => {
+    const userId = await insertUser("update-owner@example.com");
+    const applicationId = await insertApplication(userId);
+    const documentId = await insertDocument(userId, applicationId, null);
+
+    const updated = await updateDocumentContent(documentId, userId, "Edited content");
+
+    expect(updated).toMatchObject({ id: documentId, type: "cover_letter", content: "Edited content" });
+    const row = await pool.query("SELECT content FROM documents WHERE id = $1", [documentId]);
+    expect(row.rows[0].content).toBe("Edited content");
+  });
+
+  it("updateDocumentContent leaves other fields untouched", async () => {
+    const userId = await insertUser("update-preserves-fields@example.com");
+    const applicationId = await insertApplication(userId);
+    const documentId = await insertDocument(userId, applicationId, null);
+    const before = await pool.query("SELECT type, created_at FROM documents WHERE id = $1", [documentId]);
+
+    await updateDocumentContent(documentId, userId, "Edited content");
+
+    const after = await pool.query("SELECT type, created_at FROM documents WHERE id = $1", [documentId]);
+    expect(after.rows[0]).toEqual(before.rows[0]);
+  });
+
+  it("updateDocumentContent returns null for a document belonging to a different user", async () => {
+    const userId = await insertUser("update-victim@example.com");
+    const otherUserId = await insertUser("update-attacker@example.com");
+    const applicationId = await insertApplication(userId);
+    const documentId = await insertDocument(userId, applicationId, null);
+
+    const updated = await updateDocumentContent(documentId, otherUserId, "Hijacked content");
+
+    expect(updated).toBeNull();
+    const row = await pool.query("SELECT content FROM documents WHERE id = $1", [documentId]);
+    expect(row.rows[0].content).toBe("content");
+  });
+
+  it("updateDocumentContent returns null for a nonexistent document", async () => {
+    const userId = await insertUser("update-missing@example.com");
+
+    const updated = await updateDocumentContent("00000000-0000-0000-0000-000000000000", userId, "content");
+
+    expect(updated).toBeNull();
   });
 });
