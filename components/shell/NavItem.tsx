@@ -3,15 +3,18 @@
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
 
 export function NavItem({
   href,
   label,
   icon: Icon,
+  badge,
 }: {
   href: string;
   label: string;
   icon: LucideIcon;
+  badge?: ReactNode;
 }) {
   const pathname = usePathname();
   const active = pathname === href || pathname.startsWith(`${href}/`);
@@ -28,6 +31,7 @@ export function NavItem({
     >
       <Icon size={17} />
       {label}
+      {badge}
     </Link>
   );
 }
