@@ -8,6 +8,7 @@ import { DetailTopBar } from "@/components/detail/DetailTopBar";
 import { LastCallPanel } from "@/components/detail/LastCallPanel";
 import { Sidebar } from "@/components/shell/Sidebar";
 import type { DocumentSummary } from "@/components/detail/DocumentsPanel";
+import type { ApplicationReminderSummary } from "@/components/reminders/RemindersTab";
 
 export interface ApplicationDetail {
   id: string;
@@ -26,6 +27,7 @@ export function DetailScreen({ id }: { id: string }) {
   const [notFound, setNotFound] = useState(false);
   const [refreshSignal, setRefreshSignal] = useState(0);
   const [documents, setDocuments] = useState<DocumentSummary[]>([]);
+  const [reminders, setReminders] = useState<ApplicationReminderSummary[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,6 +50,14 @@ export function DetailScreen({ id }: { id: string }) {
       .then((data) => {
         if (!cancelled) {
           setDocuments(data);
+        }
+      });
+
+    fetch(`/api/applications/${id}/reminders`)
+      .then((response) => (response.ok ? response.json() : []))
+      .then((data) => {
+        if (!cancelled) {
+          setReminders(data);
         }
       });
 
@@ -88,6 +98,7 @@ export function DetailScreen({ id }: { id: string }) {
                         jobDescription={application.jobDescription}
                         notes={application.notes}
                         documents={documents}
+                        reminders={reminders}
                         refreshSignal={refreshSignal}
                         onNotesSaved={() => setRefreshSignal((current) => current + 1)}
                       />

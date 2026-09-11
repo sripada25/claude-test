@@ -6,10 +6,10 @@ import { DocumentsPanel, type DocumentSummary } from "@/components/detail/Docume
 import { JobDescriptionPanel } from "@/components/detail/JobDescriptionPanel";
 import { NotesField } from "@/components/detail/NotesField";
 import { Timeline } from "@/components/detail/Timeline";
+import { RemindersTab, type ApplicationReminderSummary } from "@/components/reminders/RemindersTab";
 
 const EMPTY_STATES: Record<string, string> = {
   "call-log": "No calls logged yet.",
-  reminders: "No reminders yet.",
 };
 
 export function DetailTabs({
@@ -17,6 +17,7 @@ export function DetailTabs({
   jobDescription,
   notes,
   documents,
+  reminders,
   refreshSignal,
   onNotesSaved,
 }: {
@@ -24,6 +25,7 @@ export function DetailTabs({
   jobDescription: string | null;
   notes: string | null;
   documents: DocumentSummary[];
+  reminders: ApplicationReminderSummary[];
   refreshSignal: number;
   onNotesSaved: () => void;
 }) {
@@ -33,11 +35,16 @@ export function DetailTabs({
   const active = searchParams.get("tab") ?? "overview";
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
+  // Tab count is active (pending/snoozed) reminders only - matches
+  // RemindersBadge's (F4-3.4) established due/active semantics for this
+  // exact concept. A resolved reminder still shows in the panel body.
+  const activeReminderCount = reminders.filter((r) => r.status === "pending" || r.status === "snoozed").length;
+
   const tabs = [
     { key: "overview", label: "Overview", count: 0 },
     { key: "documents", label: "Documents", count: documents.length },
     { key: "call-log", label: "Call log", count: 0 },
-    { key: "reminders", label: "Reminders", count: 0 },
+    { key: "reminders", label: "Reminders", count: activeReminderCount },
   ] as const;
 
   function selectTab(key: string) {
@@ -110,6 +117,8 @@ export function DetailTabs({
             </div>
           ) : tab.key === "documents" ? (
             <DocumentsPanel documents={documents} />
+          ) : tab.key === "reminders" ? (
+            <RemindersTab reminders={reminders} />
           ) : (
             <p className="font-body text-[13px] text-muted">{EMPTY_STATES[tab.key]}</p>
           )}

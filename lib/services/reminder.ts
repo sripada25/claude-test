@@ -5,13 +5,16 @@ import { recordAiUsage } from "../repositories/ai-usage.ts";
 import {
   dismissReminder,
   findPendingRemindersForUser,
+  findRemindersByApplication,
   findReminderForUser,
   markReminderSent,
   setApplicationFollowUpSnoozedUntil,
   snoozeReminder,
   updateReminderDraft,
+  type ApplicationReminder,
   type ReminderQueueRow,
 } from "../repositories/reminder.ts";
+import { getApplication } from "./application.ts";
 
 export interface ReminderQueueItem {
   id: string;
@@ -258,4 +261,21 @@ export async function updateReminderDraftContent(
   }
 
   return { success: true, draftContent: updated.draftContent };
+}
+
+export type ListRemindersResult =
+  | { success: true; reminders: ApplicationReminder[] }
+  | { success: false; reason: "not_found" };
+
+// F4-3.5: populates M05's Reminders tab. Ownership is enforced via the
+// existing application lookup, same convention as listDocuments - a user
+// can never list another user's reminders by guessing an applicationId.
+export async function listReminders(userId: string, applicationId: string): Promise<ListRemindersResult> {
+  const application = await getApplication(userId, applicationId);
+  if (!application) {
+    return { success: false, reason: "not_found" };
+  }
+
+  const reminders = await findRemindersByApplication(applicationId);
+  return { success: true, reminders };
 }
