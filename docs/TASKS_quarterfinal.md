@@ -219,7 +219,7 @@ Merged via PR #265 (2026-09-10), migration 018, combined into one migration for 
 | ID | Endpoint | Depends | Env | Notes |
 |---|---|---|---|---|
 | F4-2.3 | ✅ DONE — `GET /api/reminders` | F4-1.1, T2.3 | ✅ | Merged via PR #275 (2026-09-11). Due now / Upcoming split decided in the service layer, not SQL. Includes raw `dateApplied`/`interviewAt` per row so the frontend computes "days elapsed" itself, matching `DetailHeader`/`Timeline`'s pattern. Filter `deleted_at IS NULL` |
-| F4-2.4 | `POST /api/reminders/:id/draft` | T5.1 | ✅ | `AIProvider.draftFollowUp()` — **does not consume quota** (L055) |
+| F4-2.4 | ✅ DONE — `POST /api/reminders/:id/draft` | T5.1 | ✅ | Merged via PR #277 (2026-09-11). `AIProvider.draftFollowUp()` extended with a `type` discriminator for R1/R2's distinct prompts — **does not consume quota** (L055). An existing `draft_content` is returned as-is, no new Gemini call |
 | F4-2.5 | `PATCH /api/reminders/:id` (snooze/dismiss) | F4-1.1 | ✅ | Snooze also writes `applications.follow_up_snoozed_until` |
 | F4-2.6 | `POST /api/reminders/:id/sent` | F4-1.1 | ✅ | User-confirmed. Writes `sent_at` **and** an `application_events` row — closes the loop the derived tag checks |
 
