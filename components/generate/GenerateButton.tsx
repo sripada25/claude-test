@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { CSRF_HEADER_NAME, getCsrfToken } from "@/lib/security/csrf-client";
 import type { DocumentType } from "@/components/generate/DocumentTypeToggle";
@@ -13,12 +14,14 @@ export function GenerateButton({
   allChecksPass,
   remaining,
   onSucceeded,
+  onGeneratingChange,
 }: {
   applicationId: string;
   documentType: DocumentType;
   allChecksPass: boolean;
   remaining: number | null;
   onSucceeded: (document: GeneratedDocumentView) => void;
+  onGeneratingChange?: (generating: boolean) => void;
 }) {
   const { state, trigger } = useGenerationPoll(onSucceeded);
 
@@ -35,6 +38,10 @@ export function GenerateButton({
   const generating = state === "generating";
   const failed = state === "failed";
   const disabled = !allChecksPass || remaining === 0 || generating;
+
+  useEffect(() => {
+    onGeneratingChange?.(generating);
+  }, [generating, onGeneratingChange]);
 
   return (
     <div aria-busy={generating}>

@@ -1,6 +1,7 @@
 "use client";
 
 import { BellPlus, FilePlus, PhoneCall } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 
@@ -49,7 +50,8 @@ function useGenerationGate() {
   return null;
 }
 
-export function ActionButtons() {
+export function ActionButtons({ applicationId }: { applicationId: string }) {
+  const router = useRouter();
   const disabledReason = useGenerationGate();
   const generationDisabled = disabledReason !== null && disabledReason !== undefined;
 
@@ -61,6 +63,7 @@ export function ActionButtons() {
         icon={<FilePlus size={15} aria-hidden />}
         disabled={generationDisabled}
         aria-describedby={generationDisabled ? "generation-blocked-reason" : undefined}
+        onClick={() => router.push(`/app/applications/${applicationId}/generate?type=cover_letter`)}
       >
         Generate cover letter
       </Button>
@@ -70,6 +73,7 @@ export function ActionButtons() {
         icon={<FilePlus size={15} aria-hidden />}
         disabled={generationDisabled}
         aria-describedby={generationDisabled ? "generation-blocked-reason" : undefined}
+        onClick={() => router.push(`/app/applications/${applicationId}/generate?type=resume`)}
       >
         Generate resume
       </Button>
