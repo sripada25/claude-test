@@ -140,7 +140,7 @@ export async function draftReminderFollowUp(userId: string, reminderId: string):
     errorClass: null,
   });
 
-  await updateReminderDraft(reminderId, result.data);
+  await updateReminderDraft(reminderId, userId, result.data);
   return { success: true, draftContent: result.data };
 }
 
@@ -233,4 +233,29 @@ export async function markReminderFollowUpSent(userId: string, reminderId: strin
   } finally {
     client.release();
   }
+}
+
+export type UpdateReminderDraftResult =
+  | { success: true; draftContent: string }
+  | { success: false; reason: "not_found" | "empty_content" };
+
+// F4-3.2: no AI-output validation beyond non-empty - once a human has
+// edited it, AI-RULES.md section 2.3's "never save model output unchecked"
+// no longer applies, same reasoning updateDocumentContent already
+// documents for the analogous document-editing case.
+export async function updateReminderDraftContent(
+  userId: string,
+  reminderId: string,
+  content: string,
+): Promise<UpdateReminderDraftResult> {
+  if (content.trim() === "") {
+    return { success: false, reason: "empty_content" };
+  }
+
+  const updated = await updateReminderDraft(reminderId, userId, content);
+  if (!updated) {
+    return { success: false, reason: "not_found" };
+  }
+
+  return { success: true, draftContent: updated.draftContent };
 }

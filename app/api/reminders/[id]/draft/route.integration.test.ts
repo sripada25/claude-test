@@ -12,6 +12,7 @@ vi.mock("../../../../../lib/ai/provider.ts", () => ({
 describe("/api/reminders/:id/draft (real Postgres)", () => {
   let container: StartedPostgreSqlContainer;
   let POST_: typeof import("./route.ts")["POST"];
+  let PATCH_: typeof import("./route.ts")["PATCH"];
   let migrate: typeof import("../../../../../scripts/migrate.ts");
   let pool: typeof import("../../../../../lib/db.ts")["pool"];
 
@@ -21,7 +22,7 @@ describe("/api/reminders/:id/draft (real Postgres)", () => {
 
     migrate = await import("../../../../../scripts/migrate.ts");
     ({ pool } = await import("../../../../../lib/db.ts"));
-    ({ POST: POST_ } = await import("./route.ts"));
+    ({ POST: POST_, PATCH: PATCH_ } = await import("./route.ts"));
 
     await migrate.up();
   }, 60_000);
@@ -62,11 +63,18 @@ describe("/api/reminders/:id/draft (real Postgres)", () => {
     applicationId: string;
     type?: string;
     draftContent?: string | null;
+    status?: string;
   }): Promise<string> {
     const result = await pool.query<{ id: string }>(
-      `INSERT INTO reminders (user_id, application_id, type, due_at, draft_content)
-       VALUES ($1, $2, $3, now(), $4) RETURNING id`,
-      [params.userId, params.applicationId, params.type ?? "application_followup", params.draftContent ?? null],
+      `INSERT INTO reminders (user_id, application_id, type, due_at, draft_content, status)
+       VALUES ($1, $2, $3, now(), $4, $5) RETURNING id`,
+      [
+        params.userId,
+        params.applicationId,
+        params.type ?? "application_followup",
+        params.draftContent ?? null,
+        params.status ?? "pending",
+      ],
     );
     return result.rows[0].id;
   }
@@ -80,6 +88,21 @@ describe("/api/reminders/:id/draft (real Postgres)", () => {
 
   function callRoute(request: Request, reminderId: string) {
     return POST_(request, { params: Promise.resolve({ id: reminderId }) });
+  }
+
+  function patchRequest(userId: string | null, body: unknown): Request {
+    return new Request("http://localhost:3000/api/reminders/any-id/draft", {
+      method: "PATCH",
+      headers: {
+        ...(userId ? { "x-user-id": userId } : {}),
+        "Content-Type": "application/json",
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  }
+
+  function callPatchRoute(request: Request, reminderId: string) {
+    return PATCH_(request, { params: Promise.resolve({ id: reminderId }) });
   }
 
   it("returns 401 without a session", async () => {
@@ -197,5 +220,97 @@ describe("/api/reminders/:id/draft (real Postgres)", () => {
 
     const quota = await pool.query("SELECT * FROM generation_quota WHERE user_id = $1", [userId]);
     expect(quota.rows).toHaveLength(0);
+  });
+
+  describe("PATCH", () => {
+    it("returns 401 without a session", async () => {
+      const response = await callPatchRoute(patchRequest(null, { content: "Edited." }), "any-id");
+      expect(response.status).toBe(401);
+    });
+
+    it("returns 400 for a missing content field", async () => {
+      const userId = await insertUser("bad-body@example.com");
+      const response = await callPatchRoute(patchRequest(userId, {}), "any-id");
+      expect(response.status).toBe(400);
+    });
+
+    it("returns 400 for empty content", async () => {
+      const userId = await insertUser("empty-content@example.com");
+      const applicationId = await insertApplication(userId);
+      const reminderId = await insertReminder({ userId, applicationId, draftContent: "Original." });
+
+      const response = await callPatchRoute(patchRequest(userId, { content: "   " }), reminderId);
+
+      expect(response.status).toBe(400);
+    });
+
+    it("returns a generic 404 for a nonexistent reminder", async () => {
+      const userId = await insertUser("no-reminder-patch@example.com");
+
+      const response = await callPatchRoute(
+        patchRequest(userId, { content: "Edited." }),
+        "00000000-0000-0000-0000-000000000000",
+      );
+
+      expect(response.status).toBe(404);
+    });
+
+    it("returns a generic 404 for a reminder belonging to another user", async () => {
+      const ownerId = await insertUser("owner-patch@example.com");
+      const otherId = await insertUser("other-patch@example.com");
+      const applicationId = await insertApplication(ownerId);
+      const reminderId = await insertReminder({ userId: ownerId, applicationId, draftContent: "Original." });
+
+      const response = await callPatchRoute(patchRequest(otherId, { content: "Edited." }), reminderId);
+
+      expect(response.status).toBe(404);
+    });
+
+    it("returns a generic 404 for an already-sent reminder", async () => {
+      const userId = await insertUser("already-sent-patch@example.com");
+      const applicationId = await insertApplication(userId);
+      const reminderId = await insertReminder({
+        userId,
+        applicationId,
+        draftContent: "Original.",
+        status: "sent",
+      });
+
+      const response = await callPatchRoute(patchRequest(userId, { content: "Edited." }), reminderId);
+
+      expect(response.status).toBe(404);
+    });
+
+    it("persists and returns the edited content", async () => {
+      const userId = await insertUser("edit-me@example.com");
+      const applicationId = await insertApplication(userId);
+      const reminderId = await insertReminder({ userId, applicationId, draftContent: "Original." });
+
+      const response = await callPatchRoute(patchRequest(userId, { content: "Edited version." }), reminderId);
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body).toEqual({ draftContent: "Edited version." });
+
+      const stored = await pool.query<{ draft_content: string }>("SELECT draft_content FROM reminders WHERE id = $1", [
+        reminderId,
+      ]);
+      expect(stored.rows[0].draft_content).toBe("Edited version.");
+    });
+
+    it("allows editing a snoozed reminder's draft", async () => {
+      const userId = await insertUser("edit-snoozed@example.com");
+      const applicationId = await insertApplication(userId);
+      const reminderId = await insertReminder({
+        userId,
+        applicationId,
+        draftContent: "Original.",
+        status: "snoozed",
+      });
+
+      const response = await callPatchRoute(patchRequest(userId, { content: "Edited." }), reminderId);
+
+      expect(response.status).toBe(200);
+    });
   });
 });

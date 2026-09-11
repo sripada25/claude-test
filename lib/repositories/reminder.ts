@@ -226,11 +226,31 @@ export async function findReminderForUser(reminderId: string, userId: string): P
   };
 }
 
-export async function updateReminderDraft(reminderId: string, content: string): Promise<void> {
-  await pool.query(`UPDATE reminders SET draft_content = $2, updated_at = now() WHERE id = $1`, [
-    reminderId,
-    content,
-  ]);
+export interface UpdatedReminderDraft {
+  id: string;
+  draftContent: string;
+}
+
+// F4-3.2: scoped by user_id + the same pending/snoozed terminal-state guard
+// as snooze/dismiss/markReminderSent, now that this is reachable through a
+// public PATCH endpoint (issue #276's original unscoped version was only
+// safe because its one caller had already verified ownership itself).
+export async function updateReminderDraft(
+  reminderId: string,
+  userId: string,
+  content: string,
+): Promise<UpdatedReminderDraft | null> {
+  const result = await pool.query<{ id: string; draft_content: string }>(
+    `UPDATE reminders
+     SET draft_content = $3, updated_at = now()
+     WHERE id = $1 AND user_id = $2 AND status IN ('pending', 'snoozed')
+     RETURNING id, draft_content`,
+    [reminderId, userId, content],
+  );
+  if (!result.rows[0]) {
+    return null;
+  }
+  return { id: result.rows[0].id, draftContent: result.rows[0].draft_content };
 }
 
 export interface SnoozedReminder {
