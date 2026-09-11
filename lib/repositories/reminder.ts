@@ -395,3 +395,46 @@ export async function findRemindersByApplication(applicationId: string): Promise
     dismissedAt: row.dismissed_at,
   }));
 }
+
+export interface UpsertedReminder {
+  id: string;
+  type: ReminderType;
+  status: ReminderStatus;
+  dueAt: Date;
+}
+
+// F4-3.6: a user-created reminder reuses the 'application_followup' type -
+// same slot the scheduler (F4-2.1) fills automatically, since
+// UNIQUE(application_id, type) already means "at most one of these per
+// application" regardless of who/what created it. The WHERE on the DO
+// UPDATE means an active (pending/snoozed) existing row leaves this
+// statement affecting zero rows - detected by an empty RETURNING, no
+// separate lookup-then-branch needed. A resolved (sent/dismissed) one is
+// re-armed: new due_at, status back to pending, every other resolution
+// field cleared.
+export async function upsertCustomFollowupReminder(
+  userId: string,
+  applicationId: string,
+  dueAt: Date,
+): Promise<UpsertedReminder | null> {
+  const result = await pool.query<{ id: string; type: ReminderType; status: ReminderStatus; due_at: Date }>(
+    `INSERT INTO reminders (user_id, application_id, type, due_at, status)
+     VALUES ($1, $2, 'application_followup', $3, 'pending')
+     ON CONFLICT (application_id, type) DO UPDATE
+       SET due_at = EXCLUDED.due_at,
+           status = 'pending',
+           snoozed_until = NULL,
+           sent_at = NULL,
+           dismissed_at = NULL,
+           draft_content = NULL,
+           updated_at = now()
+       WHERE reminders.status IN ('sent', 'dismissed')
+     RETURNING id, type, status, due_at`,
+    [userId, applicationId, dueAt],
+  );
+  if (!result.rows[0]) {
+    return null;
+  }
+  const row = result.rows[0];
+  return { id: row.id, type: row.type, status: row.status, dueAt: row.due_at };
+}

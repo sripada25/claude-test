@@ -11,6 +11,7 @@ import {
   setApplicationFollowUpSnoozedUntil,
   snoozeReminder,
   updateReminderDraft,
+  upsertCustomFollowupReminder,
   type ApplicationReminder,
   type ReminderQueueRow,
 } from "../repositories/reminder.ts";
@@ -278,4 +279,35 @@ export async function listReminders(userId: string, applicationId: string): Prom
 
   const reminders = await findRemindersByApplication(applicationId);
   return { success: true, reminders };
+}
+
+export type CreateCustomReminderResult =
+  | { success: true; id: string; status: "pending"; dueAt: string }
+  | { success: false; reason: "not_found" | "invalid_due_at" | "already_active" };
+
+// F4-3.6: "Set a reminder" - reuses the application_followup type (see the
+// repository comment on upsertCustomFollowupReminder for why), so the
+// created row is indistinguishable from a system-generated one everywhere
+// else in F4: it shows in the queue, drafts via the existing R1 prompt,
+// and can be snoozed/dismissed/marked sent with no special-casing.
+export async function createCustomReminder(
+  userId: string,
+  applicationId: string,
+  dueAt: Date,
+): Promise<CreateCustomReminderResult> {
+  const application = await getApplication(userId, applicationId);
+  if (!application) {
+    return { success: false, reason: "not_found" };
+  }
+
+  if (Number.isNaN(dueAt.getTime()) || dueAt.getTime() <= Date.now()) {
+    return { success: false, reason: "invalid_due_at" };
+  }
+
+  const upserted = await upsertCustomFollowupReminder(userId, applicationId, dueAt);
+  if (!upserted) {
+    return { success: false, reason: "already_active" };
+  }
+
+  return { success: true, id: upserted.id, status: "pending", dueAt: upserted.dueAt.toISOString() };
 }
