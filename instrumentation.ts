@@ -5,5 +5,10 @@ export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const { startGenerationWorker } = await import("@/lib/services/generation-worker");
     startGenerationWorker();
+
+    // F4-2.1: the reminder scheduler - same in-process pattern, its own
+    // independent hourly timer, no separate service (L030, L089).
+    const { startReminderScheduler } = await import("@/lib/services/reminder-scheduler");
+    startReminderScheduler();
   }
 }
