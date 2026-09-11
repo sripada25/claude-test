@@ -209,7 +209,7 @@ Merged via PR #265 (2026-09-10), migration 018, combined into one migration for 
 
 | ID | Task | Depends | Env | Notes |
 |---|---|---|---|---|
-| F4-2.1 | Reminder scheduler — both rules, hourly | F4-1.1 | ⚙️ | ⚠️ `due_at` computed in the user's timezone (L041). `ON CONFLICT DO NOTHING` for idempotency |
+| F4-2.1 | ✅ DONE — Reminder scheduler — both rules, hourly | F4-1.1 | ⚙️ | Merged via PR #271 (2026-09-11). `due_at` computed in the user's timezone (L041) via a proven `Intl.DateTimeFormat` reverse-conversion (same technique as M06-09's `resetDate`). R2 window resolved to 24h, never fires without `interview_at` — both confirmed via `AskUserQuestion`. `ON CONFLICT DO NOTHING` for idempotency; neither rule catches up on missed ticks |
 | F4-2.2 | Notification send | F4-2.1 | ⚙️ | Notifies the *user*, not a recruiter. Respects the Settings toggle. Mailpit → provider |
 
 ⚠️ **Both filter `deleted_at IS NULL`** on the joined application — a deleted application must never generate a reminder.
