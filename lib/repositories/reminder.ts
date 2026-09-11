@@ -1,6 +1,7 @@
-import { pool } from "../db.ts";
+import { pool, type Queryable } from "../db.ts";
 
 export type ReminderType = "application_followup" | "post_interview";
+export type ReminderStatus = "pending" | "snoozed" | "sent" | "dismissed";
 
 export interface FollowupCandidate {
   applicationId: string;
@@ -86,6 +87,11 @@ export interface DueNotificationCandidate {
 // F4-2.2: oldest-due first, bounded to a small batch per tick - the
 // notifier's own daily-cap check is the real safety net, this is just an
 // upper bound so one tick never does unbounded work.
+//
+// F4-2.5 amendment (issue #272): status IN ('pending','snoozed') instead of
+// just 'pending', gated by snoozed_until - a snoozed reminder must not
+// email while its snooze is active, but becomes emailable again the moment
+// snoozed_until passes, with no separate job to flip it back to 'pending'.
 export async function findDueUnnotifiedReminders(limit: number): Promise<DueNotificationCandidate[]> {
   const result = await pool.query<{
     reminder_id: string;
@@ -101,7 +107,8 @@ export async function findDueUnnotifiedReminders(limit: number): Promise<DueNoti
      FROM reminders r
      JOIN users u ON u.id = r.user_id
      JOIN applications a ON a.id = r.application_id
-     WHERE r.status = 'pending'
+     WHERE r.status IN ('pending', 'snoozed')
+       AND (r.snoozed_until IS NULL OR r.snoozed_until <= now())
        AND r.due_at <= now()
        AND r.notified_at IS NULL
      ORDER BY r.due_at ASC
@@ -140,6 +147,11 @@ export interface ReminderQueueRow {
 // mandatory: a soft-deleted application's reminders still exist (cascade
 // delete only fires on a hard user deletion), so a trashed application's
 // reminder must never surface here.
+//
+// F4-2.5 amendment (issue #274): status IN ('pending','snoozed') instead of
+// just 'pending', gated by snoozed_until - an actively snoozed reminder must
+// stay out of the queue, but reappears the instant its snooze expires, with
+// no separate job flipping status back to 'pending'.
 export async function findPendingRemindersForUser(userId: string): Promise<ReminderQueueRow[]> {
   const result = await pool.query<{
     id: string;
@@ -156,7 +168,8 @@ export async function findPendingRemindersForUser(userId: string): Promise<Remin
      FROM reminders r
      JOIN applications a ON a.id = r.application_id
      WHERE r.user_id = $1
-       AND r.status = 'pending'
+       AND r.status IN ('pending', 'snoozed')
+       AND (r.snoozed_until IS NULL OR r.snoozed_until <= now())
        AND a.deleted_at IS NULL
      ORDER BY r.due_at ASC`,
     [userId],
@@ -218,4 +231,79 @@ export async function updateReminderDraft(reminderId: string, content: string): 
     reminderId,
     content,
   ]);
+}
+
+export interface SnoozedReminder {
+  id: string;
+  applicationId: string;
+  status: ReminderStatus;
+  snoozedUntil: Date;
+}
+
+// F4-2.5: ownership, existence, and "not already terminal" (sent/dismissed)
+// all collapse into this one scoped UPDATE's WHERE clause - same
+// generic-404 convention as findDocumentForUser/findJobForUser, extended to
+// one more disqualifying condition. Re-snoozing an already-snoozed reminder
+// (changing the length) is allowed - only 'sent'/'dismissed' are terminal.
+// db is a Queryable, not the pool directly, so the caller can wrap this with
+// the applications.follow_up_snoozed_until write in one transaction.
+export async function snoozeReminder(
+  db: Queryable,
+  reminderId: string,
+  userId: string,
+  until: Date,
+): Promise<SnoozedReminder | null> {
+  const result = await db.query<{
+    id: string;
+    application_id: string;
+    status: ReminderStatus;
+    snoozed_until: Date;
+  }>(
+    `UPDATE reminders
+     SET status = 'snoozed', snoozed_until = $3, updated_at = now()
+     WHERE id = $1 AND user_id = $2 AND status IN ('pending', 'snoozed')
+     RETURNING id, application_id, status, snoozed_until`,
+    [reminderId, userId, until],
+  );
+  if (!result.rows[0]) {
+    return null;
+  }
+  const row = result.rows[0];
+  return { id: row.id, applicationId: row.application_id, status: row.status, snoozedUntil: row.snoozed_until };
+}
+
+// Never scoped by a client-supplied applicationId - the caller derives this
+// id from the already-ownership-verified reminder row returned above, never
+// from request input directly.
+export async function setApplicationFollowUpSnoozedUntil(
+  db: Queryable,
+  applicationId: string,
+  until: Date,
+): Promise<void> {
+  await db.query(`UPDATE applications SET follow_up_snoozed_until = $2 WHERE id = $1`, [applicationId, until]);
+}
+
+export interface DismissedReminder {
+  id: string;
+  status: ReminderStatus;
+  dismissedAt: Date;
+}
+
+// F4-2.5: single-table write, no application_events row and no
+// applications write - dismiss isn't a cancellation mechanism for the
+// board's derived tag (F4-TASKS.md section 0's own table only lists
+// follow_up_sent events as cancelling R1/R2), only F4-2.6 (Mark as sent) is.
+export async function dismissReminder(reminderId: string, userId: string): Promise<DismissedReminder | null> {
+  const result = await pool.query<{ id: string; status: ReminderStatus; dismissed_at: Date }>(
+    `UPDATE reminders
+     SET status = 'dismissed', dismissed_at = now(), updated_at = now()
+     WHERE id = $1 AND user_id = $2 AND status IN ('pending', 'snoozed')
+     RETURNING id, status, dismissed_at`,
+    [reminderId, userId],
+  );
+  if (!result.rows[0]) {
+    return null;
+  }
+  const row = result.rows[0];
+  return { id: row.id, status: row.status, dismissedAt: row.dismissed_at };
 }

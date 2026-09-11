@@ -1,8 +1,12 @@
 import { getAIProvider, getAIProviderMetadata } from "../ai/provider.ts";
+import { pool } from "../db.ts";
 import { recordAiUsage } from "../repositories/ai-usage.ts";
 import {
+  dismissReminder,
   findPendingRemindersForUser,
   findReminderForUser,
+  setApplicationFollowUpSnoozedUntil,
+  snoozeReminder,
   updateReminderDraft,
   type ReminderQueueRow,
 } from "../repositories/reminder.ts";
@@ -136,4 +140,59 @@ export async function draftReminderFollowUp(userId: string, reminderId: string):
 
   await updateReminderDraft(reminderId, result.data);
   return { success: true, draftContent: result.data };
+}
+
+export type PatchReminderResult =
+  | { success: true; id: string; status: "snoozed" | "dismissed"; snoozedUntil: string | null; dismissedAt: string | null }
+  | { success: false; reason: "not_found" };
+
+// F4-2.5: writes reminders + applications together, in one transaction -
+// same pool.connect()/BEGIN/COMMIT/ROLLBACK shape as
+// generation-worker.ts's job-success path. applications.follow_up_snoozed_until
+// is written from snoozeReminder's own returned applicationId, never from
+// client input, so no separate ownership check is needed on that write.
+export async function snoozeReminderFollowUp(
+  userId: string,
+  reminderId: string,
+  until: Date,
+): Promise<PatchReminderResult> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const snoozed = await snoozeReminder(client, reminderId, userId, until);
+    if (!snoozed) {
+      await client.query("ROLLBACK");
+      return { success: false, reason: "not_found" };
+    }
+    await setApplicationFollowUpSnoozedUntil(client, snoozed.applicationId, until);
+    await client.query("COMMIT");
+    return {
+      success: true,
+      id: snoozed.id,
+      status: "snoozed",
+      snoozedUntil: snoozed.snoozedUntil.toISOString(),
+      dismissedAt: null,
+    };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+// Single-table write - no applications touch, no application_events row
+// (see the repository comment on dismissReminder for why).
+export async function dismissReminderFollowUp(userId: string, reminderId: string): Promise<PatchReminderResult> {
+  const dismissed = await dismissReminder(reminderId, userId);
+  if (!dismissed) {
+    return { success: false, reason: "not_found" };
+  }
+  return {
+    success: true,
+    id: dismissed.id,
+    status: "dismissed",
+    snoozedUntil: null,
+    dismissedAt: dismissed.dismissedAt.toISOString(),
+  };
 }
