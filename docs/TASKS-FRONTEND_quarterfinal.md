@@ -1809,7 +1809,7 @@ No row returned ⇒ refuse to enqueue. **Never trust the client's number.**
 |---|---|---|---|
 | F4-3.1 | ✅ DONE — `ReminderQueue` | Merged via PR #283 (2026-09-11). Two sections, Due now/Upcoming, self-fetching `GET /api/reminders`. Days elapsed computed client-side (`cardTags.ts`'s technique), type-dependent reference date. No row interactivity yet — no `DraftPane` to select into. No `/app/reminders` page yet either — deferred until `DraftPane` exists, mirroring M06-10's page-assembly pattern | ✅ |
 | F4-3.2 | ✅ DONE — `DraftPane` | Merged via PR #285 (2026-09-11). Self-fetching, always-editable textarea (no view/edit toggle); `Save` appears only when dirty via the new `PATCH /api/reminders/:id/draft` (issue #276 amendment — `updateReminderDraft` gained `userId` + terminal-state scoping). Snooze's four durations built inline here as the reference implementation — F4-3.3 to extract. Dismiss/Mark as sent both confirm-gated, mirroring `ResultActions`' Regenerate pattern | ✅ |
-| F4-3.3 | `SnoozeControl` | Tomorrow · 3 days · 1 week · Pick a date. Reference implementation already exists inline in `DraftPane.tsx` (F4-3.2) — extract, don't rebuild | ✅ |
+| F4-3.3 | ✅ DONE — `SnoozeControl` | Merged via PR #287 (2026-09-11). Extracted from `DraftPane.tsx`'s inline implementation, no behavior change. Self-contained — owns `reminderId` + the `PATCH` call itself, matching `GenerateButton`/`ResultActions`' action-component convention rather than being a bare date-picker | ✅ |
 | F4-3.4 | `RemindersBadge` | Count on the sidebar nav item | ✅ |
 | F4-3.5 | `RemindersTab` | Fills M05's shell (F2-3.19) | ✅ |
 | F4-3.6 | `SetReminderAction` | Wires M05's inert button | ✅ |
@@ -1830,12 +1830,12 @@ No row returned ⇒ refuse to enqueue. **Never trust the client's number.**
 | M04 Add | 6 | ✅ |
 | M05 Detail | 11 | ✅ |
 | M06 Generate | 10 | ✅ |
-| F4 Follow-up (frontend) | 7 | ⬜ 2/7 done |
+| F4 Follow-up (frontend) | 7 | ⬜ 3/7 done |
 | **Total (M01-M06)** | **68** | **64 local · 3 config · 1 blocked** |
 
 **60 of 64 components build and verify entirely on your machine.**
 
-F4's 7 frontend components are tracked separately above (added post-hoc, no mockup) — 2 of 7 done as of 2026-09-11.
+F4's 7 frontend components are tracked separately above (added post-hoc, no mockup) — 3 of 7 done as of 2026-09-11.
 
 Config-only: `GoogleSSOButton` (redirect URI), `OtpInput` and `ForgotPasswordForm` (email transport).
 Blocked: `LinkedInSSOButton` — needs a company Page to create the OAuth app.
