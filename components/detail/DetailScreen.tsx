@@ -53,6 +53,18 @@ export function DetailScreen({ id }: { id: string }) {
         }
       });
 
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  // Split from the effect above (unlike documents, whose only creation
+  // path is a full navigation to /generate and back) - SetReminderAction
+  // creates a reminder in place on this same page, so this needs to
+  // re-fetch on refreshSignal too, matching Timeline's own pattern.
+  useEffect(() => {
+    let cancelled = false;
+
     fetch(`/api/applications/${id}/reminders`)
       .then((response) => (response.ok ? response.json() : []))
       .then((data) => {
@@ -64,7 +76,7 @@ export function DetailScreen({ id }: { id: string }) {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, refreshSignal]);
 
   return (
     <div className="flex h-screen bg-bg">
@@ -105,7 +117,10 @@ export function DetailScreen({ id }: { id: string }) {
                     </Suspense>
                   </div>
                   <div className="flex w-full flex-col gap-[14px] lg:w-[236px]">
-                    <ActionButtons applicationId={application.id} />
+                    <ActionButtons
+                      applicationId={application.id}
+                      onReminderCreated={() => setRefreshSignal((current) => current + 1)}
+                    />
                     <LastCallPanel />
                   </div>
                 </div>

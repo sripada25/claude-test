@@ -1,9 +1,10 @@
 "use client";
 
-import { BellPlus, FilePlus, PhoneCall } from "lucide-react";
+import { FilePlus, PhoneCall } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { SetReminderAction } from "@/components/reminders/SetReminderAction";
 
 function useGenerationGate() {
   const [completedAt, setCompletedAt] = useState<string | null | undefined>(undefined);
@@ -50,7 +51,13 @@ function useGenerationGate() {
   return null;
 }
 
-export function ActionButtons({ applicationId }: { applicationId: string }) {
+export function ActionButtons({
+  applicationId,
+  onReminderCreated,
+}: {
+  applicationId: string;
+  onReminderCreated?: () => void;
+}) {
   const router = useRouter();
   const disabledReason = useGenerationGate();
   const generationDisabled = disabledReason !== null && disabledReason !== undefined;
@@ -85,9 +92,7 @@ export function ActionButtons({ applicationId }: { applicationId: string }) {
       <Button variant="secondary" size="md" icon={<PhoneCall size={15} aria-hidden />}>
         Log a call
       </Button>
-      <Button variant="secondary" size="md" icon={<BellPlus size={15} aria-hidden />}>
-        Set a reminder
-      </Button>
+      <SetReminderAction applicationId={applicationId} onCreated={onReminderCreated} />
     </div>
   );
 }
