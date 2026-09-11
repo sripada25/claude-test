@@ -57,6 +57,7 @@ describe("002_users migration (real Postgres)", () => {
       { name: "timezone", type: "text", nullable: false },
       { name: "created_at", type: "timestamptz", nullable: false },
       { name: "updated_at", type: "timestamptz", nullable: false },
+      { name: "reminder_emails_enabled", type: "bool", nullable: false },
     ]);
   });
 

@@ -10,5 +10,10 @@ export async function register(): Promise<void> {
     // independent hourly timer, no separate service (L030, L089).
     const { startReminderScheduler } = await import("@/lib/services/reminder-scheduler");
     startReminderScheduler();
+
+    // F4-2.2: notifies the user when a reminder becomes due - its own
+    // independent per-minute timer, distinct from F4-2.1's hourly insert.
+    const { startReminderNotifier } = await import("@/lib/services/reminder-notifier");
+    startReminderNotifier();
   }
 }
