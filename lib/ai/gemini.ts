@@ -497,20 +497,28 @@ async function structureCallNote(input: CallNoteInput): Promise<Result<Structure
   }
 }
 
-// ---- draftFollowUp (AI-RULES.md §6.2) ----
+// ---- draftFollowUp (AI-RULES.md §6.2, extended for R2 by F4-TASKS.md §6) ----
 
-const DRAFT_FOLLOW_UP_SYSTEM_INSTRUCTION =
+const APPLICATION_FOLLOWUP_SYSTEM_INSTRUCTION =
   "Write a brief, polite follow-up email. Two to three sentences. Reference the specific role and " +
   "the time elapsed. Never pushy, never apologetic. No subject line - the user adds one.";
 
+const POST_INTERVIEW_SYSTEM_INSTRUCTION =
+  "Write a brief thank-you email following a job interview. Two to three sentences. Reference the " +
+  "role and, if provided, one specific point from the conversation. Warm but professional. No " +
+  "subject line - the user adds one.";
+
 async function draftFollowUp(input: FollowUpInput): Promise<Result<string>> {
   try {
+    const systemInstruction =
+      input.type === "post_interview" ? POST_INTERVIEW_SYSTEM_INSTRUCTION : APPLICATION_FOLLOWUP_SYSTEM_INSTRUCTION;
+
     const context = delimit(
       "application_context",
       JSON.stringify({
         companyName: input.companyName,
         roleTitle: input.roleTitle,
-        daysSinceApplied: input.daysSinceApplied,
+        daysSinceApplied: input.daysSinceApplied ?? null,
         lastCallNotes: input.lastCallNotes ?? null,
       }),
     );
@@ -518,7 +526,7 @@ async function draftFollowUp(input: FollowUpInput): Promise<Result<string>> {
     const response = await getClient().models.generateContent({
       model: MODEL,
       contents: [{ role: "user", parts: [{ text: `${context}\nWrite the follow-up.` }] }],
-      config: { systemInstruction: DRAFT_FOLLOW_UP_SYSTEM_INSTRUCTION },
+      config: { systemInstruction },
     });
 
     if (isSafetyBlocked(response)) {

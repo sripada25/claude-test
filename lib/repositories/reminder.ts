@@ -172,3 +172,50 @@ export async function findPendingRemindersForUser(userId: string): Promise<Remin
     interviewAt: row.interview_at,
   }));
 }
+
+export interface ReminderForDraft {
+  id: string;
+  type: ReminderType;
+  company: string;
+  role: string;
+  dateApplied: string | null;
+  draftContent: string | null;
+}
+
+// F4-2.4: scoped by user_id in the same query, not checked afterward - same
+// generic-404 convention as findDocumentForUser/findJobForUser.
+export async function findReminderForUser(reminderId: string, userId: string): Promise<ReminderForDraft | null> {
+  const result = await pool.query<{
+    id: string;
+    type: ReminderType;
+    company: string;
+    role: string;
+    date_applied: string | null;
+    draft_content: string | null;
+  }>(
+    `SELECT r.id, r.type, a.company, a.role, a.date_applied, r.draft_content
+     FROM reminders r
+     JOIN applications a ON a.id = r.application_id
+     WHERE r.id = $1 AND r.user_id = $2`,
+    [reminderId, userId],
+  );
+  if (!result.rows[0]) {
+    return null;
+  }
+  const row = result.rows[0];
+  return {
+    id: row.id,
+    type: row.type,
+    company: row.company,
+    role: row.role,
+    dateApplied: row.date_applied,
+    draftContent: row.draft_content,
+  };
+}
+
+export async function updateReminderDraft(reminderId: string, content: string): Promise<void> {
+  await pool.query(`UPDATE reminders SET draft_content = $2, updated_at = now() WHERE id = $1`, [
+    reminderId,
+    content,
+  ]);
+}
