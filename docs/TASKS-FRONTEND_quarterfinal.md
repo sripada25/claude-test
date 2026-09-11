@@ -1584,6 +1584,20 @@ Salary · Contact · Next step.
 **References:** F2-3.20 · F5 · L049 · Mockup 05
 
 ---
+
+## M05-11 · Wire the Documents tab to real data ✅ DONE — merged via PR #269 (2026-09-11) — found during a post-hoc M05 audit against `Admin.pen`
+
+⚠️ **Added post-hoc.** M05-05's own `DetailTabs` was built correctly for its time ("three of four tabs are empty shells... filled by F3"), but nothing ever went back to wire the Documents tab once F3 shipped — confirmed live: seeding a real document and reloading still showed "No documents yet."
+
+🔧 `DetailScreen` fetches `GET /api/applications/:id/documents` (F3-3.5), passes the list to `DetailTabs`. Documents tab label now shows the real count; Call log and Reminders stay hardcoded at `0` — neither has a real data source yet (F5 not started, F4's API not built).
+
+🔧 New `DocumentsPanel` renders one row per document (icon, type label, date), mirroring `Timeline.tsx`'s row pattern since no design exists for this state anywhere. Rows are non-interactive — no view/download destination exists yet.
+
+🔧 Also corrected the empty-state copy to `SCREEN-SPEC-M05.md`'s actual wording: "No documents yet. Generate one from the actions panel."
+
+**References:** F3-3.5 · Mockup 05 · M05 audit (2026-09-11)
+
+---
 ---
 
 # M06 — GENERATE DOCUMENT
@@ -1796,11 +1810,11 @@ No row returned ⇒ refuse to enqueue. **Never trust the client's number.**
 | M02 Profile | 9 | ✅ |
 | M03 Board | 13 | ✅ |
 | M04 Add | 6 | ✅ |
-| M05 Detail | 10 | ✅ |
+| M05 Detail | 11 | ✅ |
 | M06 Generate | 10 | ✅ |
-| **Total** | **67** | **63 local · 3 config · 1 blocked** |
+| **Total** | **68** | **64 local · 3 config · 1 blocked** |
 
-**59 of 63 components build and verify entirely on your machine.**
+**60 of 64 components build and verify entirely on your machine.**
 
 Config-only: `GoogleSSOButton` (redirect URI), `OtpInput` and `ForgotPasswordForm` (email transport).
 Blocked: `LinkedInSSOButton` — needs a company Page to create the OAuth app.
