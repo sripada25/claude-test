@@ -1771,6 +1771,20 @@ No row returned ⇒ refuse to enqueue. **Never trust the client's number.**
 **References:** F3 · L055 · L041 · `AI-RULES.md` §8.3 · Mockup 06
 
 ---
+
+## M06-10 · `GenerateScreen` ✅ DONE — merged via PR #267 (2026-09-11) — page assembly, not drawn as a separate mockup component
+
+⚠️ **Added post-hoc, found during a live audit of M05 against the real mockup.** M06-01 through M06-09 built and individually verified 9 components; none of them assembled a real page, and M05's "Generate cover letter"/"Generate resume" buttons had zero `onClick` handlers. Neither gap was caught until this audit, since every prior M06 task's own scratch-page verification never required a real route to exist.
+
+🔧 Assembles all 9 M06-0X components at `/app/applications/:id/generate?type=cover_letter` (or `resume`), per `SCREEN-SPEC-M06.md`'s already-specified route and layout. Wires M05's two Generate buttons to navigate there (`ActionButtons.tsx` gains `applicationId`).
+
+🔧 **Converted `QuotaBadge` from self-fetching to controlled props** — flagged as this task's job by every M06-05 through M06-09 PR report. **Added `onGeneratingChange` to `GenerateButton`** so `ResultCard`'s pre-first-result skeleton can react to it.
+
+⚠️ **Noticed but not fixed in this task:** `DetailTabs.tsx`'s Documents/Call log/Reminders tabs are hardcoded static shells regardless of real data — a separate, self-contained gap that doesn't require M06.
+
+**References:** F3 · Mockup 06 · M05 audit (2026-09-11)
+
+---
 ---
 
 # TOTALS
@@ -1783,10 +1797,10 @@ No row returned ⇒ refuse to enqueue. **Never trust the client's number.**
 | M03 Board | 13 | ✅ |
 | M04 Add | 6 | ✅ |
 | M05 Detail | 10 | ✅ |
-| M06 Generate | 9 | ✅ |
-| **Total** | **66** | **62 local · 3 config · 1 blocked** |
+| M06 Generate | 10 | ✅ |
+| **Total** | **67** | **63 local · 3 config · 1 blocked** |
 
-**58 of 62 components build and verify entirely on your machine.**
+**59 of 63 components build and verify entirely on your machine.**
 
 Config-only: `GoogleSSOButton` (redirect URI), `OtpInput` and `ForgotPasswordForm` (email transport).
 Blocked: `LinkedInSSOButton` — needs a company Page to create the OAuth app.
