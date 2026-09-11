@@ -77,10 +77,11 @@ describe("reminder notifier (real Postgres + Mailpit)", () => {
     dueAt?: Date;
     status?: string;
     notifiedAt?: Date | null;
+    snoozedUntil?: Date | null;
   }): Promise<string> {
     const result = await pool.query<{ id: string }>(
-      `INSERT INTO reminders (user_id, application_id, type, due_at, status, notified_at)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+      `INSERT INTO reminders (user_id, application_id, type, due_at, status, notified_at, snoozed_until)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
       [
         params.userId,
         params.applicationId,
@@ -88,6 +89,7 @@ describe("reminder notifier (real Postgres + Mailpit)", () => {
         params.dueAt ?? new Date(Date.now() - 60_000),
         params.status ?? "pending",
         params.notifiedAt ?? null,
+        params.snoozedUntil ?? null,
       ],
     );
     return result.rows[0].id;
@@ -183,10 +185,9 @@ describe("reminder notifier (real Postgres + Mailpit)", () => {
     expect(reminder.notified_at).toBeNull();
   });
 
-  it("does not touch a reminder that is snoozed or dismissed", async () => {
-    const userId = await insertUser("snoozed@example.com");
+  it("does not touch a dismissed reminder", async () => {
+    const userId = await insertUser("dismissed@example.com");
     const applicationId = await insertApplication(userId);
-    const snoozedId = await insertReminder({ userId, applicationId, status: "snoozed" });
     const dismissedId = await insertReminder({
       userId,
       applicationId,
@@ -197,8 +198,39 @@ describe("reminder notifier (real Postgres + Mailpit)", () => {
     await runNotificationTick();
 
     expect(await mailpitMessageCount()).toBe(0);
-    expect((await reminderRow(snoozedId)).notified_at).toBeNull();
     expect((await reminderRow(dismissedId)).notified_at).toBeNull();
+  });
+
+  it("does not notify an actively-snoozed reminder", async () => {
+    const userId = await insertUser("active-snooze@example.com");
+    const applicationId = await insertApplication(userId);
+    const snoozedId = await insertReminder({
+      userId,
+      applicationId,
+      status: "snoozed",
+      snoozedUntil: new Date(Date.now() + 60_000),
+    });
+
+    await runNotificationTick();
+
+    expect(await mailpitMessageCount()).toBe(0);
+    expect((await reminderRow(snoozedId)).notified_at).toBeNull();
+  });
+
+  it("notifies again once an expired snooze has passed", async () => {
+    const userId = await insertUser("expired-snooze@example.com");
+    const applicationId = await insertApplication(userId);
+    const reminderId = await insertReminder({
+      userId,
+      applicationId,
+      status: "snoozed",
+      snoozedUntil: new Date(Date.now() - 30_000),
+    });
+
+    const result = await runNotificationTick();
+
+    expect(result.sent).toBe(1);
+    expect((await reminderRow(reminderId)).notified_at).not.toBeNull();
   });
 
   it("does not re-send an already-notified reminder on a second tick", async () => {

@@ -50,11 +50,19 @@ describe("/api/reminders (real Postgres)", () => {
     dueAt: Date;
     status?: string;
     type?: string;
+    snoozedUntil?: Date | null;
   }): Promise<string> {
     const result = await pool.query<{ id: string }>(
-      `INSERT INTO reminders (user_id, application_id, type, due_at, status)
-       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-      [params.userId, params.applicationId, params.type ?? "application_followup", params.dueAt, params.status ?? "pending"],
+      `INSERT INTO reminders (user_id, application_id, type, due_at, status, snoozed_until)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+      [
+        params.userId,
+        params.applicationId,
+        params.type ?? "application_followup",
+        params.dueAt,
+        params.status ?? "pending",
+        params.snoozedUntil ?? null,
+      ],
     );
     return result.rows[0].id;
   }
@@ -126,14 +134,14 @@ describe("/api/reminders (real Postgres)", () => {
     expect(body.upcoming).toHaveLength(0);
   });
 
-  it("excludes a non-pending reminder", async () => {
-    const userId = await insertUser("snoozed@example.com");
+  it("excludes a dismissed reminder", async () => {
+    const userId = await insertUser("dismissed@example.com");
     const applicationId = await insertApplication(userId);
     await insertReminder({
       userId,
       applicationId,
       dueAt: new Date(Date.now() - 60_000),
-      status: "snoozed",
+      status: "dismissed",
     });
 
     const response = await GET_(getRequest(userId));
@@ -141,6 +149,42 @@ describe("/api/reminders (real Postgres)", () => {
 
     expect(body.dueNow).toHaveLength(0);
     expect(body.upcoming).toHaveLength(0);
+  });
+
+  it("excludes an actively-snoozed reminder", async () => {
+    const userId = await insertUser("active-snooze@example.com");
+    const applicationId = await insertApplication(userId);
+    await insertReminder({
+      userId,
+      applicationId,
+      dueAt: new Date(Date.now() - 60_000),
+      status: "snoozed",
+      snoozedUntil: new Date(Date.now() + 60_000),
+    });
+
+    const response = await GET_(getRequest(userId));
+    const body = await response.json();
+
+    expect(body.dueNow).toHaveLength(0);
+    expect(body.upcoming).toHaveLength(0);
+  });
+
+  it("re-surfaces a snoozed reminder once snoozed_until has passed", async () => {
+    const userId = await insertUser("expired-snooze@example.com");
+    const applicationId = await insertApplication(userId);
+    const reminderId = await insertReminder({
+      userId,
+      applicationId,
+      dueAt: new Date(Date.now() - 60_000),
+      status: "snoozed",
+      snoozedUntil: new Date(Date.now() - 30_000),
+    });
+
+    const response = await GET_(getRequest(userId));
+    const body = await response.json();
+
+    expect(body.dueNow).toHaveLength(1);
+    expect(body.dueNow[0].id).toBe(reminderId);
   });
 
   it("excludes a reminder whose application is soft-deleted", async () => {
