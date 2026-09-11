@@ -2,19 +2,12 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useRef, type KeyboardEvent } from "react";
+import { DocumentsPanel, type DocumentSummary } from "@/components/detail/DocumentsPanel";
 import { JobDescriptionPanel } from "@/components/detail/JobDescriptionPanel";
 import { NotesField } from "@/components/detail/NotesField";
 import { Timeline } from "@/components/detail/Timeline";
 
-const TABS = [
-  { key: "overview", label: "Overview", count: 0 },
-  { key: "documents", label: "Documents", count: 0 },
-  { key: "call-log", label: "Call log", count: 0 },
-  { key: "reminders", label: "Reminders", count: 0 },
-] as const;
-
 const EMPTY_STATES: Record<string, string> = {
-  documents: "No documents yet.",
   "call-log": "No calls logged yet.",
   reminders: "No reminders yet.",
 };
@@ -23,12 +16,14 @@ export function DetailTabs({
   applicationId,
   jobDescription,
   notes,
+  documents,
   refreshSignal,
   onNotesSaved,
 }: {
   applicationId: string;
   jobDescription: string | null;
   notes: string | null;
+  documents: DocumentSummary[];
   refreshSignal: number;
   onNotesSaved: () => void;
 }) {
@@ -37,6 +32,13 @@ export function DetailTabs({
   const searchParams = useSearchParams();
   const active = searchParams.get("tab") ?? "overview";
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const tabs = [
+    { key: "overview", label: "Overview", count: 0 },
+    { key: "documents", label: "Documents", count: documents.length },
+    { key: "call-log", label: "Call log", count: 0 },
+    { key: "reminders", label: "Reminders", count: 0 },
+  ] as const;
 
   function selectTab(key: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -54,10 +56,9 @@ export function DetailTabs({
       return;
     }
     event.preventDefault();
-    const nextIndex =
-      event.key === "ArrowRight" ? (index + 1) % TABS.length : (index - 1 + TABS.length) % TABS.length;
+    const nextIndex = event.key === "ArrowRight" ? (index + 1) % tabs.length : (index - 1 + tabs.length) % tabs.length;
     tabRefs.current[nextIndex]?.focus();
-    selectTab(TABS[nextIndex].key);
+    selectTab(tabs[nextIndex].key);
   }
 
   return (
@@ -66,7 +67,7 @@ export function DetailTabs({
         role="tablist"
         className="flex overflow-x-auto border-b border-border [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        {TABS.map((tab, index) => {
+        {tabs.map((tab, index) => {
           const isActive = tab.key === active;
           const label = tab.count > 0 ? `${tab.label} ${tab.count}` : tab.label;
           return (
@@ -92,7 +93,7 @@ export function DetailTabs({
           );
         })}
       </div>
-      {TABS.map((tab) => (
+      {tabs.map((tab) => (
         <div
           key={tab.key}
           role="tabpanel"
@@ -107,6 +108,8 @@ export function DetailTabs({
               <Timeline applicationId={applicationId} refreshSignal={refreshSignal} />
               <NotesField applicationId={applicationId} notes={notes} onSaved={onNotesSaved} />
             </div>
+          ) : tab.key === "documents" ? (
+            <DocumentsPanel documents={documents} />
           ) : (
             <p className="font-body text-[13px] text-muted">{EMPTY_STATES[tab.key]}</p>
           )}
