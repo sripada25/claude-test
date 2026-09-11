@@ -1813,7 +1813,7 @@ No row returned ⇒ refuse to enqueue. **Never trust the client's number.**
 | F4-3.4 | ✅ DONE — `RemindersBadge` | Merged via PR #289 (2026-09-11). Count is `dueNow.length` from `GET /api/reminders`, hides at zero. Added a `badge?` slot to `NavItem` (the shared component behind all 5 sidebar rows) since none existed | ✅ |
 | F4-3.5 | ✅ DONE — `RemindersTab` | Merged via PR #291 (2026-09-11). New `GET /api/applications/:id/reminders`, mirroring the existing documents endpoint. Shows every reminder regardless of status (resolved ones stay visible); tab label count is active (pending/snoozed) only, matching `RemindersBadge`'s semantics | ✅ |
 | F4-3.6 | ✅ DONE — `SetReminderAction` | Merged via PR #293 (2026-09-11). Resolved F4-SCREEN-MAP.md's open question #4 (build a full custom-reminder creation flow, not view-only) via `AskUserQuestion`. New `POST /api/applications/:id/reminders` — an upsert reusing the existing `application_followup` type (no new enum value), so drafting/snoozing/dismissing/notifying all work on it with zero special-casing. Rejects with 409 if an active reminder already exists; re-arms a resolved one | ✅ |
-| F4-3.7 | `FollowUpTag` | Makes M03's tag clickable → the draft flow | ✅ |
+| F4-3.7 | ✅ DONE — `FollowUpTag` | Merged via PR #295 (2026-09-11). The board tag was already fully clickable (`cardTags.ts`/`CardTag.tsx`, built during M03) — this built its destination, `/app/applications/:id/follow-up`. Pure composition (`RemindersTab`'s fetch, `DraftPane`, `SetReminderAction`), zero new backend. Falls back to `SetReminderAction` when the tag fires from date math before the scheduler has inserted a row yet | ✅ |
 
 **References:** F4-TASKS.md §7 · F4-SCREEN-MAP.md §5
 
@@ -1830,12 +1830,12 @@ No row returned ⇒ refuse to enqueue. **Never trust the client's number.**
 | M04 Add | 6 | ✅ |
 | M05 Detail | 11 | ✅ |
 | M06 Generate | 10 | ✅ |
-| F4 Follow-up (frontend) | 7 | ⬜ 6/7 done |
+| F4 Follow-up (frontend) | 7 | ✅ 7/7 done |
 | **Total (M01-M06)** | **68** | **64 local · 3 config · 1 blocked** |
 
 **60 of 64 components build and verify entirely on your machine.**
 
-F4's 7 frontend components are tracked separately above (added post-hoc, no mockup) — 6 of 7 done as of 2026-09-11.
+F4's 7 frontend components are tracked separately above (added post-hoc, no mockup) — all 7 of 7 done as of 2026-09-11. Combined with F4-1.1 through F4-2.6 (backend), **F4 — Follow-up System is complete.**
 
 Config-only: `GoogleSSOButton` (redirect URI), `OtpInput` and `ForgotPasswordForm` (email transport).
 Blocked: `LinkedInSSOButton` — needs a company Page to create the OAuth app.
