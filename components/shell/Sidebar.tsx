@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { NavItem } from "@/components/shell/NavItem";
 import { SidebarBrand } from "@/components/shell/SidebarBrand";
 import { SidebarUser } from "@/components/shell/SidebarUser";
+import { RemindersBadge } from "@/components/reminders/RemindersBadge";
 
 const NAV_ITEMS = [
   { href: "/app/board", label: "Board", icon: LayoutDashboard },
@@ -51,7 +52,13 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
           <SidebarBrand onClose={onClose} />
           <nav className="flex flex-col gap-[2px] py-1 lg:px-3">
             {NAV_ITEMS.map((item) => (
-              <NavItem key={item.href} href={item.href} label={item.label} icon={item.icon} />
+              <NavItem
+                key={item.href}
+                href={item.href}
+                label={item.label}
+                icon={item.icon}
+                badge={item.href === "/app/reminders" ? <RemindersBadge /> : undefined}
+              />
             ))}
           </nav>
         </div>
