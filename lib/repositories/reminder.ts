@@ -307,3 +307,29 @@ export async function dismissReminder(reminderId: string, userId: string): Promi
   const row = result.rows[0];
   return { id: row.id, status: row.status, dismissedAt: row.dismissed_at };
 }
+
+export interface SentReminder {
+  id: string;
+  applicationId: string;
+  status: ReminderStatus;
+  sentAt: Date;
+}
+
+// F4-2.6: same terminal-state guard as snooze/dismiss - only a pending or
+// snoozed reminder can be marked sent. db is a Queryable so the caller can
+// wrap this with the application_events write in one transaction (the row
+// F4-TASKS.md section 2's derived-tag query checks for).
+export async function markReminderSent(db: Queryable, reminderId: string, userId: string): Promise<SentReminder | null> {
+  const result = await db.query<{ id: string; application_id: string; status: ReminderStatus; sent_at: Date }>(
+    `UPDATE reminders
+     SET status = 'sent', sent_at = now(), updated_at = now()
+     WHERE id = $1 AND user_id = $2 AND status IN ('pending', 'snoozed')
+     RETURNING id, application_id, status, sent_at`,
+    [reminderId, userId],
+  );
+  if (!result.rows[0]) {
+    return null;
+  }
+  const row = result.rows[0];
+  return { id: row.id, applicationId: row.application_id, status: row.status, sentAt: row.sent_at };
+}
