@@ -70,6 +70,7 @@ describe("geminiAdapter", () => {
 
     generateContentMock.mockResolvedValue({ text: "Thanks for the call, following up." });
     await geminiAdapter.draftFollowUp({
+      type: "application_followup",
       companyName: "Acme",
       roleTitle: "Engineer",
       daysSinceApplied: 5,
@@ -284,6 +285,7 @@ describe("geminiAdapter", () => {
       generateContentMock.mockResolvedValue({ text: "Following up on my application." });
 
       const result = await geminiAdapter.draftFollowUp({
+        type: "application_followup",
         companyName: "Acme",
         roleTitle: "Engineer",
         daysSinceApplied: 5,
@@ -292,10 +294,47 @@ describe("geminiAdapter", () => {
       expect(result.success).toBe(true);
     });
 
+    it("accepts a valid post-interview draft with no daysSinceApplied", async () => {
+      generateContentMock.mockResolvedValue({ text: "Thank you for the conversation." });
+
+      const result = await geminiAdapter.draftFollowUp({
+        type: "post_interview",
+        companyName: "Acme",
+        roleTitle: "Engineer",
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it("gives application_followup and post_interview distinct system instructions", async () => {
+      generateContentMock.mockResolvedValue({ text: "Following up on my application." });
+      await geminiAdapter.draftFollowUp({
+        type: "application_followup",
+        companyName: "Acme",
+        roleTitle: "Engineer",
+        daysSinceApplied: 5,
+      });
+      const followupInstruction = String(callArgs().config?.systemInstruction);
+      generateContentMock.mockReset();
+
+      generateContentMock.mockResolvedValue({ text: "Thank you for the conversation." });
+      await geminiAdapter.draftFollowUp({
+        type: "post_interview",
+        companyName: "Acme",
+        roleTitle: "Engineer",
+      });
+      const interviewInstruction = String(callArgs().config?.systemInstruction);
+
+      expect(followupInstruction).not.toEqual(interviewInstruction);
+      expect(followupInstruction.toLowerCase()).toContain("time elapsed");
+      expect(interviewInstruction.toLowerCase()).toContain("thank-you");
+    });
+
     it("rejects output over 800 characters", async () => {
       generateContentMock.mockResolvedValue({ text: "A".repeat(801) });
 
       const result = await geminiAdapter.draftFollowUp({
+        type: "application_followup",
         companyName: "Acme",
         roleTitle: "Engineer",
         daysSinceApplied: 5,
@@ -535,6 +574,7 @@ describe("geminiAdapter", () => {
     generateContentMock.mockRejectedValue(new ApiError({ message: "rate limited", status: 429 }));
 
     const result = await geminiAdapter.draftFollowUp({
+      type: "application_followup",
       companyName: "Acme",
       roleTitle: "Engineer",
       daysSinceApplied: 5,
@@ -550,6 +590,7 @@ describe("geminiAdapter", () => {
     generateContentMock.mockRejectedValue(new ApiError({ message: "down", status: 503 }));
 
     const result = await geminiAdapter.draftFollowUp({
+      type: "application_followup",
       companyName: "Acme",
       roleTitle: "Engineer",
       daysSinceApplied: 5,
@@ -564,6 +605,7 @@ describe("geminiAdapter", () => {
     generateContentMock.mockRejectedValue(new ApiError({ message: "bad", status: 400 }));
 
     const result = await geminiAdapter.draftFollowUp({
+      type: "application_followup",
       companyName: "Acme",
       roleTitle: "Engineer",
       daysSinceApplied: 5,
@@ -580,6 +622,7 @@ describe("geminiAdapter", () => {
     generateContentMock.mockRejectedValue(abortError);
 
     const result = await geminiAdapter.draftFollowUp({
+      type: "application_followup",
       companyName: "Acme",
       roleTitle: "Engineer",
       daysSinceApplied: 5,

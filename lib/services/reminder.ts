@@ -1,4 +1,11 @@
-import { findPendingRemindersForUser, type ReminderQueueRow } from "../repositories/reminder.ts";
+import { getAIProvider, getAIProviderMetadata } from "../ai/provider.ts";
+import { recordAiUsage } from "../repositories/ai-usage.ts";
+import {
+  findPendingRemindersForUser,
+  findReminderForUser,
+  updateReminderDraft,
+  type ReminderQueueRow,
+} from "../repositories/reminder.ts";
 
 export interface ReminderQueueItem {
   id: string;
@@ -52,4 +59,81 @@ export async function getReminderQueue(userId: string): Promise<ReminderQueue> {
   }
 
   return { dueNow, upcoming };
+}
+
+export type DraftReminderResult =
+  | { success: true; draftContent: string }
+  | { success: false; reason: "not_found" | "ai_failed" };
+
+// F4-TASKS.md section 6: daysSinceApplied is flavor text for R1's prompt, not
+// a security-sensitive calculation - a plain day-difference is correct here,
+// unlike F4-2.1's scheduler which needs per-user-timezone precision to decide
+// whether a reminder fires at all.
+function daysSinceApplied(dateApplied: string | null): number | undefined {
+  if (!dateApplied) {
+    return undefined;
+  }
+  const elapsedMs = Date.now() - new Date(dateApplied).getTime();
+  return Math.max(0, Math.floor(elapsedMs / (24 * 60 * 60 * 1000)));
+}
+
+// F4-2.4: "generated once, then editable" (the schema's own comment on
+// draft_content) - an existing draft is returned as-is, no new Gemini call,
+// no new ai_usage row. Never consumes/refunds generation quota (L055) - this
+// isn't a documents.generations_used-metered operation.
+export async function draftReminderFollowUp(userId: string, reminderId: string): Promise<DraftReminderResult> {
+  const reminder = await findReminderForUser(reminderId, userId);
+  if (!reminder) {
+    return { success: false, reason: "not_found" };
+  }
+
+  if (reminder.draftContent !== null) {
+    return { success: true, draftContent: reminder.draftContent };
+  }
+
+  const provider = getAIProvider();
+  const { provider: providerName, model } = getAIProviderMetadata();
+
+  const startedAt = Date.now();
+  const result = await provider.draftFollowUp({
+    type: reminder.type,
+    companyName: reminder.company,
+    roleTitle: reminder.role,
+    daysSinceApplied: daysSinceApplied(reminder.dateApplied),
+  });
+  const latencyMs = Date.now() - startedAt;
+
+  if (!result.success) {
+    await recordAiUsage({
+      userId,
+      jobId: null,
+      provider: providerName,
+      model,
+      operation: "draft_follow_up",
+      tokensIn: null,
+      tokensOut: null,
+      costEstimate: null,
+      latencyMs,
+      status: "failed",
+      errorClass: result.error.errorClass,
+    });
+    return { success: false, reason: "ai_failed" };
+  }
+
+  await recordAiUsage({
+    userId,
+    jobId: null,
+    provider: providerName,
+    model,
+    operation: "draft_follow_up",
+    tokensIn: null,
+    tokensOut: null,
+    costEstimate: null,
+    latencyMs,
+    status: "succeeded",
+    errorClass: null,
+  });
+
+  await updateReminderDraft(reminderId, result.data);
+  return { success: true, draftContent: result.data };
 }

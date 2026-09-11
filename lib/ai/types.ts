@@ -85,10 +85,15 @@ export interface StructuredNote {
   followUpDate: string | null;
 }
 
+// F4-2.4: type selects between the two distinct prompts AI-RULES.md section
+// 6.2 (R1 only) and F4-TASKS.md section 6 (R1 + R2, which it says extends
+// AI-RULES.md's own R1-only version) together specify. daysSinceApplied is
+// R1-only flavor text - R2's prompt has no numeric-elapsed-time input at all.
 export interface FollowUpInput {
+  type: "application_followup" | "post_interview";
   companyName: string;
   roleTitle: string;
-  daysSinceApplied: number;
+  daysSinceApplied?: number;
   lastCallNotes?: string;
 }
 
