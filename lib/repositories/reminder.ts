@@ -353,3 +353,45 @@ export async function markReminderSent(db: Queryable, reminderId: string, userId
   const row = result.rows[0];
   return { id: row.id, applicationId: row.application_id, status: row.status, sentAt: row.sent_at };
 }
+
+export interface ApplicationReminder {
+  id: string;
+  type: ReminderType;
+  status: ReminderStatus;
+  dueAt: Date;
+  snoozedUntil: Date | null;
+  sentAt: Date | null;
+  dismissedAt: Date | null;
+}
+
+// F4-3.5: every reminder for the application, any status - at most 2 exist
+// (UNIQUE(application_id, type)), so no pagination or status filter is
+// needed here. Ownership is enforced by the caller's own getApplication
+// lookup (matches listDocumentsByApplication's convention), not repeated
+// in this query.
+export async function findRemindersByApplication(applicationId: string): Promise<ApplicationReminder[]> {
+  const result = await pool.query<{
+    id: string;
+    type: ReminderType;
+    status: ReminderStatus;
+    due_at: Date;
+    snoozed_until: Date | null;
+    sent_at: Date | null;
+    dismissed_at: Date | null;
+  }>(
+    `SELECT id, type, status, due_at, snoozed_until, sent_at, dismissed_at
+     FROM reminders
+     WHERE application_id = $1
+     ORDER BY created_at DESC`,
+    [applicationId],
+  );
+  return result.rows.map((row) => ({
+    id: row.id,
+    type: row.type,
+    status: row.status,
+    dueAt: row.due_at,
+    snoozedUntil: row.snoozed_until,
+    sentAt: row.sent_at,
+    dismissedAt: row.dismissed_at,
+  }));
+}
