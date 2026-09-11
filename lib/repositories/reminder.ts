@@ -122,3 +122,53 @@ export async function findDueUnnotifiedReminders(limit: number): Promise<DueNoti
 export async function markReminderNotified(reminderId: string): Promise<void> {
   await pool.query(`UPDATE reminders SET notified_at = now() WHERE id = $1`, [reminderId]);
 }
+
+export interface ReminderQueueRow {
+  id: string;
+  type: ReminderType;
+  dueAt: Date;
+  applicationId: string;
+  company: string;
+  role: string;
+  dateApplied: string | null;
+  interviewAt: Date | null;
+}
+
+// F4-2.3: one flat, sorted list - splitting it into "due now" vs "upcoming"
+// is the service layer's job (CLAUDE.md section 4: repository is SQL only,
+// no business rules). deleted_at IS NULL on the joined application is
+// mandatory: a soft-deleted application's reminders still exist (cascade
+// delete only fires on a hard user deletion), so a trashed application's
+// reminder must never surface here.
+export async function findPendingRemindersForUser(userId: string): Promise<ReminderQueueRow[]> {
+  const result = await pool.query<{
+    id: string;
+    type: ReminderType;
+    due_at: Date;
+    application_id: string;
+    company: string;
+    role: string;
+    date_applied: string | null;
+    interview_at: Date | null;
+  }>(
+    `SELECT r.id, r.type, r.due_at, a.id AS application_id, a.company, a.role,
+            a.date_applied, a.interview_at
+     FROM reminders r
+     JOIN applications a ON a.id = r.application_id
+     WHERE r.user_id = $1
+       AND r.status = 'pending'
+       AND a.deleted_at IS NULL
+     ORDER BY r.due_at ASC`,
+    [userId],
+  );
+  return result.rows.map((row) => ({
+    id: row.id,
+    type: row.type,
+    dueAt: row.due_at,
+    applicationId: row.application_id,
+    company: row.company,
+    role: row.role,
+    dateApplied: row.date_applied,
+    interviewAt: row.interview_at,
+  }));
+}
