@@ -1801,6 +1801,24 @@ No row returned ⇒ refuse to enqueue. **Never trust the client's number.**
 ---
 ---
 
+# F4 · FOLLOW-UP SYSTEM (FRONTEND)
+
+⚠️ **Added post-hoc** — the M01-M06 sections above existed from this file's original authoring; F4's frontend components were never migrated here from `F4-TASKS.md §7`, which remains the authoritative source for their requirements. No mockup exists for any of these — plate 08 (`Y1xzAR`) is wireframe-only (`F4-SCREEN-MAP.md §5`), so none of the pen-verified `🎨` values used throughout the rest of this file apply.
+
+| ID | Component | Notes | Env |
+|---|---|---|---|
+| F4-3.1 | ✅ DONE — `ReminderQueue` | Merged via PR #283 (2026-09-11). Two sections, Due now/Upcoming, self-fetching `GET /api/reminders`. Days elapsed computed client-side (`cardTags.ts`'s technique), type-dependent reference date. No row interactivity yet — no `DraftPane` to select into. No `/app/reminders` page yet either — deferred until `DraftPane` exists, mirroring M06-10's page-assembly pattern | ✅ |
+| F4-3.2 | `DraftPane` | Editable textarea + Copy · Snooze · Dismiss · Mark as sent | ✅ |
+| F4-3.3 | `SnoozeControl` | Tomorrow · 3 days · 1 week · Pick a date | ✅ |
+| F4-3.4 | `RemindersBadge` | Count on the sidebar nav item | ✅ |
+| F4-3.5 | `RemindersTab` | Fills M05's shell (F2-3.19) | ✅ |
+| F4-3.6 | `SetReminderAction` | Wires M05's inert button | ✅ |
+| F4-3.7 | `FollowUpTag` | Makes M03's tag clickable → the draft flow | ✅ |
+
+**References:** F4-TASKS.md §7 · F4-SCREEN-MAP.md §5
+
+---
+
 # TOTALS
 
 | Screen | Components | All local-complete? |
@@ -1812,9 +1830,12 @@ No row returned ⇒ refuse to enqueue. **Never trust the client's number.**
 | M04 Add | 6 | ✅ |
 | M05 Detail | 11 | ✅ |
 | M06 Generate | 10 | ✅ |
-| **Total** | **68** | **64 local · 3 config · 1 blocked** |
+| F4 Follow-up (frontend) | 7 | ⬜ 1/7 done |
+| **Total (M01-M06)** | **68** | **64 local · 3 config · 1 blocked** |
 
 **60 of 64 components build and verify entirely on your machine.**
+
+F4's 7 frontend components are tracked separately above (added post-hoc, no mockup) — 1 of 7 done as of 2026-09-11.
 
 Config-only: `GoogleSSOButton` (redirect URI), `OtpInput` and `ForgotPasswordForm` (email transport).
 Blocked: `LinkedInSSOButton` — needs a company Page to create the OAuth app.
