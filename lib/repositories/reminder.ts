@@ -72,3 +72,53 @@ export async function insertPostInterviewReminders(): Promise<number> {
   );
   return result.rowCount ?? 0;
 }
+
+export interface DueNotificationCandidate {
+  reminderId: string;
+  type: ReminderType;
+  userId: string;
+  email: string;
+  reminderEmailsEnabled: boolean;
+  company: string;
+  role: string;
+}
+
+// F4-2.2: oldest-due first, bounded to a small batch per tick - the
+// notifier's own daily-cap check is the real safety net, this is just an
+// upper bound so one tick never does unbounded work.
+export async function findDueUnnotifiedReminders(limit: number): Promise<DueNotificationCandidate[]> {
+  const result = await pool.query<{
+    reminder_id: string;
+    type: ReminderType;
+    user_id: string;
+    email: string;
+    reminder_emails_enabled: boolean;
+    company: string;
+    role: string;
+  }>(
+    `SELECT r.id AS reminder_id, r.type, u.id AS user_id, u.email, u.reminder_emails_enabled,
+            a.company, a.role
+     FROM reminders r
+     JOIN users u ON u.id = r.user_id
+     JOIN applications a ON a.id = r.application_id
+     WHERE r.status = 'pending'
+       AND r.due_at <= now()
+       AND r.notified_at IS NULL
+     ORDER BY r.due_at ASC
+     LIMIT $1`,
+    [limit],
+  );
+  return result.rows.map((row) => ({
+    reminderId: row.reminder_id,
+    type: row.type,
+    userId: row.user_id,
+    email: row.email,
+    reminderEmailsEnabled: row.reminder_emails_enabled,
+    company: row.company,
+    role: row.role,
+  }));
+}
+
+export async function markReminderNotified(reminderId: string): Promise<void> {
+  await pool.query(`UPDATE reminders SET notified_at = now() WHERE id = $1`, [reminderId]);
+}

@@ -81,6 +81,7 @@ describe("018_reminders migration (real Postgres)", () => {
       { column_name: "dismissed_at", udt_name: "timestamptz", is_nullable: "YES", column_default: null },
       { column_name: "created_at", udt_name: "timestamptz", is_nullable: "NO", column_default: "now()" },
       { column_name: "updated_at", udt_name: "timestamptz", is_nullable: "NO", column_default: "now()" },
+      { column_name: "notified_at", udt_name: "timestamptz", is_nullable: "YES", column_default: null },
     ]);
   });
 
