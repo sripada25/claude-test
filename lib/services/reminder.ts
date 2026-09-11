@@ -1,10 +1,12 @@
 import { getAIProvider, getAIProviderMetadata } from "../ai/provider.ts";
 import { pool } from "../db.ts";
+import { insertApplicationEvent } from "../repositories/application-event.ts";
 import { recordAiUsage } from "../repositories/ai-usage.ts";
 import {
   dismissReminder,
   findPendingRemindersForUser,
   findReminderForUser,
+  markReminderSent,
   setApplicationFollowUpSnoozedUntil,
   snoozeReminder,
   updateReminderDraft,
@@ -195,4 +197,40 @@ export async function dismissReminderFollowUp(userId: string, reminderId: string
     snoozedUntil: null,
     dismissedAt: dismissed.dismissedAt.toISOString(),
   };
+}
+
+export type MarkReminderSentResult =
+  | { success: true; id: string; status: "sent"; sentAt: string }
+  | { success: false; reason: "not_found" };
+
+// F4-2.6: one action, two consequences (F4-TASKS.md section 4) - the
+// reminder closes and the board's Follow up tag clears, since its
+// derived-tag query (section 2) checks for exactly this application_events
+// row. Both writes share one transaction; the event's applicationId comes
+// only from markReminderSent's own returned row, never from client input.
+// No applications write here - see the repository comment on why that's
+// correct, not an omission.
+export async function markReminderFollowUpSent(userId: string, reminderId: string): Promise<MarkReminderSentResult> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const sent = await markReminderSent(client, reminderId, userId);
+    if (!sent) {
+      await client.query("ROLLBACK");
+      return { success: false, reason: "not_found" };
+    }
+    await insertApplicationEvent(client, {
+      applicationId: sent.applicationId,
+      userId,
+      type: "follow_up_sent",
+      description: "Follow-up email sent",
+    });
+    await client.query("COMMIT");
+    return { success: true, id: sent.id, status: "sent", sentAt: sent.sentAt.toISOString() };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
