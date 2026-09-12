@@ -2,7 +2,7 @@ export interface CardTagData {
   key: string;
   label: string;
   ariaLabel?: string;
-  variant: "default" | "follow-up";
+  variant: "default" | "follow-up" | "sent";
   href?: string;
 }
 
@@ -31,12 +31,15 @@ export function deriveCardTags(application: {
   id: string;
   lastActivityAt: string;
   followUpDue: boolean;
+  followUpSentToday: boolean;
   assessmentDueAt: string | null;
   interviewAt: string | null;
 }): { visible: CardTagData[]; overflowCount: number } {
   const candidates: CardTagData[] = [];
 
-  if (application.followUpDue) {
+  if (application.followUpSentToday) {
+    candidates.push({ key: "follow-up-sent", label: "Sent · today", variant: "sent" });
+  } else if (application.followUpDue) {
     candidates.push({
       key: "follow-up",
       label: "Follow up",

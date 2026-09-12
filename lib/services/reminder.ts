@@ -2,10 +2,13 @@ import { getAIProvider, getAIProviderMetadata } from "../ai/provider.ts";
 import { pool } from "../db.ts";
 import { insertApplicationEvent } from "../repositories/application-event.ts";
 import { recordAiUsage } from "../repositories/ai-usage.ts";
+import { countSentToday, insertEmailLog } from "../repositories/email-log.ts";
+import { sendEmail } from "../email/transport.ts";
 import {
   dismissReminder,
   findPendingRemindersForUser,
   findRemindersByApplication,
+  findReminderForSend,
   findReminderForUser,
   findResolvedRemindersForUser,
   markReminderSent,
@@ -17,6 +20,8 @@ import {
   type ReminderQueueRow,
 } from "../repositories/reminder.ts";
 import { getApplication } from "./application.ts";
+import { getSubscription } from "./subscription.ts";
+import { DAILY_SEND_THRESHOLD } from "./reminder-notifier.ts";
 
 export interface ReminderQueueItem {
   id: string;
@@ -244,6 +249,79 @@ export async function markReminderFollowUpSent(userId: string, reminderId: strin
   } finally {
     client.release();
   }
+}
+
+export type SendReminderFollowUpResult =
+  | { success: true; id: string; status: "sent"; sentAt: string; recipientEmail: string }
+  | {
+      success: false;
+      reason: "not_found" | "not_pro" | "no_recipient" | "contact_email_unverified" | "quota_exceeded" | "send_failed";
+    };
+
+// M08-R2: wraps markReminderFollowUpSent rather than duplicating its writes -
+// the DB outcome of a real send and today's mark-as-sent placeholder is
+// identical (status -> sent, one follow_up_sent event). sendEmail() runs
+// BEFORE that write, outside any transaction, so a failed send never marks
+// the reminder resolved - the user can retry (08d's "Retry send").
+export async function sendReminderFollowUp(
+  userId: string,
+  reminderId: string,
+  subject: string,
+): Promise<SendReminderFollowUpResult> {
+  const subscription = await getSubscription(userId);
+  if (subscription.tier !== "pro") {
+    return { success: false, reason: "not_pro" };
+  }
+
+  const reminder = await findReminderForSend(reminderId, userId);
+  if (!reminder || reminder.draftContent === null) {
+    return { success: false, reason: "not_found" };
+  }
+  if (!reminder.recipientEmail) {
+    return { success: false, reason: "no_recipient" };
+  }
+  if (!reminder.senderContactEmail || !reminder.senderContactEmailVerified) {
+    return { success: false, reason: "contact_email_unverified" };
+  }
+
+  if ((await countSentToday()) >= DAILY_SEND_THRESHOLD) {
+    return { success: false, reason: "quota_exceeded" };
+  }
+
+  try {
+    await sendEmail({
+      to: reminder.recipientEmail,
+      subject,
+      text: reminder.draftContent,
+      replyTo: reminder.senderContactEmail,
+    });
+  } catch (error) {
+    await insertEmailLog({
+      userId,
+      recipient: reminder.recipientEmail,
+      purpose: "follow_up_manual_send",
+      sentAt: null,
+      failedAt: new Date(),
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return { success: false, reason: "send_failed" };
+  }
+
+  await insertEmailLog({
+    userId,
+    recipient: reminder.recipientEmail,
+    purpose: "follow_up_manual_send",
+    sentAt: new Date(),
+    failedAt: null,
+    error: null,
+  });
+
+  const marked = await markReminderFollowUpSent(userId, reminderId);
+  if (!marked.success) {
+    return { success: false, reason: "not_found" };
+  }
+
+  return { success: true, id: marked.id, status: "sent", sentAt: marked.sentAt, recipientEmail: reminder.recipientEmail };
 }
 
 export type UpdateReminderDraftResult =

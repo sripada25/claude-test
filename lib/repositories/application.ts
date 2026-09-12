@@ -47,6 +47,7 @@ export interface ListApplicationsOptions {
 
 export interface ApplicationListItem extends Application {
   followUpDue: boolean;
+  followUpSentToday: boolean;
 }
 
 interface ApplicationRow {
@@ -272,7 +273,7 @@ export async function findUserApplications(
     conditions.push(`source = ANY($${params.length}::application_source[])`);
   }
 
-  const result = await pool.query<ApplicationRow & { follow_up_due: boolean }>(
+  const result = await pool.query<ApplicationRow & { follow_up_due: boolean; follow_up_sent_today: boolean }>(
     `SELECT id, user_id, company, role, status, job_description, source, source_url, date_applied,
             assessment_due_at, interview_at, notes, last_activity_at, position, created_at, updated_at,
             (
@@ -283,12 +284,22 @@ export async function findUserApplications(
                 SELECT 1 FROM application_events e
                 WHERE e.application_id = applications.id AND e.type = 'follow_up_sent'
               )
-            ) AS follow_up_due
+            ) AS follow_up_due,
+            EXISTS (
+              SELECT 1 FROM application_events e
+              WHERE e.application_id = applications.id
+                AND e.type = 'follow_up_sent'
+                AND e.created_at >= CURRENT_DATE
+            ) AS follow_up_sent_today
      FROM applications
      WHERE ${conditions.join(" AND ")}
      ORDER BY ${SORT_CLAUSES[opts.sort]}`,
     params,
   );
 
-  return result.rows.map((row) => ({ ...toApplication(row), followUpDue: row.follow_up_due }));
+  return result.rows.map((row) => ({
+    ...toApplication(row),
+    followUpDue: row.follow_up_due,
+    followUpSentToday: row.follow_up_sent_today,
+  }));
 }

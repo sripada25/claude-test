@@ -265,6 +265,54 @@ export async function findReminderForUser(reminderId: string, userId: string): P
   };
 }
 
+export interface ReminderForSend {
+  id: string;
+  applicationId: string;
+  draftContent: string | null;
+  recipientEmail: string | null;
+  senderContactEmail: string | null;
+  senderContactEmailVerified: boolean;
+}
+
+// M08-R2: everything sendReminderFollowUp needs in one query - the recipient
+// (applications.contact_email) and the sender's own verified Reply-To
+// (profiles.contact_email/contact_email_verified_at) are two different
+// emails on two different tables, easy to conflate (see M08-R1's own
+// AskUserQuestion resolving the same distinction for the schema).
+export async function findReminderForSend(
+  reminderId: string,
+  userId: string,
+): Promise<ReminderForSend | null> {
+  const result = await pool.query<{
+    id: string;
+    application_id: string;
+    draft_content: string | null;
+    recipient_email: string | null;
+    sender_contact_email: string | null;
+    sender_contact_email_verified_at: Date | null;
+  }>(
+    `SELECT r.id, r.application_id, r.draft_content, a.contact_email AS recipient_email,
+            p.contact_email AS sender_contact_email, p.contact_email_verified_at AS sender_contact_email_verified_at
+     FROM reminders r
+     JOIN applications a ON a.id = r.application_id
+     JOIN profiles p ON p.user_id = r.user_id
+     WHERE r.id = $1 AND r.user_id = $2`,
+    [reminderId, userId],
+  );
+  if (!result.rows[0]) {
+    return null;
+  }
+  const row = result.rows[0];
+  return {
+    id: row.id,
+    applicationId: row.application_id,
+    draftContent: row.draft_content,
+    recipientEmail: row.recipient_email,
+    senderContactEmail: row.sender_contact_email,
+    senderContactEmailVerified: row.sender_contact_email_verified_at !== null,
+  };
+}
+
 export interface UpdatedReminderDraft {
   id: string;
   draftContent: string;
