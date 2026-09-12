@@ -1,12 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   EmploymentHistoryFields,
   type EmploymentEntryErrors,
   type EmploymentEntryForm,
 } from "@/components/profile/EmploymentHistoryFields";
+import { ContactEmailVerify } from "@/components/profile/ContactEmailVerify";
 import { LocationSegmented, type LocationPreference } from "@/components/profile/LocationSegmented";
 import { ProfileActions } from "@/components/profile/ProfileActions";
 import { ProfileFields, type ProfileFieldsValues } from "@/components/profile/ProfileFields";
@@ -25,7 +26,20 @@ const EMPTY_PROFILE_FORM: ProfileFieldsValues = {
   targetRole: "",
   yearsExperience: "0",
   monthsExperience: "0",
+  contactEmail: "",
 };
+
+interface ProfileSnapshot {
+  form: ProfileFieldsValues;
+  skills: string[];
+  employmentHistory: EmploymentEntryForm[];
+  salary: SalaryValues;
+  locationPreference: LocationPreference | "";
+}
+
+function snapshotKey(snapshot: ProfileSnapshot): string {
+  return JSON.stringify(snapshot);
+}
 
 export function ProfileBuilderScreen() {
   const [extractedProfile, setExtractedProfile] = useState<ExtractedProfile | null>(null);
@@ -43,7 +57,75 @@ export function ProfileBuilderScreen() {
   const [salaryError, setSalaryError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [contactEmailVerifiedAt, setContactEmailVerifiedAt] = useState<string | null>(null);
+  const baselineRef = useRef(
+    snapshotKey({
+      form: EMPTY_PROFILE_FORM,
+      skills: [],
+      employmentHistory: [],
+      salary: { currency: "INR", amount: "", period: "" },
+      locationPreference: "",
+    }),
+  );
+  const baselineContactEmailRef = useRef("");
   const router = useRouter();
+
+  useEffect(() => {
+    let cancelled = false;
+
+    Promise.all([
+      fetch("/api/profile").then((response) => (response.ok ? response.json() : null)),
+      fetch("/api/profile/employment").then((response) => (response.ok ? response.json() : [])),
+    ]).then(([profile, employment]) => {
+      if (cancelled || !profile) {
+        return;
+      }
+
+      const nextForm: ProfileFieldsValues = {
+        fullName: profile.fullName ?? "",
+        currentRole: profile.currentRole ?? "",
+        targetRole: profile.targetRole ?? "",
+        yearsExperience: profile.yearsExperience != null ? String(profile.yearsExperience) : "0",
+        monthsExperience: profile.monthsExperience != null ? String(profile.monthsExperience) : "0",
+        contactEmail: profile.contactEmail ?? "",
+      };
+      const nextSkills: string[] = Array.isArray(profile.skills) ? profile.skills : [];
+      const nextEmployment: EmploymentEntryForm[] = Array.isArray(employment)
+        ? employment.map((entry: { employer: string; title: string; startDate: string; endDate: string | null }) => ({
+            employer: entry.employer,
+            title: entry.title,
+            startDate: entry.startDate,
+            endDate: entry.endDate ?? "",
+          }))
+        : [];
+      const nextSalary: SalaryValues = {
+        currency: profile.salaryCurrency ?? "INR",
+        amount: profile.salaryAmount != null ? String(profile.salaryAmount) : "",
+        period: profile.salaryPeriod ?? "",
+      };
+      const nextLocation: LocationPreference | "" = profile.locationPreference ?? "";
+
+      setProfileForm(nextForm);
+      setSkills(nextSkills);
+      setEmploymentHistory(nextEmployment);
+      setSalary(nextSalary);
+      setLocationPreference(nextLocation);
+      setContactEmailVerifiedAt(profile.contactEmailVerifiedAt ?? null);
+
+      baselineRef.current = snapshotKey({
+        form: nextForm,
+        skills: nextSkills,
+        employmentHistory: nextEmployment,
+        salary: nextSalary,
+        locationPreference: nextLocation,
+      });
+      baselineContactEmailRef.current = nextForm.contactEmail;
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!extractedProfile) {
@@ -62,6 +144,7 @@ export function ProfileBuilderScreen() {
         extractedProfile.monthsExperience != null
           ? String(extractedProfile.monthsExperience)
           : current.monthsExperience,
+      contactEmail: current.contactEmail,
     }));
 
     setSkills((current) => {
@@ -77,16 +160,8 @@ export function ProfileBuilderScreen() {
   }, [extractedProfile]);
 
   const isDirty =
-    profileForm.fullName !== "" ||
-    profileForm.currentRole !== "" ||
-    profileForm.targetRole !== "" ||
-    profileForm.yearsExperience !== "0" ||
-    profileForm.monthsExperience !== "0" ||
-    skills.length > 0 ||
-    employmentHistory.length > 0 ||
-    salary.amount !== "" ||
-    salary.period !== "" ||
-    locationPreference !== "";
+    snapshotKey({ form: profileForm, skills, employmentHistory, salary, locationPreference }) !==
+    baselineRef.current;
 
   function handleBack() {
     if (isDirty && !window.confirm("Leave without saving? Your changes will be lost.")) {
@@ -148,6 +223,7 @@ export function ProfileBuilderScreen() {
       targetRole: profileForm.targetRole,
       yearsExperience: Number(profileForm.yearsExperience),
       monthsExperience: Number(profileForm.monthsExperience),
+      contactEmail: profileForm.contactEmail || null,
       skills,
       salaryAmount: salary.amount ? Number(salary.amount) : null,
       salaryCurrency: salary.amount ? salary.currency : null,
@@ -203,6 +279,17 @@ export function ProfileBuilderScreen() {
             values={profileForm}
             onChange={(patch) => setProfileForm((current) => ({ ...current, ...patch }))}
             errors={fieldErrors}
+            contactEmailAction={
+              <ContactEmailVerify
+                contactEmail={profileForm.contactEmail}
+                verified={contactEmailVerifiedAt !== null}
+                dirty={profileForm.contactEmail !== baselineContactEmailRef.current}
+                onVerified={() => {
+                  baselineContactEmailRef.current = profileForm.contactEmail;
+                  setContactEmailVerifiedAt(new Date().toISOString());
+                }}
+              />
+            }
           />
           <EmploymentHistoryFields
             entries={employmentHistory}

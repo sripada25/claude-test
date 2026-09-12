@@ -1,10 +1,14 @@
 import {
   findProfileByUserId,
+  setContactEmailVerified,
   updateProfileFields,
   type LocationPreference,
   type Profile,
   type SalaryPeriod,
 } from "../repositories/profile.ts";
+import { canResend, issueOtp, verifyOtp } from "./verification.ts";
+
+const CONTACT_EMAIL_OTP_PURPOSE = "contact_email_verify";
 
 const MAX_SKILLS = 30;
 
@@ -106,6 +110,52 @@ export async function updateProfile(
   // since lost a required field.
   merged.completedAt = isComplete(merged) ? (current.completedAt ?? new Date()) : null;
 
+  // A verified Reply-To must never survive a change to the address it
+  // verified - otherwise a user could verify once, then swap in an
+  // unverified address that inherits the old verification for free.
+  if (patch.contactEmail !== undefined && patch.contactEmail !== current.contactEmail) {
+    merged.contactEmailVerifiedAt = null;
+  }
+
   await updateProfileFields(userId, merged);
   return { success: true, profile: merged };
+}
+
+export type IssueContactEmailOtpResult =
+  | { success: true }
+  | { success: false; reason: "no_contact_email" | "rate_limited" };
+
+export async function issueContactEmailOtp(userId: string): Promise<IssueContactEmailOtpResult> {
+  const profile = await getProfile(userId);
+  if (!profile.contactEmail) {
+    return { success: false, reason: "no_contact_email" };
+  }
+
+  if (!(await canResend(userId, CONTACT_EMAIL_OTP_PURPOSE))) {
+    return { success: false, reason: "rate_limited" };
+  }
+
+  await issueOtp(userId, CONTACT_EMAIL_OTP_PURPOSE, profile.contactEmail);
+  return { success: true };
+}
+
+export type ConfirmContactEmailOtpResult =
+  | { success: true }
+  | {
+      success: false;
+      reason: "expired" | "incorrect" | "locked";
+      attemptsRemaining?: number;
+    };
+
+export async function confirmContactEmailOtp(
+  userId: string,
+  code: string,
+): Promise<ConfirmContactEmailOtpResult> {
+  const result = await verifyOtp(userId, CONTACT_EMAIL_OTP_PURPOSE, code);
+  if (!result.success) {
+    return result;
+  }
+
+  await setContactEmailVerified(userId, new Date());
+  return { success: true };
 }

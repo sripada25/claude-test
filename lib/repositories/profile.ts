@@ -16,6 +16,7 @@ export interface Profile {
   salaryPeriod: SalaryPeriod | null;
   locationPreference: LocationPreference | null;
   completedAt: Date | null;
+  contactEmailVerifiedAt: Date | null;
 }
 
 interface ProfileRow {
@@ -31,6 +32,7 @@ interface ProfileRow {
   salary_period: SalaryPeriod | null;
   location_preference: LocationPreference | null;
   completed_at: Date | null;
+  contact_email_verified_at: Date | null;
 }
 
 function toProfile(row: ProfileRow): Profile {
@@ -47,6 +49,7 @@ function toProfile(row: ProfileRow): Profile {
     salaryPeriod: row.salary_period,
     locationPreference: row.location_preference,
     completedAt: row.completed_at,
+    contactEmailVerifiedAt: row.contact_email_verified_at,
   };
 }
 
@@ -54,7 +57,7 @@ export async function findProfileByUserId(userId: string): Promise<Profile | nul
   const result = await pool.query<ProfileRow>(
     `SELECT full_name, "current_role", target_role, contact_email, years_experience,
             months_experience, skills, salary_amount, salary_currency, salary_period,
-            location_preference, completed_at
+            location_preference, completed_at, contact_email_verified_at
      FROM profiles WHERE user_id = $1`,
     [userId],
   );
@@ -80,6 +83,7 @@ export async function updateProfileFields(
     | "salaryPeriod"
     | "locationPreference"
     | "completedAt"
+    | "contactEmailVerifiedAt"
   >,
 ): Promise<void> {
   await pool.query(
@@ -87,7 +91,8 @@ export async function updateProfileFields(
      SET full_name = $2, "current_role" = $3, target_role = $4, contact_email = $5,
          years_experience = $6, months_experience = $7, skills = $8,
          salary_amount = $9, salary_currency = $10, salary_period = $11,
-         location_preference = $12, completed_at = $13, updated_at = now()
+         location_preference = $12, completed_at = $13, contact_email_verified_at = $14,
+         updated_at = now()
      WHERE user_id = $1`,
     [
       userId,
@@ -103,6 +108,17 @@ export async function updateProfileFields(
       profile.salaryPeriod,
       profile.locationPreference,
       profile.completedAt,
+      profile.contactEmailVerifiedAt,
     ],
   );
+}
+
+// Dedicated single-column update, matching updateEmail's style
+// (lib/repositories/user.ts) - the OTP confirm path only ever needs to flip
+// this one timestamp, not rewrite the whole profile row.
+export async function setContactEmailVerified(userId: string, verifiedAt: Date): Promise<void> {
+  await pool.query(`UPDATE profiles SET contact_email_verified_at = $2 WHERE user_id = $1`, [
+    userId,
+    verifiedAt,
+  ]);
 }
