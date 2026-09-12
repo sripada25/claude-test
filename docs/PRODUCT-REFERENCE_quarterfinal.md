@@ -93,10 +93,10 @@ Replaces the single-point-in-time `F1-READINESS.md`. This table is designed to b
 
 | | |
 |---|---|
-| **Design** | Wireframe only (plate 07) |
+| **Design** | ✅ Pen-verified (mockups 07, 07b) as of 2026-09-12 — the "wireframe only" note above was stale, same as plate 08's was for F4 |
 | **Rules** | Prompt spec exists — `AI-RULES.md` §6.1 |
-| **Tasks** | None written |
-| **Status** | Not started |
+| **Tasks** | F5-1 — `POST /api/applications/:id/call-notes(/structure)`, `LogCallModal`, `LastCallPanel`. Merged via PR #297 (2026-09-12). One modal (form → AI review), no new schema (`application_events.type='call_logged'` already existed), reuses `AIProvider.structureCallNote()` (already implemented, zero prior callers) and F4-3.6's `createCustomReminder` as-is when the AI extracts a follow-up date |
+| **Status** | Started — F5-1 done. `CLAUDE.md §1` updated to list F5 as currently specified |
 
 ## F6 — Payments
 
