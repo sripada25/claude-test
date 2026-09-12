@@ -85,8 +85,8 @@ Replaces the single-point-in-time `F1-READINESS.md`. This table is designed to b
 | | |
 |---|---|
 | **Backend** | 9 tasks, `TASKS_quarterfinal.md` §F4, full detail in `F4-TASKS.md` |
-| **Frontend** | No mockup (plate 08 is wireframe-only). Structure specced, not pixel-verified |
-| **Schema** | Complete — `DATABASE_quarterfinal.md` §3.3 |
+| **Frontend** | ~~No mockup (plate 08 is wireframe-only). Structure specced, not pixel-verified~~ — stale as of 2026-09-12: plate 08 is pen-verified (node `GPMVt`, 4 state variants). Global queue + composer rebuilt in **M08-R1**, merged via PR #299 (2026-09-12); real "Send now" sending is **M08-R2**, not yet started |
+| **Schema** | Complete — `DATABASE_quarterfinal.md` §3.3, plus `applications.contact_email` (migration 020, added by M08-R1) |
 | **Blocking** | 🔴 L038 (copy-only vs Pro send) gates 3 of 9 tasks. Evidence is one-sided toward copy-only — see the ledger record |
 
 ## F5 — Post-Call Quick Log
