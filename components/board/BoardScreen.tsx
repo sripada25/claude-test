@@ -63,6 +63,7 @@ interface BoardApplication {
   role: string;
   lastActivityAt: string;
   followUpDue: boolean;
+  followUpSentToday: boolean;
   assessmentDueAt: string | null;
   interviewAt: string | null;
   position: number | null;
@@ -315,6 +316,7 @@ export function BoardScreen({
           role: created.role,
           lastActivityAt: created.lastActivityAt,
           followUpDue: false,
+          followUpSentToday: false,
           assessmentDueAt: created.assessmentDueAt,
           interviewAt: created.interviewAt,
           position: created.position,
@@ -399,6 +401,7 @@ export function BoardScreen({
                               colorClass={stage.colorClass}
                               lastActivityAt={application.lastActivityAt}
                               followUpDue={application.followUpDue}
+                              followUpSentToday={application.followUpSentToday}
                               assessmentDueAt={application.assessmentDueAt}
                               interviewAt={application.interviewAt}
                             />
@@ -428,6 +431,7 @@ export function BoardScreen({
                     colorClass={activeStage?.colorClass ?? ""}
                     lastActivityAt={activeApplication.lastActivityAt}
                     followUpDue={activeApplication.followUpDue}
+                    followUpSentToday={activeApplication.followUpSentToday}
                     assessmentDueAt={activeApplication.assessmentDueAt}
                     interviewAt={activeApplication.interviewAt}
                   />

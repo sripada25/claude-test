@@ -6,6 +6,7 @@ import type { CardTagData } from "@/components/board/cardTags";
 const VARIANT_CLASSES: Record<CardTagData["variant"], string> = {
   default: "bg-surface-2 text-ink-2",
   "follow-up": "bg-accent-soft text-accent",
+  sent: "bg-success-soft text-success",
 };
 
 export function CardTag({ tag }: { tag: CardTagData }) {

@@ -17,6 +17,13 @@ export function RemindersScreen() {
   const [queue, setQueue] = useState<ReminderQueueData | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [refreshSignal, setRefreshSignal] = useState(0);
+  const [tier, setTier] = useState<"free" | "pro" | null>(null);
+
+  useEffect(() => {
+    fetch("/api/subscription")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { tier: "free" | "pro" } | null) => setTier(data?.tier ?? "free"));
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,6 +89,7 @@ export function RemindersScreen() {
                 key={selectedItem.id}
                 reminderId={selectedItem.id}
                 applicationId={selectedItem.applicationId}
+                tier={tier ?? "free"}
                 onResolved={handleResolved}
               />
             ) : (

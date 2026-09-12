@@ -13,6 +13,7 @@ export function ApplicationCard({
   colorClass,
   lastActivityAt,
   followUpDue,
+  followUpSentToday,
   assessmentDueAt,
   interviewAt,
   dragRef,
@@ -27,6 +28,7 @@ export function ApplicationCard({
   colorClass: string;
   lastActivityAt: string;
   followUpDue: boolean;
+  followUpSentToday: boolean;
   assessmentDueAt: string | null;
   interviewAt: string | null;
   dragRef?: (node: HTMLElement | null) => void;
@@ -40,6 +42,7 @@ export function ApplicationCard({
     id,
     lastActivityAt,
     followUpDue,
+    followUpSentToday,
     assessmentDueAt,
     interviewAt,
   });

@@ -14,7 +14,9 @@ const BATCH_SIZE = 5;
 // trial period) - reserving 50/day headroom keeps verification and
 // password-reset emails, which must never fail to send, from being crowded
 // out by a reminder cluster.
-const DAILY_SEND_THRESHOLD = 250;
+// Exported so M08-R2's manual "Send now" checks against the same shared
+// budget - one daily cap across every purpose, not a per-feature quota.
+export const DAILY_SEND_THRESHOLD = 250;
 
 function buildNotificationEmail(candidate: DueNotificationCandidate): { subject: string; text: string } {
   if (candidate.type === "post_interview") {

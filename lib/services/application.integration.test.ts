@@ -378,6 +378,29 @@ describe("application service (real Postgres)", () => {
     expect(dueId).toBeTruthy();
   });
 
+  it("computes followUpSentToday correctly", async () => {
+    const userId = await insertUser("sent-today@example.com");
+
+    const sentTodayId = await insertRawApplication(userId, { company: "Sent Today Co" });
+    await insertEvent(sentTodayId, userId, "follow_up_sent");
+
+    const sentYesterdayId = await insertRawApplication(userId, { company: "Sent Yesterday Co" });
+    await pool.query(
+      `INSERT INTO application_events (application_id, user_id, type, description, created_at)
+       VALUES ($1, $2, 'follow_up_sent', 'test event', now() - interval '1 day')`,
+      [sentYesterdayId, userId],
+    );
+
+    await insertRawApplication(userId, { company: "Never Sent Co" });
+
+    const results = await listApplications(userId, {});
+    const byCompany = Object.fromEntries(results.map((r) => [r.company, r.followUpSentToday]));
+
+    expect(byCompany["Sent Today Co"]).toBe(true);
+    expect(byCompany["Sent Yesterday Co"]).toBe(false);
+    expect(byCompany["Never Sent Co"]).toBe(false);
+  });
+
   it("returns the application when owned and not deleted", async () => {
     const userId = await insertUser("get-owned@example.com");
     const id = await insertRawApplication(userId, { company: "Owned Co" });

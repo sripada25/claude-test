@@ -16,17 +16,27 @@ interface ApplicationInfo {
   contactEmail: string | null;
 }
 
+const SEND_FAILURE_COPY: Record<string, string> = {
+  quota_exceeded:
+    "Couldn't send this email — we've hit today's sending limit. Try again tomorrow, or copy the draft and send it yourself.",
+};
+const DEFAULT_SEND_FAILURE =
+  "Couldn't send this email. Check the address or copy the draft and send it yourself.";
+
 export function DraftPane({
   reminderId,
   applicationId,
+  tier,
   onResolved,
 }: {
   reminderId: string;
   applicationId: string;
+  tier: "free" | "pro";
   onResolved?: () => void;
 }) {
   const [state, setState] = useState<PaneState>("loading");
   const [application, setApplication] = useState<ApplicationInfo | null>(null);
+  const [senderVerified, setSenderVerified] = useState(false);
   const [content, setContent] = useState("");
   const [draft, setDraft] = useState("");
   const [editing, setEditing] = useState(false);
@@ -39,6 +49,7 @@ export function DraftPane({
   const [confirming, setConfirming] = useState<ConfirmingAction>(null);
   const [actionPending, setActionPending] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [sendFailed, setSendFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,18 +62,26 @@ export function DraftPane({
         headers: { [CSRF_HEADER_NAME]: getCsrfToken() },
       }).then((response) => (response.ok ? response.json() : Promise.reject())),
       fetch(`/api/applications/${applicationId}`).then((response) => (response.ok ? response.json() : Promise.reject())),
+      fetch(`/api/profile`).then((response) => (response.ok ? response.json() : Promise.reject())),
     ])
-      .then(([draftData, applicationData]: [{ draftContent: string }, ApplicationInfo]) => {
-        if (cancelled) {
-          return;
-        }
-        setContent(draftData.draftContent);
-        setDraft(draftData.draftContent);
-        setApplication(applicationData);
-        setTo(applicationData.contactEmail ?? "");
-        setSubject(`Following up — ${applicationData.role}`);
-        setState("ready");
-      })
+      .then(
+        ([draftData, applicationData, profileData]: [
+          { draftContent: string },
+          ApplicationInfo,
+          { contactEmailVerifiedAt: string | null },
+        ]) => {
+          if (cancelled) {
+            return;
+          }
+          setContent(draftData.draftContent);
+          setDraft(draftData.draftContent);
+          setApplication(applicationData);
+          setTo(applicationData.contactEmail ?? "");
+          setSubject(`Following up — ${applicationData.role}`);
+          setSenderVerified(profileData.contactEmailVerifiedAt !== null);
+          setState("ready");
+        },
+      )
       .catch(() => {
         if (!cancelled) {
           setState("error");
@@ -181,28 +200,30 @@ export function DraftPane({
     onResolved?.();
   }
 
-  // "Send now" - real provider-backed sending is a separate task (M08-R2).
-  // Until then this behaves identically to Mark as sent under the mockup's
-  // label, per M08-R1's own scope note.
   async function handleSendNow() {
     setActionPending(true);
     setActionError(null);
+    setSendFailed(false);
 
     let response: Response;
     try {
       response = await fetch(`/api/reminders/${reminderId}/sent`, {
         method: "POST",
-        headers: { [CSRF_HEADER_NAME]: getCsrfToken() },
+        headers: { "Content-Type": "application/json", [CSRF_HEADER_NAME]: getCsrfToken() },
+        body: JSON.stringify({ subject }),
       });
     } catch {
-      setActionError("Could not send this follow-up. Try again.");
       setActionPending(false);
+      setSendFailed(true);
+      setActionError(DEFAULT_SEND_FAILURE);
       return;
     }
 
     setActionPending(false);
     if (!response.ok) {
-      setActionError("Could not send this follow-up. Try again.");
+      const result: { reason?: string } = await response.json().catch(() => ({}));
+      setSendFailed(true);
+      setActionError((result.reason && SEND_FAILURE_COPY[result.reason]) ?? DEFAULT_SEND_FAILURE);
       return;
     }
 
@@ -314,10 +335,10 @@ export function DraftPane({
       {confirming === "sent" ? (
         <div className="flex flex-wrap items-center gap-[10px] border-t border-border pt-4">
           <span className="font-body text-[12px] font-semibold text-ink-2">
-            Send this follow-up? This closes the reminder.
+            Send this email now? It&apos;ll go to {to} from Trackr&apos;s mail service. You can&apos;t unsend it.
           </span>
           <Button variant="primary" size="sm" onClick={handleSendNow} disabled={actionPending}>
-            {actionPending ? "Sending..." : "Confirm"}
+            {actionPending ? "Sending..." : "Send"}
           </Button>
           <Button variant="secondary" size="sm" onClick={() => setConfirming(null)} disabled={actionPending}>
             Cancel
@@ -325,7 +346,7 @@ export function DraftPane({
         </div>
       ) : (
         !editing && (
-          <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+          <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
             <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
               Edit
             </Button>
@@ -335,9 +356,24 @@ export function DraftPane({
             <Button variant="secondary" size="sm" onClick={handleOpenInMail} disabled={!to}>
               Open in mail ↗
             </Button>
-            <Button variant="primary" size="sm" onClick={() => setConfirming("sent")}>
-              Send now
-            </Button>
+            {tier === "pro" &&
+              (senderVerified ? (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={sendFailed ? handleSendNow : () => setConfirming("sent")}
+                  disabled={!to || actionPending}
+                >
+                  {actionPending ? "Sending..." : sendFailed ? "Retry send" : "Send now"}
+                </Button>
+              ) : (
+                <span className="font-body text-[12px] text-muted">
+                  <a href="/app/profile" className="font-medium text-primary underline">
+                    Verify your contact email
+                  </a>{" "}
+                  to enable sending
+                </span>
+              ))}
           </div>
         )
       )}
