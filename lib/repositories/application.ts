@@ -29,6 +29,7 @@ export interface Application {
   assessmentDueAt: Date | null;
   interviewAt: Date | null;
   notes: string | null;
+  contactEmail: string | null;
   lastActivityAt: Date;
   position: number | null;
   createdAt: Date;
@@ -61,6 +62,7 @@ interface ApplicationRow {
   assessment_due_at: Date | null;
   interview_at: Date | null;
   notes: string | null;
+  contact_email: string | null;
   last_activity_at: Date;
   position: number | null;
   created_at: Date;
@@ -81,6 +83,7 @@ function toApplication(row: ApplicationRow): Application {
     assessmentDueAt: row.assessment_due_at,
     interviewAt: row.interview_at,
     notes: row.notes,
+    contactEmail: row.contact_email,
     lastActivityAt: row.last_activity_at,
     position: row.position,
     createdAt: row.created_at,
@@ -105,7 +108,7 @@ export async function insertApplication(
     `INSERT INTO applications (user_id, company, role, status, job_description, source, source_url, date_applied)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      RETURNING id, user_id, company, role, status, job_description, source, source_url, date_applied,
-               assessment_due_at, interview_at, notes, last_activity_at, position, created_at, updated_at`,
+               assessment_due_at, interview_at, notes, contact_email, last_activity_at, position, created_at, updated_at`,
     [
       userId,
       input.company,
@@ -136,7 +139,7 @@ export async function findUserApplicationById(
 
   const result = await pool.query<ApplicationRow>(
     `SELECT id, user_id, company, role, status, job_description, source, source_url, date_applied,
-            assessment_due_at, interview_at, notes, last_activity_at, position, created_at, updated_at
+            assessment_due_at, interview_at, notes, contact_email, last_activity_at, position, created_at, updated_at
      FROM applications
      WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL`,
     [id, userId],
@@ -163,6 +166,7 @@ export async function updateApplicationFields(
     | "sourceUrl"
     | "dateApplied"
     | "notes"
+    | "contactEmail"
     | "lastActivityAt"
     | "position"
   >,
@@ -170,11 +174,11 @@ export async function updateApplicationFields(
   const result = await db.query<ApplicationRow>(
     `UPDATE applications
      SET company = $3, role = $4, status = $5, job_description = $6, source = $7,
-         source_url = $8, date_applied = $9, notes = $10, last_activity_at = $11,
-         position = $12, updated_at = now()
+         source_url = $8, date_applied = $9, notes = $10, contact_email = $11, last_activity_at = $12,
+         position = $13, updated_at = now()
      WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
      RETURNING id, user_id, company, role, status, job_description, source, source_url, date_applied,
-               assessment_due_at, interview_at, notes, last_activity_at, position, created_at, updated_at`,
+               assessment_due_at, interview_at, notes, contact_email, last_activity_at, position, created_at, updated_at`,
     [
       id,
       userId,
@@ -186,6 +190,7 @@ export async function updateApplicationFields(
       fields.sourceUrl,
       fields.dateApplied,
       fields.notes,
+      fields.contactEmail,
       fields.lastActivityAt,
       fields.position,
     ],
@@ -214,7 +219,7 @@ export async function softDeleteApplication(userId: string, id: string): Promise
      SET deleted_at = now(), updated_at = now()
      WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL AND status = 'rejected'
      RETURNING id, user_id, company, role, status, job_description, source, source_url, date_applied,
-               assessment_due_at, interview_at, notes, last_activity_at, created_at, updated_at`,
+               assessment_due_at, interview_at, notes, contact_email, last_activity_at, created_at, updated_at`,
     [id, userId],
   );
 

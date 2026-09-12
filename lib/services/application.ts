@@ -151,6 +151,7 @@ export interface UpdateApplicationInput {
   sourceUrl?: string | null;
   dateApplied?: string | null;
   notes?: string | null;
+  contactEmail?: string | null;
   position?: number;
 }
 
@@ -215,6 +216,7 @@ export async function updateApplication(
 
   const dateApplied = patch.dateApplied !== undefined ? patch.dateApplied : current.dateApplied;
   const notes = patch.notes !== undefined ? patch.notes : current.notes;
+  const contactEmail = patch.contactEmail !== undefined ? patch.contactEmail : current.contactEmail;
 
   if (patch.position !== undefined && !Number.isFinite(patch.position)) {
     return { success: false, reason: "invalid_position" };
@@ -239,6 +241,7 @@ export async function updateApplication(
       sourceUrl,
       dateApplied,
       notes,
+      contactEmail,
       lastActivityAt: bumpActivity ? new Date() : current.lastActivityAt,
       position,
     });

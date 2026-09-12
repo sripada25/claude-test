@@ -41,7 +41,7 @@ export function deriveCardTags(application: {
       key: "follow-up",
       label: "Follow up",
       variant: "follow-up",
-      href: `/app/applications/${application.id}/follow-up`,
+      href: `/app/reminders?applicationId=${application.id}`,
     });
   }
 
