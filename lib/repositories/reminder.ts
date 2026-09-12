@@ -186,6 +186,45 @@ export async function findPendingRemindersForUser(userId: string): Promise<Remin
   }));
 }
 
+// M08-R1: the mockup's third queue section ("Done") - resolved reminders,
+// invisible until now since findPendingRemindersForUser only ever
+// returned pending/snoozed rows. A separate function rather than a further
+// amendment to that one, since it's already been amended once (issue
+// #274) and its own WHERE clause is unrelated to this - "done" is a
+// distinct read, not a variant of "still active".
+export async function findResolvedRemindersForUser(userId: string): Promise<ReminderQueueRow[]> {
+  const result = await pool.query<{
+    id: string;
+    type: ReminderType;
+    due_at: Date;
+    application_id: string;
+    company: string;
+    role: string;
+    date_applied: string | null;
+    interview_at: Date | null;
+  }>(
+    `SELECT r.id, r.type, r.due_at, a.id AS application_id, a.company, a.role,
+            a.date_applied, a.interview_at
+     FROM reminders r
+     JOIN applications a ON a.id = r.application_id
+     WHERE r.user_id = $1
+       AND r.status IN ('sent', 'dismissed')
+       AND a.deleted_at IS NULL
+     ORDER BY r.updated_at DESC`,
+    [userId],
+  );
+  return result.rows.map((row) => ({
+    id: row.id,
+    type: row.type,
+    dueAt: row.due_at,
+    applicationId: row.application_id,
+    company: row.company,
+    role: row.role,
+    dateApplied: row.date_applied,
+    interviewAt: row.interview_at,
+  }));
+}
+
 export interface ReminderForDraft {
   id: string;
   type: ReminderType;

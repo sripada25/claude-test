@@ -7,6 +7,7 @@ import {
   findPendingRemindersForUser,
   findRemindersByApplication,
   findReminderForUser,
+  findResolvedRemindersForUser,
   markReminderSent,
   setApplicationFollowUpSnoozedUntil,
   snoozeReminder,
@@ -31,6 +32,7 @@ export interface ReminderQueueItem {
 export interface ReminderQueue {
   dueNow: ReminderQueueItem[];
   upcoming: ReminderQueueItem[];
+  done: ReminderQueueItem[];
 }
 
 function toQueueItem(row: ReminderQueueRow): ReminderQueueItem {
@@ -53,7 +55,10 @@ function toQueueItem(row: ReminderQueueRow): ReminderQueueItem {
 // inserted within a one-hour window around that threshold - so nothing here
 // is ever far in the future; no separate lookahead cap is needed.
 export async function getReminderQueue(userId: string): Promise<ReminderQueue> {
-  const rows = await findPendingRemindersForUser(userId);
+  const [rows, resolvedRows] = await Promise.all([
+    findPendingRemindersForUser(userId),
+    findResolvedRemindersForUser(userId),
+  ]);
   const now = Date.now();
 
   const dueNow: ReminderQueueItem[] = [];
@@ -68,7 +73,9 @@ export async function getReminderQueue(userId: string): Promise<ReminderQueue> {
     }
   }
 
-  return { dueNow, upcoming };
+  const done = resolvedRows.map(toQueueItem);
+
+  return { dueNow, upcoming, done };
 }
 
 export type DraftReminderResult =

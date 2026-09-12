@@ -52,6 +52,8 @@ export async function PATCH(
         ? body.dateApplied
         : undefined,
     notes: body.notes === null || typeof body.notes === "string" ? body.notes : undefined,
+    contactEmail:
+      body.contactEmail === null || typeof body.contactEmail === "string" ? body.contactEmail : undefined,
     position: typeof body.position === "number" ? body.position : undefined,
   });
 

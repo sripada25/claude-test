@@ -84,7 +84,7 @@ describe("/api/reminders (real Postgres)", () => {
     const response = await GET_(getRequest(userId));
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ dueNow: [], upcoming: [] });
+    expect(await response.json()).toEqual({ dueNow: [], upcoming: [], done: [] });
   });
 
   it("places a past-due reminder under dueNow", async () => {
@@ -134,10 +134,10 @@ describe("/api/reminders (real Postgres)", () => {
     expect(body.upcoming).toHaveLength(0);
   });
 
-  it("excludes a dismissed reminder", async () => {
+  it("excludes a dismissed reminder from dueNow/upcoming, surfaces it under done", async () => {
     const userId = await insertUser("dismissed@example.com");
     const applicationId = await insertApplication(userId);
-    await insertReminder({
+    const reminderId = await insertReminder({
       userId,
       applicationId,
       dueAt: new Date(Date.now() - 60_000),
@@ -149,6 +149,58 @@ describe("/api/reminders (real Postgres)", () => {
 
     expect(body.dueNow).toHaveLength(0);
     expect(body.upcoming).toHaveLength(0);
+    expect(body.done).toHaveLength(1);
+    expect(body.done[0].id).toBe(reminderId);
+  });
+
+  it("surfaces a sent reminder under done", async () => {
+    const userId = await insertUser("sent-done@example.com");
+    const applicationId = await insertApplication(userId);
+    const reminderId = await insertReminder({
+      userId,
+      applicationId,
+      dueAt: new Date(Date.now() - 60_000),
+      status: "sent",
+    });
+
+    const response = await GET_(getRequest(userId));
+    const body = await response.json();
+
+    expect(body.done).toHaveLength(1);
+    expect(body.done[0].id).toBe(reminderId);
+  });
+
+  it("excludes a done reminder belonging to another user", async () => {
+    const ownerId = await insertUser("done-owner@example.com");
+    const otherId = await insertUser("done-other@example.com");
+    const applicationId = await insertApplication(ownerId);
+    await insertReminder({
+      userId: ownerId,
+      applicationId,
+      dueAt: new Date(Date.now() - 60_000),
+      status: "sent",
+    });
+
+    const response = await GET_(getRequest(otherId));
+    const body = await response.json();
+
+    expect(body.done).toHaveLength(0);
+  });
+
+  it("excludes a done reminder whose application is soft-deleted", async () => {
+    const userId = await insertUser("done-deleted-app@example.com");
+    const applicationId = await insertApplication(userId, new Date());
+    await insertReminder({
+      userId,
+      applicationId,
+      dueAt: new Date(Date.now() - 60_000),
+      status: "sent",
+    });
+
+    const response = await GET_(getRequest(userId));
+    const body = await response.json();
+
+    expect(body.done).toHaveLength(0);
   });
 
   it("excludes an actively-snoozed reminder", async () => {

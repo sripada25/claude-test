@@ -10,12 +10,31 @@ const CARD_CLASS = "border border-border bg-surface px-7 py-[26px] max-md:px-4 m
 type PaneState = "loading" | "ready" | "error";
 type ConfirmingAction = "dismiss" | "sent" | null;
 
-export function DraftPane({ reminderId, onResolved }: { reminderId: string; onResolved?: () => void }) {
+interface ApplicationInfo {
+  company: string;
+  role: string;
+  contactEmail: string | null;
+}
+
+export function DraftPane({
+  reminderId,
+  applicationId,
+  onResolved,
+}: {
+  reminderId: string;
+  applicationId: string;
+  onResolved?: () => void;
+}) {
   const [state, setState] = useState<PaneState>("loading");
+  const [application, setApplication] = useState<ApplicationInfo | null>(null);
   const [content, setContent] = useState("");
   const [draft, setDraft] = useState("");
+  const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [to, setTo] = useState("");
+  const [savingTo, setSavingTo] = useState(false);
+  const [subject, setSubject] = useState("");
   const [copied, setCopied] = useState(false);
   const [confirming, setConfirming] = useState<ConfirmingAction>(null);
   const [actionPending, setActionPending] = useState(false);
@@ -24,18 +43,24 @@ export function DraftPane({ reminderId, onResolved }: { reminderId: string; onRe
   useEffect(() => {
     let cancelled = false;
     setState("loading");
+    setEditing(false);
 
-    fetch(`/api/reminders/${reminderId}/draft`, {
-      method: "POST",
-      headers: { [CSRF_HEADER_NAME]: getCsrfToken() },
-    })
-      .then((response) => (response.ok ? response.json() : Promise.reject()))
-      .then((data: { draftContent: string }) => {
+    Promise.all([
+      fetch(`/api/reminders/${reminderId}/draft`, {
+        method: "POST",
+        headers: { [CSRF_HEADER_NAME]: getCsrfToken() },
+      }).then((response) => (response.ok ? response.json() : Promise.reject())),
+      fetch(`/api/applications/${applicationId}`).then((response) => (response.ok ? response.json() : Promise.reject())),
+    ])
+      .then(([draftData, applicationData]: [{ draftContent: string }, ApplicationInfo]) => {
         if (cancelled) {
           return;
         }
-        setContent(data.draftContent);
-        setDraft(data.draftContent);
+        setContent(draftData.draftContent);
+        setDraft(draftData.draftContent);
+        setApplication(applicationData);
+        setTo(applicationData.contactEmail ?? "");
+        setSubject(`Following up — ${applicationData.role}`);
         setState("ready");
       })
       .catch(() => {
@@ -47,11 +72,9 @@ export function DraftPane({ reminderId, onResolved }: { reminderId: string; onRe
     return () => {
       cancelled = true;
     };
-  }, [reminderId]);
+  }, [reminderId, applicationId]);
 
-  const dirty = draft !== content;
-
-  async function handleSave() {
+  async function handleSaveDraft() {
     if (draft.trim() === "") {
       return;
     }
@@ -82,6 +105,34 @@ export function DraftPane({ reminderId, onResolved }: { reminderId: string; onRe
     setContent(data.draftContent);
     setDraft(data.draftContent);
     setSaving(false);
+    setEditing(false);
+  }
+
+  function handleCancelEdit() {
+    setDraft(content);
+    setSaveError(null);
+    setEditing(false);
+  }
+
+  // To persists via the existing PATCH /api/applications/:id (extended
+  // with contactEmail this task) on blur - Subject is derived, client-side
+  // text with no persistence, same status as the body before it's saved.
+  async function handleToBlur() {
+    if (to === (application?.contactEmail ?? "")) {
+      return;
+    }
+
+    setSavingTo(true);
+    try {
+      await fetch(`/api/applications/${applicationId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", [CSRF_HEADER_NAME]: getCsrfToken() },
+        body: JSON.stringify({ contactEmail: to || null }),
+      });
+      setApplication((current) => (current ? { ...current, contactEmail: to || null } : current));
+    } finally {
+      setSavingTo(false);
+    }
   }
 
   async function handleCopy() {
@@ -92,6 +143,15 @@ export function DraftPane({ reminderId, onResolved }: { reminderId: string; onRe
     } catch {
       // Clipboard permission denied - nothing more to do silently.
     }
+  }
+
+  function handleOpenInMail() {
+    const params = new URLSearchParams();
+    if (subject) {
+      params.set("subject", subject);
+    }
+    params.set("body", draft);
+    window.location.href = `mailto:${encodeURIComponent(to)}?${params.toString()}`;
   }
 
   async function handleDismiss() {
@@ -121,7 +181,10 @@ export function DraftPane({ reminderId, onResolved }: { reminderId: string; onRe
     onResolved?.();
   }
 
-  async function handleMarkSent() {
+  // "Send now" - real provider-backed sending is a separate task (M08-R2).
+  // Until then this behaves identically to Mark as sent under the mockup's
+  // label, per M08-R1's own scope note.
+  async function handleSendNow() {
     setActionPending(true);
     setActionError(null);
 
@@ -132,14 +195,14 @@ export function DraftPane({ reminderId, onResolved }: { reminderId: string; onRe
         headers: { [CSRF_HEADER_NAME]: getCsrfToken() },
       });
     } catch {
-      setActionError("Could not mark this reminder as sent. Try again.");
+      setActionError("Could not send this follow-up. Try again.");
       setActionPending(false);
       return;
     }
 
     setActionPending(false);
     if (!response.ok) {
-      setActionError("Could not mark this reminder as sent. Try again.");
+      setActionError("Could not send this follow-up. Try again.");
       return;
     }
 
@@ -160,7 +223,7 @@ export function DraftPane({ reminderId, onResolved }: { reminderId: string; onRe
     );
   }
 
-  if (state === "error") {
+  if (state === "error" || !application) {
     return (
       <div className={CARD_CLASS}>
         <p className="font-body text-[13px] text-danger">Could not load this draft.</p>
@@ -170,34 +233,24 @@ export function DraftPane({ reminderId, onResolved }: { reminderId: string; onRe
 
   return (
     <div className={`${CARD_CLASS} flex flex-col gap-4`}>
-      <textarea
-        value={draft}
-        onChange={(event) => setDraft(event.target.value)}
-        rows={10}
-        className="w-full resize-y bg-transparent font-body text-[13px] leading-[1.6] text-ink-2 focus-visible:outline-none"
-      />
-
-      {saveError && <p className="font-body text-[12px] text-danger">{saveError}</p>}
-
-      <div className="flex flex-wrap gap-2">
-        {dirty && (
-          <Button variant="primary" size="sm" onClick={handleSave} disabled={saving || draft.trim() === ""}>
-            {saving ? "Saving..." : "Save"}
-          </Button>
-        )}
-        <Button variant="secondary" size="sm" onClick={handleCopy}>
-          {copied ? "Copied!" : "Copy"}
-        </Button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span className="font-body text-[15px] font-semibold text-ink">Follow-up — {application.company}</span>
+        <div className="flex items-center gap-2">
+          <SnoozeControl reminderId={reminderId} onResolved={onResolved} />
+          {confirming !== "dismiss" && (
+            <button
+              type="button"
+              onClick={() => setConfirming("dismiss")}
+              className="border border-border-strong bg-surface px-[10px] py-[6px] font-body text-[12px] font-medium text-ink"
+            >
+              Dismiss
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="border-t border-border pt-4">
-        <SnoozeControl reminderId={reminderId} onResolved={onResolved} />
-      </div>
-
-      {actionError && <p className="font-body text-[12px] text-danger">{actionError}</p>}
-
-      {confirming === "dismiss" ? (
-        <div className="flex flex-wrap items-center gap-[10px] border-t border-border pt-4">
+      {confirming === "dismiss" && (
+        <div className="flex flex-wrap items-center gap-[10px] border border-border bg-surface-2 p-3">
           <span className="font-body text-[12px] font-semibold text-ink-2">
             Dismiss? You won&apos;t be reminded about this again.
           </span>
@@ -208,27 +261,85 @@ export function DraftPane({ reminderId, onResolved }: { reminderId: string; onRe
             Cancel
           </Button>
         </div>
-      ) : confirming === "sent" ? (
+      )}
+
+      <div className="flex flex-col gap-2 border-t border-border pt-4">
+        <div className="flex items-center gap-2">
+          <span className="w-16 shrink-0 font-body text-[11.5px] text-muted">To</span>
+          <input
+            type="email"
+            value={to}
+            onChange={(event) => setTo(event.target.value)}
+            onBlur={handleToBlur}
+            disabled={savingTo}
+            placeholder="recipient@example.com"
+            className="flex-1 border border-border-strong bg-surface px-2 py-[6px] font-body text-[12.5px] text-ink"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-16 shrink-0 font-body text-[11.5px] text-muted">Subject</span>
+          <input
+            type="text"
+            value={subject}
+            onChange={(event) => setSubject(event.target.value)}
+            className="flex-1 border border-border-strong bg-surface px-2 py-[6px] font-body text-[12.5px] text-ink"
+          />
+        </div>
+      </div>
+
+      {editing ? (
+        <>
+          <textarea
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            rows={10}
+            className="w-full resize-y border border-border-strong bg-surface p-2 font-body text-[13px] leading-[1.6] text-ink-2 focus-visible:outline-none"
+          />
+          {saveError && <p className="font-body text-[12px] text-danger">{saveError}</p>}
+          <div className="flex gap-2">
+            <Button variant="primary" size="sm" onClick={handleSaveDraft} disabled={saving || draft.trim() === ""}>
+              {saving ? "Saving..." : "Save"}
+            </Button>
+            <Button variant="secondary" size="sm" onClick={handleCancelEdit} disabled={saving}>
+              Cancel
+            </Button>
+          </div>
+        </>
+      ) : (
+        <p className="whitespace-pre-line font-body text-[13px] leading-[1.6] text-ink-2">{draft}</p>
+      )}
+
+      {actionError && <p className="font-body text-[12px] text-danger">{actionError}</p>}
+
+      {confirming === "sent" ? (
         <div className="flex flex-wrap items-center gap-[10px] border-t border-border pt-4">
           <span className="font-body text-[12px] font-semibold text-ink-2">
-            Mark as sent? This closes the reminder.
+            Send this follow-up? This closes the reminder.
           </span>
-          <Button variant="primary" size="sm" onClick={handleMarkSent} disabled={actionPending}>
-            {actionPending ? "Marking..." : "Confirm"}
+          <Button variant="primary" size="sm" onClick={handleSendNow} disabled={actionPending}>
+            {actionPending ? "Sending..." : "Confirm"}
           </Button>
           <Button variant="secondary" size="sm" onClick={() => setConfirming(null)} disabled={actionPending}>
             Cancel
           </Button>
         </div>
       ) : (
-        <div className="flex flex-wrap gap-2 border-t border-border pt-4">
-          <Button variant="secondary" size="sm" onClick={() => setConfirming("dismiss")}>
-            Dismiss
-          </Button>
-          <Button variant="primary" size="sm" onClick={() => setConfirming("sent")}>
-            Mark as sent
-          </Button>
-        </div>
+        !editing && (
+          <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+            <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
+              Edit
+            </Button>
+            <Button variant="secondary" size="sm" onClick={handleCopy}>
+              {copied ? "Copied!" : "Copy"}
+            </Button>
+            <Button variant="secondary" size="sm" onClick={handleOpenInMail} disabled={!to}>
+              Open in mail ↗
+            </Button>
+            <Button variant="primary" size="sm" onClick={() => setConfirming("sent")}>
+              Send now
+            </Button>
+          </div>
+        )
       )}
     </div>
   );

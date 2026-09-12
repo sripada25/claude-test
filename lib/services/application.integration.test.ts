@@ -452,6 +452,32 @@ describe("application service (real Postgres)", () => {
     expect(await eventsFor(id)).toEqual([{ type: "note_updated", description: "Note updated" }]);
   });
 
+  it("changing contactEmail persists it without writing an event or bumping last_activity_at", async () => {
+    const userId = await insertUser("patch-contact-email@example.com");
+    const oldActivity = new Date(Date.now() - 10 * 86_400_000);
+    const id = await insertRawApplication(userId, { lastActivityAt: oldActivity });
+
+    const result = await updateApplication(userId, id, { contactEmail: "priya.singh@razorpay.com" });
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.application.contactEmail).toBe("priya.singh@razorpay.com");
+    expect(result.application.lastActivityAt.getTime()).toBe(oldActivity.getTime());
+    expect(await eventsFor(id)).toEqual([]);
+  });
+
+  it("clears contactEmail when explicitly set to null", async () => {
+    const userId = await insertUser("clear-contact-email@example.com");
+    const id = await insertRawApplication(userId, {});
+    await updateApplication(userId, id, { contactEmail: "someone@example.com" });
+
+    const result = await updateApplication(userId, id, { contactEmail: null });
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.application.contactEmail).toBeNull();
+  });
+
   it("changing jobDescription copies the old value into a snapshotless document", async () => {
     const userId = await insertUser("patch-jd-copies@example.com");
     const id = await insertRawApplication(userId, { jobDescription: "Old JD" });
