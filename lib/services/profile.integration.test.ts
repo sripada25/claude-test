@@ -213,6 +213,48 @@ describe("profile service (real Postgres)", () => {
     expect(second.profile.completedAt).toEqual(firstCompletedAt);
   });
 
+  it("resets contact_email_verified_at when contactEmail actually changes", async () => {
+    const userId = await insertUserWithProfile("reset-on-change@example.com");
+    await pool.query(
+      "UPDATE profiles SET contact_email = 'old@example.com', contact_email_verified_at = now() WHERE user_id = $1",
+      [userId],
+    );
+
+    const result = await updateProfile(userId, { contactEmail: "new@example.com" });
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error("expected success");
+    expect(result.profile.contactEmailVerifiedAt).toBeNull();
+  });
+
+  it("does not reset contact_email_verified_at when contactEmail is unchanged", async () => {
+    const userId = await insertUserWithProfile("no-reset-unchanged@example.com");
+    await pool.query(
+      "UPDATE profiles SET contact_email = 'same@example.com', contact_email_verified_at = now() WHERE user_id = $1",
+      [userId],
+    );
+
+    const result = await updateProfile(userId, { currentRole: "Senior Engineer" });
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error("expected success");
+    expect(result.profile.contactEmailVerifiedAt).not.toBeNull();
+  });
+
+  it("does not reset contact_email_verified_at when contactEmail is omitted from the patch", async () => {
+    const userId = await insertUserWithProfile("no-reset-omitted@example.com");
+    await pool.query(
+      "UPDATE profiles SET contact_email = 'kept@example.com', contact_email_verified_at = now() WHERE user_id = $1",
+      [userId],
+    );
+
+    const result = await updateProfile(userId, { fullName: "Updated Name" });
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error("expected success");
+    expect(result.profile.contactEmailVerifiedAt).not.toBeNull();
+  });
+
   it("sets completed_at even with current_role, salary, and location_preference absent", async () => {
     const userId = await insertUserWithProfile("minimal-complete@example.com", "Jane Doe");
 

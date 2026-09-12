@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Briefcase, FileText, LayoutDashboard, Settings } from "lucide-react";
+import { Bell, Briefcase, FileText, LayoutDashboard, Settings, User } from "lucide-react";
 import { useEffect } from "react";
 import { NavItem } from "@/components/shell/NavItem";
 import { SidebarBrand } from "@/components/shell/SidebarBrand";
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: "/app/applications", label: "Applications", icon: Briefcase },
   { href: "/app/documents", label: "Documents", icon: FileText },
   { href: "/app/reminders", label: "Reminders", icon: Bell },
+  { href: "/app/profile", label: "Profile", icon: User },
   { href: "/app/settings", label: "Settings", icon: Settings },
 ];
 

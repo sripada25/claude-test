@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Field } from "@/components/ui/Field";
 
 export type ProfileFieldsValues = {
@@ -6,6 +7,7 @@ export type ProfileFieldsValues = {
   targetRole: string;
   yearsExperience: string;
   monthsExperience: string;
+  contactEmail: string;
 };
 
 const SELECT_CLASSES =
@@ -15,10 +17,12 @@ export function ProfileFields({
   values,
   onChange,
   errors,
+  contactEmailAction,
 }: {
   values: ProfileFieldsValues;
   onChange: (patch: Partial<ProfileFieldsValues>) => void;
   errors?: { fullName?: string; targetRole?: string };
+  contactEmailAction?: ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-5">
@@ -80,6 +84,18 @@ export function ProfileFields({
           onChange={(value) => onChange({ targetRole: value })}
           required
           error={errors?.targetRole}
+        />
+      </div>
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        <Field
+          id="contact-email"
+          label="Contact email"
+          type="email"
+          name="contactEmail"
+          value={values.contactEmail}
+          onChange={(value) => onChange({ contactEmail: value })}
+          hint="Used as the reply-to address when Trackr sends a follow-up on your behalf."
+          labelAction={contactEmailAction}
         />
       </div>
     </div>
