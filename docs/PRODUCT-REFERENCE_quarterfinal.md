@@ -85,8 +85,8 @@ Replaces the single-point-in-time `F1-READINESS.md`. This table is designed to b
 | | |
 |---|---|
 | **Backend** | 9 tasks, `TASKS_quarterfinal.md` §F4, full detail in `F4-TASKS.md` |
-| **Frontend** | ~~No mockup (plate 08 is wireframe-only). Structure specced, not pixel-verified~~ — stale as of 2026-09-12: plate 08 is pen-verified (node `GPMVt`, 4 state variants). Global queue + composer rebuilt in **M08-R1**, merged via PR #299 (2026-09-12); real "Send now" sending is **M08-R2**, not yet started |
-| **Schema** | Complete — `DATABASE_quarterfinal.md` §3.3, plus `applications.contact_email` (migration 020, added by M08-R1) |
+| **Frontend** | ~~No mockup (plate 08 is wireframe-only). Structure specced, not pixel-verified~~ — stale as of 2026-09-12: plate 08 is pen-verified (node `GPMVt`, 4 state variants). Global queue + composer rebuilt in **M08-R1**, merged via PR #299 (2026-09-12). **M08-R2-PRE** (contact-email verification prerequisite) merged via PR #301 (2026-09-12); real "Send now" sending is **M08-R2**, not yet started |
+| **Schema** | Complete — `DATABASE_quarterfinal.md` §3.3, plus `applications.contact_email` (migration 020, M08-R1) and `profiles.contact_email_verified_at` (migration 021, M08-R2-PRE) |
 | **Blocking** | 🔴 L038 (copy-only vs Pro send) gates 3 of 9 tasks. Evidence is one-sided toward copy-only — see the ledger record |
 
 ## F5 — Post-Call Quick Log
@@ -221,8 +221,8 @@ Pulled from every document. This is the single list to work through.
 | ID | Item | Blocks |
 |---|---|---|
 | L074 | LinkedIn company Page not yet created | T4.4 only |
-| — | **Pro send-path design** — L038 is *decided* (both tiers), but confirmation/sent/failure states don't exist | 3 of F4's 9 tasks |
-| — | **`contact_email` verification** before use as Reply-To — now required, since the Pro send path is confirmed | F4 send path |
+| — | ~~**Pro send-path design** — L038 is *decided* (both tiers), but confirmation/sent/failure states don't exist~~ — stale as of 2026-09-12: 08b/08c/08d confirm/sent/failed states are pen-verified. Only the real send implementation (**M08-R2**) is left | 3 of F4's 9 tasks |
+| — | ~~**`contact_email` verification** before use as Reply-To — now required~~ — done: **M08-R2-PRE**, merged via PR #301 (2026-09-12). `profiles.contact_email_verified_at` gates Reply-To use in the upcoming **M08-R2** | F4 send path |
 
 ## 🟠 Needed before the relevant feature proceeds
 
@@ -230,7 +230,7 @@ Pulled from every document. This is the single list to work through.
 |---|---|---|
 | — | R2 window: 24h or 48h (PRD says "24–48") | F4 |
 | — | Does R2 fire if `interview_at` was never set? | F4 |
-| — | `contact_email` verification before Reply-To use | F4 (now required — L038 confirmed the send path) |
+| — | ~~`contact_email` verification before Reply-To use~~ — done: **M08-R2-PRE**, merged via PR #301 (2026-09-12) | F4 (duplicate of the 🔴 row above) |
 | — | F5 needs mockups before component-level tasks | F5 |
 | — | F6's remaining open questions — refunds, cancellation, GST invoicing, mid-cycle switching | F6 |
 | — | **Subscription Expiry screen exists but is empty** — confirmed via full read, needs the designer to actually build it | F6 |
