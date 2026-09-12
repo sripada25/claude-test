@@ -194,6 +194,17 @@ export async function updateApplicationFields(
   return result.rows[0] ? toApplication(result.rows[0]) : null;
 }
 
+// F5-1: DATABASE_quarterfinal.md's own last_activity_at invariant ("updated
+// by: status change - note edit - call log - document generated - reminder
+// set - JD edit") only status/notes changes actually satisfy today
+// (document_generated/reminder_set don't - a pre-existing gap, out of
+// scope here). This is a minimal touch, not the full updateApplicationFields
+// UPDATE, so a caller doesn't need to re-supply every column just to bump
+// this one.
+export async function touchApplicationActivity(db: Queryable, applicationId: string): Promise<void> {
+  await db.query(`UPDATE applications SET last_activity_at = now() WHERE id = $1`, [applicationId]);
+}
+
 // Only a rejected application can be soft-deleted (DATABASE_quarterfinal.md
 // §3.1 / M05-03's doc) - status = 'rejected' is re-checked here even though
 // the service already checked it, guarding against a race between the two.

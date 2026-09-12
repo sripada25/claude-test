@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { SetReminderAction } from "@/components/reminders/SetReminderAction";
+import { LogCallModal } from "@/components/calls/LogCallModal";
 
 function useGenerationGate() {
   const [completedAt, setCompletedAt] = useState<string | null | undefined>(undefined);
@@ -54,13 +55,16 @@ function useGenerationGate() {
 export function ActionButtons({
   applicationId,
   onReminderCreated,
+  onCallLogged,
 }: {
   applicationId: string;
   onReminderCreated?: () => void;
+  onCallLogged?: () => void;
 }) {
   const router = useRouter();
   const disabledReason = useGenerationGate();
   const generationDisabled = disabledReason !== null && disabledReason !== undefined;
+  const [loggingCall, setLoggingCall] = useState(false);
 
   return (
     <div className="flex flex-col gap-[10px]">
@@ -89,10 +93,22 @@ export function ActionButtons({
           {disabledReason}
         </p>
       )}
-      <Button variant="secondary" size="md" icon={<PhoneCall size={15} aria-hidden />}>
+      <Button
+        variant="secondary"
+        size="md"
+        icon={<PhoneCall size={15} aria-hidden />}
+        onClick={() => setLoggingCall(true)}
+      >
         Log a call
       </Button>
       <SetReminderAction applicationId={applicationId} onCreated={onReminderCreated} />
+      {loggingCall && (
+        <LogCallModal
+          applicationId={applicationId}
+          onClose={() => setLoggingCall(false)}
+          onLogged={onCallLogged}
+        />
+      )}
     </div>
   );
 }

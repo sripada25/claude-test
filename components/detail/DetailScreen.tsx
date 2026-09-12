@@ -120,8 +120,9 @@ export function DetailScreen({ id }: { id: string }) {
                     <ActionButtons
                       applicationId={application.id}
                       onReminderCreated={() => setRefreshSignal((current) => current + 1)}
+                      onCallLogged={() => setRefreshSignal((current) => current + 1)}
                     />
-                    <LastCallPanel />
+                    <LastCallPanel applicationId={application.id} refreshSignal={refreshSignal} />
                   </div>
                 </div>
               </div>

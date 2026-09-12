@@ -9,7 +9,7 @@ Feature detail lives in the linked documents — do not duplicate it here.
 
 **Trackr** — a job application tracker. Users log applications, generate tailored cover letters and resumes from a job description plus their profile, and capture what happened on recruiter calls.
 
-Currently specified for implementation: **F1 User Accounts, F2 Application Tracker, F3 AI Generation, F4 Follow-up System.** F5 and F6 are not started. See `docs/PRODUCT-REFERENCE_quarterfinal.md` §3 for the current status of each.
+Currently specified for implementation: **F1 User Accounts, F2 Application Tracker, F3 AI Generation, F4 Follow-up System, F5 Post-Call Quick Log.** F6 is not started. See `docs/PRODUCT-REFERENCE_quarterfinal.md` §3 for the current status of each.
 
 ## 2 · DOCUMENT MAP
 
