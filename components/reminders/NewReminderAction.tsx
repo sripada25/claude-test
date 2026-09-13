@@ -1,5 +1,6 @@
 "use client";
 
+import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { CSRF_HEADER_NAME, getCsrfToken } from "@/lib/security/csrf-client";
@@ -92,7 +93,13 @@ export function NewReminderAction({ onCreated }: { onCreated?: () => void }) {
 
   return (
     <div className="relative">
-      <Button variant="primary" size="sm" onClick={openPanel} disabled={panel !== "closed"}>
+      <Button
+        variant="primary"
+        size="sm"
+        icon={<Plus size={14} aria-hidden />}
+        onClick={openPanel}
+        disabled={panel !== "closed"}
+      >
         New reminder
       </Button>
 

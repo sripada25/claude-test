@@ -1,7 +1,5 @@
 "use client";
 
-import { Mail } from "lucide-react";
-
 export interface ReminderQueueItem {
   id: string;
   type: "application_followup" | "post_interview";
@@ -32,6 +30,15 @@ function daysElapsed(item: ReminderQueueItem): number | null {
   return Math.max(0, Math.floor((Date.now() - new Date(referenceDate).getTime()) / MS_PER_DAY));
 }
 
+// M08-R3: Upcoming rows count down to due_at (Mockup 08's "In N days"), the
+// opposite direction from Due/Done's tagText() below, which counts elapsed
+// time since the type's own trigger date. Conflating the two was M08-R1's
+// bug - an Upcoming item showed how long it had been due, not how long
+// until it would be.
+function daysUntilDue(item: ReminderQueueItem): number {
+  return Math.max(0, Math.ceil((new Date(item.dueAt).getTime() - Date.now()) / MS_PER_DAY));
+}
+
 // M08-R1: pen-verified tag text (Admin.pen, GPMVt) - a single combined tag,
 // not separate type+days text. application_followup shows elapsed days;
 // post_interview reads "Interview prep" with no day count, even though
@@ -48,34 +55,55 @@ function tagText(item: ReminderQueueItem): string {
   return days === 1 ? "Follow-up · 1 day" : `Follow-up · ${days} days`;
 }
 
+// M08-R3: pen-verified per-type pill color (GPMVt's Due row tags) -
+// application_followup is accent, post_interview is neutral - matches
+// cardTags.ts/CardTag's existing "follow-up"/"default" variant colors
+// exactly, so this reuses the same visual language rather than inventing a
+// second one.
+const TAG_CLASSES: Record<ReminderQueueItem["type"], string> = {
+  application_followup: "bg-accent-soft text-accent",
+  post_interview: "bg-surface-2 text-ink-2",
+};
+
 function ReminderRow({
   item,
-  index,
   selected,
   onSelect,
+  upcoming,
 }: {
   item: ReminderQueueItem;
-  index: number;
   selected: boolean;
   onSelect: (id: string) => void;
+  upcoming?: boolean;
 }) {
   return (
-    <li className={index > 0 ? "border-t border-border" : ""}>
+    <li>
       <button
         type="button"
         onClick={() => onSelect(item.id)}
         aria-pressed={selected}
-        className={`flex w-full items-center gap-3 p-[13px_16px] text-left max-sm:flex-wrap ${
-          selected ? "bg-accent-soft" : ""
-        }`}
+        className={`flex w-full flex-col items-start gap-1 border bg-surface p-[10px] text-left ${
+          selected ? "border-accent" : "border-border hover:border-border-strong"
+        } ${upcoming ? "opacity-65" : ""}`}
       >
-        <span className="flex size-[26px] shrink-0 items-center justify-center bg-surface-2">
-          <Mail size={14} className="text-primary" />
-        </span>
-        <span className="flex-1 font-body text-[13px] text-ink">
-          {item.company} — {item.role}
-        </span>
-        <span className="font-mono text-[11.5px] text-muted max-sm:w-full max-sm:pl-[38px]">{tagText(item)}</span>
+        {upcoming ? (
+          <>
+            <span className="font-body text-[11.5px] font-semibold text-ink">
+              {item.company} — {item.role}
+            </span>
+            <span className="font-mono text-[10px] text-muted">In {daysUntilDue(item)} days</span>
+          </>
+        ) : (
+          <>
+            <span className="font-body text-[12.5px] font-semibold text-ink">{item.company}</span>
+            <span className="font-body text-[11px] text-ink-2">{item.role}</span>
+            <span
+              className={`inline-flex items-center px-[7px] py-[3px] font-mono text-[9.5px] font-semibold ${TAG_CLASSES[item.type]}`}
+            >
+              {tagText(item)}
+            </span>
+          </>
+        )}
       </button>
     </li>
   );
@@ -86,22 +114,30 @@ function ReminderSection({
   items,
   selectedId,
   onSelect,
+  upcoming,
 }: {
   title: string;
   items: ReminderQueueItem[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  upcoming?: boolean;
 }) {
   if (items.length === 0) {
     return null;
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.8px] text-ink-2">{title}</span>
-      <ol className="flex flex-col border border-border bg-surface">
-        {items.map((item, index) => (
-          <ReminderRow key={item.id} item={item} index={index} selected={item.id === selectedId} onSelect={onSelect} />
+    <div className="flex flex-col gap-2">
+      <span className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.8px] text-muted">{title}</span>
+      <ol className="flex flex-col gap-2">
+        {items.map((item) => (
+          <ReminderRow
+            key={item.id}
+            item={item}
+            selected={item.id === selectedId}
+            onSelect={onSelect}
+            upcoming={upcoming}
+          />
         ))}
       </ol>
     </div>
@@ -128,7 +164,7 @@ export function ReminderQueue({
   return (
     <div className="flex flex-col gap-6">
       <ReminderSection title="Due now" items={queue.dueNow} selectedId={selectedId} onSelect={onSelect} />
-      <ReminderSection title="Upcoming" items={queue.upcoming} selectedId={selectedId} onSelect={onSelect} />
+      <ReminderSection title="Upcoming" items={queue.upcoming} selectedId={selectedId} onSelect={onSelect} upcoming />
       <ReminderSection title="Done" items={queue.done} selectedId={selectedId} onSelect={onSelect} />
     </div>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { CSRF_HEADER_NAME, getCsrfToken } from "@/lib/security/csrf-client";
@@ -255,14 +256,14 @@ export function DraftPane({
   return (
     <div className={`${CARD_CLASS} flex flex-col gap-4`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <span className="font-body text-[15px] font-semibold text-ink">Follow-up — {application.company}</span>
+        <span className="font-display text-[16px] font-semibold text-ink">Follow up — {application.company}</span>
         <div className="flex items-center gap-2">
           <SnoozeControl reminderId={reminderId} onResolved={onResolved} />
           {confirming !== "dismiss" && (
             <button
               type="button"
               onClick={() => setConfirming("dismiss")}
-              className="border border-border-strong bg-surface px-[10px] py-[6px] font-body text-[12px] font-medium text-ink"
+              className="border border-border-strong bg-surface px-[12px] py-[7px] font-body text-[12px] font-medium text-ink"
             >
               Dismiss
             </button>
@@ -284,51 +285,59 @@ export function DraftPane({
         </div>
       )}
 
-      <div className="flex flex-col gap-2 border-t border-border pt-4">
-        <div className="flex items-center gap-2">
-          <span className="w-16 shrink-0 font-body text-[11.5px] text-muted">To</span>
-          <input
-            type="email"
-            value={to}
-            onChange={(event) => setTo(event.target.value)}
-            onBlur={handleToBlur}
-            disabled={savingTo}
-            placeholder="recipient@example.com"
-            className="flex-1 border border-border-strong bg-surface px-2 py-[6px] font-body text-[12.5px] text-ink"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-16 shrink-0 font-body text-[11.5px] text-muted">Subject</span>
-          <input
-            type="text"
-            value={subject}
-            onChange={(event) => setSubject(event.target.value)}
-            className="flex-1 border border-border-strong bg-surface px-2 py-[6px] font-body text-[12.5px] text-ink"
-          />
-        </div>
-      </div>
+      <span className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.8px] text-muted">
+        Drafted message
+      </span>
 
-      {editing ? (
-        <>
-          <textarea
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            rows={10}
-            className="w-full resize-y border border-border-strong bg-surface p-2 font-body text-[13px] leading-[1.6] text-ink-2 focus-visible:outline-none"
-          />
-          {saveError && <p className="font-body text-[12px] text-danger">{saveError}</p>}
-          <div className="flex gap-2">
-            <Button variant="primary" size="sm" onClick={handleSaveDraft} disabled={saving || draft.trim() === ""}>
-              {saving ? "Saving..." : "Save"}
-            </Button>
-            <Button variant="secondary" size="sm" onClick={handleCancelEdit} disabled={saving}>
-              Cancel
-            </Button>
+      <div className="flex flex-col gap-[14px] border border-border bg-surface p-5">
+        <div className="flex flex-col gap-[10px]">
+          <div className="flex items-center gap-[14px]">
+            <span className="w-16 shrink-0 font-mono text-[10.5px] font-semibold text-muted">To</span>
+            <input
+              type="email"
+              value={to}
+              onChange={(event) => setTo(event.target.value)}
+              onBlur={handleToBlur}
+              disabled={savingTo}
+              placeholder="recipient@example.com"
+              className="flex-1 border border-border bg-bg px-[10px] py-[7px] font-body text-[12.5px] text-ink"
+            />
           </div>
-        </>
-      ) : (
-        <p className="whitespace-pre-line font-body text-[13px] leading-[1.6] text-ink-2">{draft}</p>
-      )}
+          <div className="flex items-center gap-[14px]">
+            <span className="w-16 shrink-0 font-mono text-[10.5px] font-semibold text-muted">Subject</span>
+            <input
+              type="text"
+              value={subject}
+              onChange={(event) => setSubject(event.target.value)}
+              className="flex-1 border border-border bg-bg px-[10px] py-[7px] font-body text-[12.5px] text-ink"
+            />
+          </div>
+        </div>
+
+        <div className="h-px w-full bg-border" />
+
+        {editing ? (
+          <>
+            <textarea
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              rows={10}
+              className="w-full resize-y border border-border-strong bg-surface p-2 font-body text-[13px] leading-[1.6] text-ink-2 focus-visible:outline-none"
+            />
+            {saveError && <p className="font-body text-[12px] text-danger">{saveError}</p>}
+            <div className="flex gap-2">
+              <Button variant="primary" size="sm" onClick={handleSaveDraft} disabled={saving || draft.trim() === ""}>
+                {saving ? "Saving..." : "Save"}
+              </Button>
+              <Button variant="secondary" size="sm" onClick={handleCancelEdit} disabled={saving}>
+                Cancel
+              </Button>
+            </div>
+          </>
+        ) : (
+          <p className="whitespace-pre-line font-body text-[13px] leading-[1.6] text-ink-2">{draft}</p>
+        )}
+      </div>
 
       {actionError && <p className="font-body text-[12px] text-danger">{actionError}</p>}
 
@@ -346,34 +355,46 @@ export function DraftPane({
         </div>
       ) : (
         !editing && (
-          <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
-            <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
-              Edit
-            </Button>
-            <Button variant="secondary" size="sm" onClick={handleCopy}>
-              {copied ? "Copied!" : "Copy"}
-            </Button>
-            <Button variant="secondary" size="sm" onClick={handleOpenInMail} disabled={!to}>
-              Open in mail ↗
-            </Button>
-            {tier === "pro" &&
-              (senderVerified ? (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={sendFailed ? handleSendNow : () => setConfirming("sent")}
-                  disabled={!to || actionPending}
-                >
-                  {actionPending ? "Sending..." : sendFailed ? "Retry send" : "Send now"}
-                </Button>
-              ) : (
-                <span className="font-body text-[12px] text-muted">
-                  <a href="/app/profile" className="font-medium text-primary underline">
-                    Verify your contact email
-                  </a>{" "}
-                  to enable sending
-                </span>
-              ))}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+            <p className="max-w-[260px] font-body text-[11.5px] leading-[1.4] text-muted">
+              Sends from Trackr on your behalf — or copy it and send it yourself.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="secondary" size="sm" className="px-[14px]" onClick={() => setEditing(true)}>
+                Edit
+              </Button>
+              <Button variant="secondary" size="sm" className="px-[14px]" onClick={handleCopy}>
+                {copied ? "Copied!" : "Copy"}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="px-[14px]"
+                onClick={handleOpenInMail}
+                disabled={!to}
+              >
+                Open in mail ↗
+              </Button>
+              {tier === "pro" &&
+                (senderVerified ? (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={<Send size={14} aria-hidden />}
+                    onClick={sendFailed ? handleSendNow : () => setConfirming("sent")}
+                    disabled={!to || actionPending}
+                  >
+                    {actionPending ? "Sending..." : sendFailed ? "Retry send" : "Send now"}
+                  </Button>
+                ) : (
+                  <span className="font-body text-[12px] text-muted">
+                    <a href="/app/profile" className="font-medium text-primary underline">
+                      Verify your contact email
+                    </a>{" "}
+                    to enable sending
+                  </span>
+                ))}
+            </div>
           </div>
         )
       )}
