@@ -90,55 +90,55 @@ export function NewReminderAction({ onCreated }: { onCreated?: () => void }) {
     onCreated?.();
   }
 
-  if (panel === "closed") {
-    return (
-      <Button variant="primary" size="sm" onClick={openPanel}>
+  return (
+    <div className="relative">
+      <Button variant="primary" size="sm" onClick={openPanel} disabled={panel !== "closed"}>
         New reminder
       </Button>
-    );
-  }
 
-  return (
-    <div className="flex flex-col gap-2 border border-border-strong bg-surface p-3">
-      {error && <p className="font-body text-[12px] text-danger">{error}</p>}
-      {!applications ? (
-        <p className="font-body text-[12.5px] text-muted">Loading applications...</p>
-      ) : applications.length === 0 ? (
-        <p className="font-body text-[12.5px] text-muted">No applications yet.</p>
-      ) : (
-        <select
-          value={applicationId}
-          onChange={(event) => setApplicationId(event.target.value)}
-          aria-label="Application"
-          className="border border-border-strong bg-surface px-2 py-[7px] font-body text-[12.5px] text-ink"
-        >
-          {applications.map((application) => (
-            <option key={application.id} value={application.id}>
-              {application.company} — {application.role}
-            </option>
-          ))}
-        </select>
+      {panel !== "closed" && (
+        <div className="absolute right-0 top-full z-10 mt-1 flex w-[240px] flex-col gap-2 border border-border-strong bg-surface p-3 shadow-[0_8px_24px_rgba(21,24,28,0.14)]">
+          {error && <p className="font-body text-[12px] text-danger">{error}</p>}
+          {!applications ? (
+            <p className="font-body text-[12.5px] text-muted">Loading applications...</p>
+          ) : applications.length === 0 ? (
+            <p className="font-body text-[12.5px] text-muted">No applications yet.</p>
+          ) : (
+            <select
+              value={applicationId}
+              onChange={(event) => setApplicationId(event.target.value)}
+              aria-label="Application"
+              className="border border-border-strong bg-surface px-2 py-[7px] font-body text-[12.5px] text-ink"
+            >
+              {applications.map((application) => (
+                <option key={application.id} value={application.id}>
+                  {application.company} — {application.role}
+                </option>
+              ))}
+            </select>
+          )}
+          <input
+            type="date"
+            value={dueDate}
+            onChange={(event) => setDueDate(event.target.value)}
+            aria-label="Reminder due date"
+            className="border border-border-strong bg-surface px-2 py-[7px] font-body text-[12.5px] text-ink"
+          />
+          <div className="flex gap-2">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleConfirm}
+              disabled={panel === "saving" || !dueDate || !applicationId}
+            >
+              {panel === "saving" ? "Saving..." : "Confirm"}
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => setPanel("closed")} disabled={panel === "saving"}>
+              Cancel
+            </Button>
+          </div>
+        </div>
       )}
-      <input
-        type="date"
-        value={dueDate}
-        onChange={(event) => setDueDate(event.target.value)}
-        aria-label="Reminder due date"
-        className="border border-border-strong bg-surface px-2 py-[7px] font-body text-[12.5px] text-ink"
-      />
-      <div className="flex gap-2">
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={handleConfirm}
-          disabled={panel === "saving" || !dueDate || !applicationId}
-        >
-          {panel === "saving" ? "Saving..." : "Confirm"}
-        </Button>
-        <Button variant="secondary" size="sm" onClick={() => setPanel("closed")} disabled={panel === "saving"}>
-          Cancel
-        </Button>
-      </div>
     </div>
   );
 }
