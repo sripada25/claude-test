@@ -77,7 +77,7 @@ export function SnoozeControl({ reminderId, onResolved }: { reminderId: string; 
         type="button"
         onClick={() => setOpen((current) => !current)}
         aria-expanded={open}
-        className="flex items-center gap-1 border border-border-strong bg-surface px-[10px] py-[6px] font-body text-[12px] font-medium text-ink"
+        className="flex items-center gap-1 border border-border-strong bg-surface px-[12px] py-[7px] font-body text-[12px] font-medium text-ink"
       >
         Snooze
         <ChevronDown size={13} className={open ? "rotate-180" : ""} />
