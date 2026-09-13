@@ -223,26 +223,24 @@ Merged via PR #265 (2026-09-10), migration 018, combined into one migration for 
 | F4-2.5 | ✅ DONE — `PATCH /api/reminders/:id` (snooze/dismiss) | F4-1.1 | ✅ | Merged via PR #279 (2026-09-11). Snooze also writes `applications.follow_up_snoozed_until`, both in one transaction. Snooze also delays the email notification (F4-TASKS.md open question #5, resolved via `AskUserQuestion`) — amended `findPendingRemindersForUser` (#274) and `findDueUnnotifiedReminders` (#272) so an expired snooze reappears with no background job. Dismiss touches only `reminders` — matches the spec's "only `follow_up_sent` cancels R1/R2" |
 | F4-2.6 | ✅ DONE — `POST /api/reminders/:id/sent` | F4-1.1 | ✅ | Merged via PR #281 (2026-09-11). User-confirmed. Writes `sent_at` **and** one `application_events` row (`type='follow_up_sent'`, pen-verified copy "Follow-up email sent") in one transaction — closes the loop the derived tag checks. No `applications` write — the tag's `NOT EXISTS` check on the event already clears it regardless of the snooze column. F4's final backend task; only frontend (F4-3.x) remains |
 
-## 🔴 Blocking
-
-| | Question | Blocks |
-|---|---|---|
-## 🔵 Blocked — decision confirmed (L038), design pending
+## ~~🔵 Blocked — decision confirmed (L038), design pending~~ — all resolved, 2026-09-12
 
 | | Task | Status |
 |---|---|---|
-| — | `POST /api/reminders/:id/send` — automatic Pro send | 🔵 needs design: confirmation state |
-| — | Sent/failure state on the card and timeline | 🔵 needs design |
-| — | `contact_email` verification before Reply-To use | 🔴 open — genuinely blocking, not just undesigned |
+| F4-2.7 | ✅ DONE — `POST /api/reminders/:id/sent` real send (was: automatic Pro send, needs design) | Merged via PR #303 (M08-R2). Confirmation popover matches pen-verified Mockup 08b (`n1kUhf`) |
+| F4-2.8 | ✅ DONE — Sent/failure state on the card and draft pane (was: needs design) | Merged via PR #303 (M08-R2). Matches Mockup 08c (`zjpUE`, sent) / 08d (`S4nca4`, failed) — both pen-verified, not wireframe |
+| F4-2.9 | ✅ DONE — `contact_email` verification before Reply-To use (was: genuinely blocking) | Merged via PR #301 (M08-R2-PRE). `profiles.contact_email_verified_at`, OTP-based, gates M08-R2's Reply-To |
 
-**L038 itself is settled** — both tiers, per your explicit confirmation. What remains is designing the Pro send flow, which the confirmed decision now requires rather than makes optional.
+**L038 is fully closed** — both tiers decided, designed, and implemented. Nothing in F4's send path remains blocked.
 
-## 🔴 Still genuinely open
+## ~~🔴 Still genuinely open~~ — both resolved, already implemented
 
-| | Question |
-|---|---|
-| — | R2 window: 24h or 48h? (PRD says "24–48 hours") |
-| — | Does R2 fire if `interview_at` was never set? |
+| | Question | Resolution |
+|---|---|---|
+| — | R2 window: 24h or 48h? (PRD says "24–48 hours") | 24h — see F4-2.1's own note above and `lib/repositories/reminder.ts`'s `insertPostInterviewReminders` |
+| — | Does R2 fire if `interview_at` was never set? | No — `interview_at IS NOT NULL` is a hard filter in the same query |
+
+This section listed the same two questions as still-open well after F4-2.1 (above) had already resolved and shipped them — a stale leftover this doc never caught up on. Left visible rather than deleted, per this doc's own additive convention.
 
 **Reads:** `F4-TASKS.md` in full, `DECISIONS_quarterfinal.md` L119–L121
 
@@ -388,11 +386,11 @@ Independent of F1–F4. Same Next.js app, route groups (L030 — no second servi
 | F1 (P1–P7 + T7.5) | 36 | 36 |
 | F2 | 16 | 16 |
 | F3 | 17 | 17 (after F1's T5.1 and F2's F2-1.1 merge) |
-| F4 | 9 | 9 (3 blocked pending design) |
+| F4 | ~~9 (3 blocked pending design)~~ 12, all done as of 2026-09-12 | 12 — F4-2.7/2.8/2.9 (IDs added 2026-09-13 for the 3 previously-unnumbered blocked items, now resolved via M08-R2-PRE/M08-R2) |
 | F0 | 11 | 11 |
 | F6 | 8 | 6 (F6-6 blocked on designer revision) |
 | P9 | 5 | 4 buildable now, T9.5 deploy-only (CI/GitHub Actions) |
-| **Total** | **102** | **99 fully startable** — F6-6 and 3 of F4 blocked on design |
+| **Total** | ~~102~~ 105 (F4's 3 previously-unnumbered items given IDs 2026-09-13) | **105 fully startable** — only F6-6 remains blocked on design |
 
 **Highest-risk tasks — extra review pass against `SECURITY_quarterfinal.md`:**
 
