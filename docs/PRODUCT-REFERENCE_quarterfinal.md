@@ -106,7 +106,7 @@ Replaces the single-point-in-time `F1-READINESS.md`. This table is designed to b
 | **Design** | ✅ **Substantially specified as of 2026-08-27** — see `SCREEN-NOTES-F6-PAYMENTS.md`. Settings & Plan screen, Upgrade checkout modal (billing cycle toggle, Razorpay-hosted redirect), Verifying-payment state (addresses the webhook confirmation race), Payment Failed state (⚠️ draft copy, needs designer revision), Subscription Expiry (❌ **confirmed unfinished** — fully read, contains no expiry-specific content) |
 | **Architecture resolved** | Checkout is a **redirect to Razorpay-hosted payment** — Trackr never touches card details. Confirmation requires **polling or real-time status check** after redirect-back, because Razorpay confirms to the browser before the webhook reaches the server |
 | **Open questions** | Downgrade behaviour (confirmed undesigned — Subscription Expiry screen exists but is empty) · refunds · cancellation flow (mentioned in copy, not designed) · GST invoicing · webhook idempotency (design, not implementation) · annual↔monthly mid-cycle switching |
-| **Status** | Checkout flow substantially designed. 6 new backend tasks (F6-1 to F6-6) in `TASKS_quarterfinal.md`. Still last in the build order — the `subscriptions` stub in F1 continues to unblock everything downstream |
+| **Status** | Checkout flow substantially designed. 6 new backend tasks (F6-1 to F6-6) in `TASKS_quarterfinal.md`. Still last in the build order — the `subscriptions` stub in F1 continues to unblock everything downstream. **M09-1** (Settings page shell — Account + read-only Plan display + real delete-account) merged via PR #308 (2026-09-14), ahead of F6 itself; Upgrade/checkout stays disabled until F6-1 through F6-3 exist |
 
 ## F0 — Marketing & Support
 
