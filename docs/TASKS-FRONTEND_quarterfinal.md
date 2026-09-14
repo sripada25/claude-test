@@ -1589,13 +1589,27 @@ Salary · Contact · Next step.
 
 ⚠️ **Added post-hoc.** M05-05's own `DetailTabs` was built correctly for its time ("three of four tabs are empty shells... filled by F3"), but nothing ever went back to wire the Documents tab once F3 shipped — confirmed live: seeding a real document and reloading still showed "No documents yet."
 
-🔧 `DetailScreen` fetches `GET /api/applications/:id/documents` (F3-3.5), passes the list to `DetailTabs`. Documents tab label now shows the real count; Call log and Reminders stay hardcoded at `0` — neither has a real data source yet (F5 not started, F4's API not built).
+🔧 `DetailScreen` fetches `GET /api/applications/:id/documents` (F3-3.5), passes the list to `DetailTabs`. Documents tab label now shows the real count; ~~Call log and Reminders stay hardcoded at `0` — neither has a real data source yet (F5 not started, F4's API not built)~~ — Reminders became real independently (`DetailTabs` computing `activeReminderCount` from a real `reminders` prop); Call log's own gap closed in **M05-12** below.
 
 🔧 New `DocumentsPanel` renders one row per document (icon, type label, date), mirroring `Timeline.tsx`'s row pattern since no design exists for this state anywhere. Rows are non-interactive — no view/download destination exists yet.
 
 🔧 Also corrected the empty-state copy to `SCREEN-SPEC-M05.md`'s actual wording: "No documents yet. Generate one from the actions panel."
 
 **References:** F3-3.5 · Mockup 05 · M05 audit (2026-09-11)
+
+---
+
+## M05-12 · Wire the Call log tab to real data ✅ DONE — merged via PR #322 (2026-09-14) — found during a screen-by-screen pending-task review
+
+⚠️ **Added post-hoc.** Same gap M05-11 left open for Call log: F5-1 (`logCall`) has been writing real `application_events` rows (`type='call_logged'`) since 2026-09-12, but the tab stayed hardcoded at `0` with the generic placeholder body.
+
+🔧 `DetailScreen` fetches `GET /api/applications/:id/events` (the same endpoint `Timeline` and `LastCallPanel` already self-fetch independently), filters to `call_logged` client-side, passes the list to `DetailTabs`. No backend changes — the endpoint already returned everything needed.
+
+🔧 New `CallLogTab` renders one row per call (description, date), mirroring `Timeline.tsx`'s row pattern — same precedent as `DocumentsPanel`, since no design exists for this tab's filled body either. Empty state: "No calls logged yet.", matching `LastCallPanel`'s existing copy.
+
+🔧 Live-verified via the real `LogCallModal` flow ("Save as plain note" path, no `GEMINI_API_KEY` needed): tab count and body both updated in place via `refreshSignal`, no reload.
+
+**References:** F5-1 · Mockup 05 · M05-11 precedent · screen-by-screen pending-task review (2026-09-14)
 
 ---
 ---
