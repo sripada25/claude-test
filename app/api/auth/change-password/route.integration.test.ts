@@ -61,12 +61,21 @@ describe("/api/auth/change-password (real Postgres)", () => {
     return result.rows[0].password_hash;
   }
 
-  function request(userId: string | null, body: unknown): Request {
+  // This route resolves its own session from the cookie (proxy.ts treats
+  // /api/auth/ as public and never sets x-user-id there) - so the test
+  // authenticates the same way a real browser request would, not via a
+  // stubbed header.
+  async function sessionFor(userId: string): Promise<string> {
+    const { rawToken } = await issueSession(userId);
+    return rawToken;
+  }
+
+  function request(rawToken: string | null, body: unknown): Request {
     return new Request("http://localhost:3000/api/auth/change-password", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...(userId ? { "x-user-id": userId } : {}),
+        ...(rawToken ? { cookie: `session=${rawToken}` } : {}),
       },
       body: JSON.stringify(body),
     });
@@ -79,9 +88,10 @@ describe("/api/auth/change-password (real Postgres)", () => {
 
   it("changes the password when the current password is correct", async () => {
     const userId = await insertUserWithPassword("correct-current@example.com");
+    const rawToken = await sessionFor(userId);
 
     const response = await POST_(
-      request(userId, { currentPassword: CURRENT_PASSWORD, newPassword: NEW_PASSWORD }),
+      request(rawToken, { currentPassword: CURRENT_PASSWORD, newPassword: NEW_PASSWORD }),
     );
 
     expect(response.status).toBe(200);
@@ -94,9 +104,10 @@ describe("/api/auth/change-password (real Postgres)", () => {
 
   it("rejects an incorrect current password and changes nothing", async () => {
     const userId = await insertUserWithPassword("wrong-current@example.com");
+    const rawToken = await sessionFor(userId);
 
     const response = await POST_(
-      request(userId, { currentPassword: "not the right password", newPassword: NEW_PASSWORD }),
+      request(rawToken, { currentPassword: "not the right password", newPassword: NEW_PASSWORD }),
     );
 
     expect(response.status).toBe(400);
@@ -108,8 +119,9 @@ describe("/api/auth/change-password (real Postgres)", () => {
 
   it("rejects a missing current password for an account that has one", async () => {
     const userId = await insertUserWithPassword("missing-current@example.com");
+    const rawToken = await sessionFor(userId);
 
-    const response = await POST_(request(userId, { newPassword: NEW_PASSWORD }));
+    const response = await POST_(request(rawToken, { newPassword: NEW_PASSWORD }));
 
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({ success: false, reason: "incorrect_current_password" });
@@ -117,8 +129,9 @@ describe("/api/auth/change-password (real Postgres)", () => {
 
   it("sets a password for an OAuth-only account with no currentPassword required", async () => {
     const userId = await insertOauthOnlyUser("oauth-only@example.com");
+    const rawToken = await sessionFor(userId);
 
-    const response = await POST_(request(userId, { newPassword: NEW_PASSWORD }));
+    const response = await POST_(request(rawToken, { newPassword: NEW_PASSWORD }));
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ success: true });
@@ -129,8 +142,9 @@ describe("/api/auth/change-password (real Postgres)", () => {
 
   it("rejects a new password under 12 characters", async () => {
     const userId = await insertUserWithPassword("weak-password@example.com");
+    const rawToken = await sessionFor(userId);
 
-    const response = await POST_(request(userId, { currentPassword: CURRENT_PASSWORD, newPassword: "short" }));
+    const response = await POST_(request(rawToken, { currentPassword: CURRENT_PASSWORD, newPassword: "short" }));
 
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({ success: false, reason: "weak_password" });
@@ -138,35 +152,37 @@ describe("/api/auth/change-password (real Postgres)", () => {
 
   it("rate limits after repeated wrong attempts", async () => {
     const userId = await insertUserWithPassword("rate-limited@example.com");
+    const rawToken = await sessionFor(userId);
 
     for (let i = 0; i < 5; i++) {
       const response = await POST_(
-        request(userId, { currentPassword: "still wrong", newPassword: NEW_PASSWORD }),
+        request(rawToken, { currentPassword: "still wrong", newPassword: NEW_PASSWORD }),
       );
       expect(response.status).toBe(400);
     }
 
     const limited = await POST_(
-      request(userId, { currentPassword: CURRENT_PASSWORD, newPassword: NEW_PASSWORD }),
+      request(rawToken, { currentPassword: CURRENT_PASSWORD, newPassword: NEW_PASSWORD }),
     );
     expect(limited.status).toBe(429);
     expect(await limited.json()).toEqual({ success: false, reason: "rate_limited" });
   });
 
-  it("revokes all sessions, including the caller's own, on success", async () => {
+  it("revokes all sessions, including the one used to authenticate the change, on success", async () => {
     const userId = await insertUserWithPassword("revoke-sessions@example.com");
-    const { rawToken } = await issueSession(userId);
+    const rawToken = await sessionFor(userId);
     expect(await resolveSession(rawToken)).not.toBeNull();
 
-    await POST_(request(userId, { currentPassword: CURRENT_PASSWORD, newPassword: NEW_PASSWORD }));
+    await POST_(request(rawToken, { currentPassword: CURRENT_PASSWORD, newPassword: NEW_PASSWORD }));
 
     expect(await resolveSession(rawToken)).toBeNull();
   });
 
   it("logs a password_changed security event on success", async () => {
     const userId = await insertUserWithPassword("security-event@example.com");
+    const rawToken = await sessionFor(userId);
 
-    await POST_(request(userId, { currentPassword: CURRENT_PASSWORD, newPassword: NEW_PASSWORD }));
+    await POST_(request(rawToken, { currentPassword: CURRENT_PASSWORD, newPassword: NEW_PASSWORD }));
 
     const events = await pool.query<{ event_type: string }>(
       "SELECT event_type FROM security_events WHERE user_id = $1",

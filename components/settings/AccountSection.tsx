@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ChangePasswordForm } from "@/components/settings/ChangePasswordForm";
 
 function getInitials(fullName: string): string {
   const words = fullName.trim().split(/\s+/).filter(Boolean);
@@ -13,14 +14,16 @@ function getInitials(fullName: string): string {
 interface AccountData {
   fullName: string;
   email: string;
+  hasPassword: boolean;
 }
 
 // M09-1: "Edit" links to /app/profile (the only place fullName is
 // editable) rather than a modal - Account here is a summary, not a second
-// editing surface. "Change password" has no in-app endpoint yet (only the
-// logged-out forgot/reset flow) - rendered disabled per the issue's split.
+// editing surface. M09-5: "Change password"/"Set a password" now opens a
+// real inline form (ChangePasswordForm), against M09-4's endpoint.
 export function AccountSection() {
   const [data, setData] = useState<AccountData | null>(null);
+  const [changingPassword, setChangingPassword] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,7 +35,7 @@ export function AccountSection() {
       if (cancelled || !profile || !account) {
         return;
       }
-      setData({ fullName: profile.fullName, email: account.email });
+      setData({ fullName: profile.fullName, email: account.email, hasPassword: account.hasPassword });
     });
 
     return () => {
@@ -64,11 +67,21 @@ export function AccountSection() {
 
         <div className="flex items-center justify-between gap-3">
           <span className="font-body text-[12.5px] text-ink-2">Password</span>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] text-muted">Coming soon</span>
-            <span className="font-body text-[12.5px] font-semibold text-muted">Change password</span>
-          </div>
+          {!changingPassword && (
+            <button
+              type="button"
+              onClick={() => setChangingPassword(true)}
+              disabled={!data}
+              className="font-body text-[12.5px] font-semibold text-accent disabled:text-muted"
+            >
+              {data?.hasPassword ? "Change password" : "Set a password"}
+            </button>
+          )}
         </div>
+
+        {changingPassword && data && (
+          <ChangePasswordForm hasPassword={data.hasPassword} onCancel={() => setChangingPassword(false)} />
+        )}
       </div>
     </div>
   );
