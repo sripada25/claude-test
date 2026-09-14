@@ -14,6 +14,8 @@ export function ApplicationCard({
   lastActivityAt,
   followUpDue,
   followUpSentToday,
+  hasDocuments,
+  hasCallLog,
   assessmentDueAt,
   interviewAt,
   dragRef,
@@ -29,6 +31,8 @@ export function ApplicationCard({
   lastActivityAt: string;
   followUpDue: boolean;
   followUpSentToday: boolean;
+  hasDocuments: boolean;
+  hasCallLog: boolean;
   assessmentDueAt: string | null;
   interviewAt: string | null;
   dragRef?: (node: HTMLElement | null) => void;
@@ -43,6 +47,8 @@ export function ApplicationCard({
     lastActivityAt,
     followUpDue,
     followUpSentToday,
+    hasDocuments,
+    hasCallLog,
     assessmentDueAt,
     interviewAt,
   });
