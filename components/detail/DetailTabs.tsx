@@ -2,21 +2,19 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useRef, type KeyboardEvent } from "react";
+import { CallLogTab, type CallLogEventSummary } from "@/components/detail/CallLogTab";
 import { DocumentsPanel, type DocumentSummary } from "@/components/detail/DocumentsPanel";
 import { JobDescriptionPanel } from "@/components/detail/JobDescriptionPanel";
 import { NotesField } from "@/components/detail/NotesField";
 import { Timeline } from "@/components/detail/Timeline";
 import { RemindersTab, type ApplicationReminderSummary } from "@/components/reminders/RemindersTab";
 
-const EMPTY_STATES: Record<string, string> = {
-  "call-log": "No calls logged yet.",
-};
-
 export function DetailTabs({
   applicationId,
   jobDescription,
   notes,
   documents,
+  callLogEvents,
   reminders,
   refreshSignal,
   onNotesSaved,
@@ -25,6 +23,7 @@ export function DetailTabs({
   jobDescription: string | null;
   notes: string | null;
   documents: DocumentSummary[];
+  callLogEvents: CallLogEventSummary[];
   reminders: ApplicationReminderSummary[];
   refreshSignal: number;
   onNotesSaved: () => void;
@@ -43,7 +42,7 @@ export function DetailTabs({
   const tabs = [
     { key: "overview", label: "Overview", count: 0 },
     { key: "documents", label: "Documents", count: documents.length },
-    { key: "call-log", label: "Call log", count: 0 },
+    { key: "call-log", label: "Call log", count: callLogEvents.length },
     { key: "reminders", label: "Reminders", count: activeReminderCount },
   ] as const;
 
@@ -117,10 +116,10 @@ export function DetailTabs({
             </div>
           ) : tab.key === "documents" ? (
             <DocumentsPanel documents={documents} />
-          ) : tab.key === "reminders" ? (
-            <RemindersTab reminders={reminders} />
+          ) : tab.key === "call-log" ? (
+            <CallLogTab events={callLogEvents} />
           ) : (
-            <p className="font-body text-[13px] text-muted">{EMPTY_STATES[tab.key]}</p>
+            <RemindersTab reminders={reminders} />
           )}
         </div>
       ))}
