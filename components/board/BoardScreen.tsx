@@ -64,6 +64,8 @@ interface BoardApplication {
   lastActivityAt: string;
   followUpDue: boolean;
   followUpSentToday: boolean;
+  hasDocuments: boolean;
+  hasCallLog: boolean;
   assessmentDueAt: string | null;
   interviewAt: string | null;
   position: number | null;
@@ -317,6 +319,8 @@ export function BoardScreen({
           lastActivityAt: created.lastActivityAt,
           followUpDue: false,
           followUpSentToday: false,
+          hasDocuments: false,
+          hasCallLog: false,
           assessmentDueAt: created.assessmentDueAt,
           interviewAt: created.interviewAt,
           position: created.position,
@@ -402,6 +406,8 @@ export function BoardScreen({
                               lastActivityAt={application.lastActivityAt}
                               followUpDue={application.followUpDue}
                               followUpSentToday={application.followUpSentToday}
+                              hasDocuments={application.hasDocuments}
+                              hasCallLog={application.hasCallLog}
                               assessmentDueAt={application.assessmentDueAt}
                               interviewAt={application.interviewAt}
                             />
@@ -432,6 +438,8 @@ export function BoardScreen({
                     lastActivityAt={activeApplication.lastActivityAt}
                     followUpDue={activeApplication.followUpDue}
                     followUpSentToday={activeApplication.followUpSentToday}
+                    hasDocuments={activeApplication.hasDocuments}
+                    hasCallLog={activeApplication.hasCallLog}
                     assessmentDueAt={activeApplication.assessmentDueAt}
                     interviewAt={activeApplication.interviewAt}
                   />

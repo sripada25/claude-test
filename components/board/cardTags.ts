@@ -32,6 +32,8 @@ export function deriveCardTags(application: {
   lastActivityAt: string;
   followUpDue: boolean;
   followUpSentToday: boolean;
+  hasDocuments: boolean;
+  hasCallLog: boolean;
   assessmentDueAt: string | null;
   interviewAt: string | null;
 }): { visible: CardTagData[]; overflowCount: number } {
@@ -58,6 +60,14 @@ export function deriveCardTags(application: {
   } else if (application.assessmentDueAt) {
     const date = new Date(application.assessmentDueAt);
     candidates.push({ key: "assessment-due", label: `Due ${shortWeekday(date)}`, variant: "default" });
+  }
+
+  if (application.hasCallLog) {
+    candidates.push({ key: "call-log", label: "Call log", variant: "default" });
+  }
+
+  if (application.hasDocuments) {
+    candidates.push({ key: "doc", label: "Doc", variant: "default" });
   }
 
   candidates.push(ageTag(application.lastActivityAt));

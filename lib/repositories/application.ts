@@ -48,6 +48,8 @@ export interface ListApplicationsOptions {
 export interface ApplicationListItem extends Application {
   followUpDue: boolean;
   followUpSentToday: boolean;
+  hasDocuments: boolean;
+  hasCallLog: boolean;
 }
 
 interface ApplicationRow {
@@ -273,7 +275,14 @@ export async function findUserApplications(
     conditions.push(`source = ANY($${params.length}::application_source[])`);
   }
 
-  const result = await pool.query<ApplicationRow & { follow_up_due: boolean; follow_up_sent_today: boolean }>(
+  const result = await pool.query<
+    ApplicationRow & {
+      follow_up_due: boolean;
+      follow_up_sent_today: boolean;
+      has_documents: boolean;
+      has_call_log: boolean;
+    }
+  >(
     `SELECT id, user_id, company, role, status, job_description, source, source_url, date_applied,
             assessment_due_at, interview_at, notes, last_activity_at, position, created_at, updated_at,
             (
@@ -290,7 +299,15 @@ export async function findUserApplications(
               WHERE e.application_id = applications.id
                 AND e.type = 'follow_up_sent'
                 AND e.created_at >= CURRENT_DATE
-            ) AS follow_up_sent_today
+            ) AS follow_up_sent_today,
+            EXISTS (
+              SELECT 1 FROM documents d
+              WHERE d.application_id = applications.id
+            ) AS has_documents,
+            EXISTS (
+              SELECT 1 FROM application_events e
+              WHERE e.application_id = applications.id AND e.type = 'call_logged'
+            ) AS has_call_log
      FROM applications
      WHERE ${conditions.join(" AND ")}
      ORDER BY ${SORT_CLAUSES[opts.sort]}`,
@@ -301,5 +318,7 @@ export async function findUserApplications(
     ...toApplication(row),
     followUpDue: row.follow_up_due,
     followUpSentToday: row.follow_up_sent_today,
+    hasDocuments: row.has_documents,
+    hasCallLog: row.has_call_log,
   }));
 }

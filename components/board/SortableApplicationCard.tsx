@@ -12,6 +12,8 @@ export function SortableApplicationCard({
   lastActivityAt,
   followUpDue,
   followUpSentToday,
+  hasDocuments,
+  hasCallLog,
   assessmentDueAt,
   interviewAt,
 }: {
@@ -22,6 +24,8 @@ export function SortableApplicationCard({
   lastActivityAt: string;
   followUpDue: boolean;
   followUpSentToday: boolean;
+  hasDocuments: boolean;
+  hasCallLog: boolean;
   assessmentDueAt: string | null;
   interviewAt: string | null;
 }) {
@@ -36,6 +40,8 @@ export function SortableApplicationCard({
       lastActivityAt={lastActivityAt}
       followUpDue={followUpDue}
       followUpSentToday={followUpSentToday}
+      hasDocuments={hasDocuments}
+      hasCallLog={hasCallLog}
       assessmentDueAt={assessmentDueAt}
       interviewAt={interviewAt}
       dragRef={setNodeRef}
