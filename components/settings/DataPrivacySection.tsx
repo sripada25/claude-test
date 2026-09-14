@@ -49,17 +49,13 @@ export function DataPrivacySection() {
       <div className="flex flex-col gap-4 border border-border bg-surface p-4">
         <div className="flex items-center justify-between gap-3">
           <span className="font-body text-[12.5px] text-ink">Export all my data</span>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] text-muted">Coming soon</span>
-            <button
-              type="button"
-              disabled
-              className="flex items-center gap-[6px] border border-border-strong bg-surface px-[14px] py-[8px] font-body text-[12.5px] font-semibold text-muted disabled:cursor-not-allowed"
-            >
-              <Download size={14} aria-hidden />
-              Download
-            </button>
-          </div>
+          <a
+            href="/api/account/export"
+            className="flex items-center gap-[6px] border border-border-strong bg-surface px-[14px] py-[8px] font-body text-[12.5px] font-semibold text-ink"
+          >
+            <Download size={14} aria-hidden />
+            Download
+          </a>
         </div>
 
         <div className="h-px w-full bg-border" />
