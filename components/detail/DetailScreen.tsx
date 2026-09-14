@@ -7,6 +7,7 @@ import { DetailTabs } from "@/components/detail/DetailTabs";
 import { DetailTopBar } from "@/components/detail/DetailTopBar";
 import { LastCallPanel } from "@/components/detail/LastCallPanel";
 import { Sidebar } from "@/components/shell/Sidebar";
+import type { CallLogEventSummary } from "@/components/detail/CallLogTab";
 import type { DocumentSummary } from "@/components/detail/DocumentsPanel";
 import type { ApplicationReminderSummary } from "@/components/reminders/RemindersTab";
 
@@ -28,6 +29,7 @@ export function DetailScreen({ id }: { id: string }) {
   const [refreshSignal, setRefreshSignal] = useState(0);
   const [documents, setDocuments] = useState<DocumentSummary[]>([]);
   const [reminders, setReminders] = useState<ApplicationReminderSummary[]>([]);
+  const [callLogEvents, setCallLogEvents] = useState<CallLogEventSummary[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,6 +80,24 @@ export function DetailScreen({ id }: { id: string }) {
     };
   }, [id, refreshSignal]);
 
+  // Same events endpoint Timeline and LastCallPanel already self-fetch,
+  // filtered here to the subset the Call log tab's count/body need.
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch(`/api/applications/${id}/events`)
+      .then((response) => (response.ok ? response.json() : []))
+      .then((data: { id: string; type: string; description: string; createdAt: string }[]) => {
+        if (!cancelled) {
+          setCallLogEvents(data.filter((event) => event.type === "call_logged"));
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, refreshSignal]);
+
   return (
     <div className="flex h-screen bg-bg">
       <Sidebar open={false} onClose={() => {}} />
@@ -110,6 +130,7 @@ export function DetailScreen({ id }: { id: string }) {
                         jobDescription={application.jobDescription}
                         notes={application.notes}
                         documents={documents}
+                        callLogEvents={callLogEvents}
                         reminders={reminders}
                         refreshSignal={refreshSignal}
                         onNotesSaved={() => setRefreshSignal((current) => current + 1)}
