@@ -4,12 +4,14 @@ import Link from "next/link";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { AccountSection } from "@/components/settings/AccountSection";
 import { PlanSection } from "@/components/settings/PlanSection";
+import { NotificationsSection } from "@/components/settings/NotificationsSection";
 import { DataPrivacySection } from "@/components/settings/DataPrivacySection";
 
 const NAV_ITEMS = [
   { label: "Account", href: "#account", active: true },
   { label: "Profile", href: "/app/profile", active: false },
   { label: "Plan & billing", href: "#plan", active: false },
+  { label: "Notifications", href: "#notifications", active: false },
   { label: "Data & privacy", href: "#data", active: false },
 ];
 
@@ -45,6 +47,7 @@ export function SettingsScreen() {
           <div className="flex max-w-[640px] flex-1 flex-col gap-7">
             <AccountSection />
             <PlanSection />
+            <NotificationsSection />
             <DataPrivacySection />
           </div>
         </div>
