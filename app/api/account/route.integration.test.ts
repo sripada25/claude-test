@@ -1,9 +1,10 @@
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
-describe("DELETE /api/account (real Postgres)", () => {
+describe("/api/account (real Postgres)", () => {
   let container: StartedPostgreSqlContainer;
   let DELETE_: typeof import("./route.ts")["DELETE"];
+  let GET_: typeof import("./route.ts")["GET"];
   let migrate: typeof import("../../../scripts/migrate.ts");
   let pool: typeof import("../../../lib/db.ts")["pool"];
 
@@ -13,7 +14,7 @@ describe("DELETE /api/account (real Postgres)", () => {
 
     migrate = await import("../../../scripts/migrate.ts");
     ({ pool } = await import("../../../lib/db.ts"));
-    ({ DELETE: DELETE_ } = await import("./route.ts"));
+    ({ DELETE: DELETE_, GET: GET_ } = await import("./route.ts"));
 
     await migrate.up();
   }, 60_000);
@@ -78,6 +79,28 @@ describe("DELETE /api/account (real Postgres)", () => {
     });
   }
 
+  function getRequest(userId: string | null): Request {
+    return new Request("http://localhost:3000/api/account", {
+      headers: userId ? { "x-user-id": userId } : {},
+    });
+  }
+
+  async function insertUserWithPassword(email: string): Promise<string> {
+    const result = await pool.query<{ id: string }>(
+      "INSERT INTO users (email, timezone, password_hash) VALUES ($1, $2, 'hash') RETURNING id",
+      [email, "Asia/Kolkata"],
+    );
+    return result.rows[0].id;
+  }
+
+  async function insertUserWithoutPassword(email: string): Promise<string> {
+    const result = await pool.query<{ id: string }>(
+      "INSERT INTO users (email, timezone) VALUES ($1, $2) RETURNING id",
+      [email, "Asia/Kolkata"],
+    );
+    return result.rows[0].id;
+  }
+
   it("cascades: deletes the user and every currently-existing related row", async () => {
     const { userId, emailLogId, securityEventId } = JSON.parse(
       await insertUserWithRelatedRows("delete-me@example.com"),
@@ -134,5 +157,28 @@ describe("DELETE /api/account (real Postgres)", () => {
     expect(response.status).toBe(401);
     const result = await pool.query("SELECT 1 FROM users WHERE id = $1", [userId]);
     expect(result.rows).toHaveLength(1);
+  });
+
+  it("GET returns the account's email and hasPassword: true for a password-credentialed user", async () => {
+    const userId = await insertUserWithPassword("has-password@example.com");
+
+    const response = await GET_(getRequest(userId));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ email: "has-password@example.com", hasPassword: true });
+  });
+
+  it("GET returns hasPassword: false for an OAuth-only user", async () => {
+    const userId = await insertUserWithoutPassword("oauth-only@example.com");
+
+    const response = await GET_(getRequest(userId));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ email: "oauth-only@example.com", hasPassword: false });
+  });
+
+  it("GET returns 401 without a session", async () => {
+    const response = await GET_(getRequest(null));
+    expect(response.status).toBe(401);
   });
 });

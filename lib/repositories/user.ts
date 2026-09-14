@@ -23,15 +23,19 @@ export async function findUserByEmail(email: string): Promise<UserSummary | null
 
 export async function findUserById(
   userId: string,
-): Promise<{ emailVerifiedAt: Date | null; timezone: string } | null> {
-  const result = await pool.query<{ email_verified_at: Date | null; timezone: string }>(
-    `SELECT email_verified_at, timezone FROM users WHERE id = $1`,
+): Promise<{ email: string; emailVerifiedAt: Date | null; timezone: string } | null> {
+  const result = await pool.query<{ email: string; email_verified_at: Date | null; timezone: string }>(
+    `SELECT email, email_verified_at, timezone FROM users WHERE id = $1`,
     [userId],
   );
   if (!result.rows[0]) {
     return null;
   }
-  return { emailVerifiedAt: result.rows[0].email_verified_at, timezone: result.rows[0].timezone };
+  return {
+    email: result.rows[0].email,
+    emailVerifiedAt: result.rows[0].email_verified_at,
+    timezone: result.rows[0].timezone,
+  };
 }
 
 export async function markEmailVerified(userId: string): Promise<void> {
