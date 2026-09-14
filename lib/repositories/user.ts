@@ -21,13 +21,18 @@ export async function findUserByEmail(email: string): Promise<UserSummary | null
   };
 }
 
-export async function findUserById(
-  userId: string,
-): Promise<{ email: string; emailVerifiedAt: Date | null; timezone: string } | null> {
-  const result = await pool.query<{ email: string; email_verified_at: Date | null; timezone: string }>(
-    `SELECT email, email_verified_at, timezone FROM users WHERE id = $1`,
-    [userId],
-  );
+export async function findUserById(userId: string): Promise<{
+  email: string;
+  emailVerifiedAt: Date | null;
+  timezone: string;
+  reminderEmailsEnabled: boolean;
+} | null> {
+  const result = await pool.query<{
+    email: string;
+    email_verified_at: Date | null;
+    timezone: string;
+    reminder_emails_enabled: boolean;
+  }>(`SELECT email, email_verified_at, timezone, reminder_emails_enabled FROM users WHERE id = $1`, [userId]);
   if (!result.rows[0]) {
     return null;
   }
@@ -35,6 +40,7 @@ export async function findUserById(
     email: result.rows[0].email,
     emailVerifiedAt: result.rows[0].email_verified_at,
     timezone: result.rows[0].timezone,
+    reminderEmailsEnabled: result.rows[0].reminder_emails_enabled,
   };
 }
 
@@ -63,6 +69,10 @@ export async function updateEmail(userId: string, newEmail: string): Promise<voi
     userId,
     newEmail,
   ]);
+}
+
+export async function updateReminderEmailsEnabled(userId: string, enabled: boolean): Promise<void> {
+  await pool.query(`UPDATE users SET reminder_emails_enabled = $2 WHERE id = $1`, [userId, enabled]);
 }
 
 export interface UserForLogin {

@@ -5,6 +5,7 @@ describe("/api/account (real Postgres)", () => {
   let container: StartedPostgreSqlContainer;
   let DELETE_: typeof import("./route.ts")["DELETE"];
   let GET_: typeof import("./route.ts")["GET"];
+  let PATCH_: typeof import("./route.ts")["PATCH"];
   let migrate: typeof import("../../../scripts/migrate.ts");
   let pool: typeof import("../../../lib/db.ts")["pool"];
 
@@ -14,7 +15,7 @@ describe("/api/account (real Postgres)", () => {
 
     migrate = await import("../../../scripts/migrate.ts");
     ({ pool } = await import("../../../lib/db.ts"));
-    ({ DELETE: DELETE_, GET: GET_ } = await import("./route.ts"));
+    ({ DELETE: DELETE_, GET: GET_, PATCH: PATCH_ } = await import("./route.ts"));
 
     await migrate.up();
   }, 60_000);
@@ -82,6 +83,17 @@ describe("/api/account (real Postgres)", () => {
   function getRequest(userId: string | null): Request {
     return new Request("http://localhost:3000/api/account", {
       headers: userId ? { "x-user-id": userId } : {},
+    });
+  }
+
+  function patchRequest(userId: string | null, body: unknown): Request {
+    return new Request("http://localhost:3000/api/account", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...(userId ? { "x-user-id": userId } : {}),
+      },
+      body: JSON.stringify(body),
     });
   }
 
@@ -165,7 +177,11 @@ describe("/api/account (real Postgres)", () => {
     const response = await GET_(getRequest(userId));
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ email: "has-password@example.com", hasPassword: true });
+    expect(await response.json()).toEqual({
+      email: "has-password@example.com",
+      hasPassword: true,
+      reminderEmailsEnabled: true,
+    });
   });
 
   it("GET returns hasPassword: false for an OAuth-only user", async () => {
@@ -174,11 +190,48 @@ describe("/api/account (real Postgres)", () => {
     const response = await GET_(getRequest(userId));
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ email: "oauth-only@example.com", hasPassword: false });
+    expect(await response.json()).toEqual({
+      email: "oauth-only@example.com",
+      hasPassword: false,
+      reminderEmailsEnabled: true,
+    });
   });
 
   it("GET returns 401 without a session", async () => {
     const response = await GET_(getRequest(null));
+    expect(response.status).toBe(401);
+  });
+
+  it("PATCH persists reminderEmailsEnabled and a subsequent GET reflects it", async () => {
+    const userId = await insertUserWithPassword("toggle-off@example.com");
+
+    const patchResponse = await PATCH_(patchRequest(userId, { reminderEmailsEnabled: false }));
+    expect(patchResponse.status).toBe(200);
+    expect(await patchResponse.json()).toEqual({
+      email: "toggle-off@example.com",
+      hasPassword: true,
+      reminderEmailsEnabled: false,
+    });
+
+    const getResponse = await GET_(getRequest(userId));
+    expect(await getResponse.json()).toMatchObject({ reminderEmailsEnabled: false });
+  });
+
+  it("PATCH rejects a non-boolean body with 400", async () => {
+    const userId = await insertUserWithPassword("invalid-body@example.com");
+
+    const response = await PATCH_(patchRequest(userId, { reminderEmailsEnabled: "yes" }));
+
+    expect(response.status).toBe(400);
+    const row = await pool.query<{ reminder_emails_enabled: boolean }>(
+      "SELECT reminder_emails_enabled FROM users WHERE id = $1",
+      [userId],
+    );
+    expect(row.rows[0].reminder_emails_enabled).toBe(true);
+  });
+
+  it("PATCH returns 401 without a session", async () => {
+    const response = await PATCH_(patchRequest(null, { reminderEmailsEnabled: false }));
     expect(response.status).toBe(401);
   });
 });

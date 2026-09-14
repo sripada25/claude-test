@@ -1,8 +1,9 @@
-import { findUserById, hasPasswordHash } from "../repositories/user.ts";
+import { findUserById, hasPasswordHash, updateReminderEmailsEnabled } from "../repositories/user.ts";
 
 export interface AccountSummary {
   email: string;
   hasPassword: boolean;
+  reminderEmailsEnabled: boolean;
 }
 
 export async function getAccountSummary(userId: string): Promise<AccountSummary | null> {
@@ -11,5 +12,16 @@ export async function getAccountSummary(userId: string): Promise<AccountSummary 
     return null;
   }
 
-  return { email: user.email, hasPassword: await hasPasswordHash(userId) };
+  return {
+    email: user.email,
+    hasPassword: await hasPasswordHash(userId),
+    reminderEmailsEnabled: user.reminderEmailsEnabled,
+  };
+}
+
+export async function updateNotificationPreferences(
+  userId: string,
+  patch: { reminderEmailsEnabled: boolean },
+): Promise<void> {
+  await updateReminderEmailsEnabled(userId, patch.reminderEmailsEnabled);
 }
