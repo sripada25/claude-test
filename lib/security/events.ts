@@ -8,6 +8,8 @@ export type SecurityEventType =
   | "otp_locked"
   | "password_invalidated_by_oauth_link"
   | "email_changed"
+  | "password_changed"
+  | "password_change_failed"
   | "oauth_linked"
   | "oauth_unlinked"
   | "oauth_state_mismatch"

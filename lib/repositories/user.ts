@@ -56,6 +56,19 @@ export async function hasPasswordHash(userId: string): Promise<boolean> {
   return result.rows[0]?.password_hash != null;
 }
 
+// M09-4: findUserForLogin (below) is scoped to login-by-email and stays
+// that way - change-password authenticates by session (userId), so it
+// needs its own narrow read rather than widening that one's contract.
+// Two deliberately narrow readers of password_hash, not a general-purpose
+// one any call site could reach for.
+export async function findPasswordHashById(userId: string): Promise<string | null> {
+  const result = await pool.query<{ password_hash: string | null }>(
+    `SELECT password_hash FROM users WHERE id = $1`,
+    [userId],
+  );
+  return result.rows[0]?.password_hash ?? null;
+}
+
 export async function deleteUser(userId: string): Promise<void> {
   await pool.query(`DELETE FROM users WHERE id = $1`, [userId]);
 }
@@ -81,8 +94,10 @@ export interface UserForLogin {
 }
 
 // Deliberately separate from findUserByEmail, which never returns
-// password_hash - this is the one function allowed to read it, so no other
-// call site can accidentally receive it.
+// password_hash - this and findPasswordHashById (above) are the only two
+// functions allowed to read it, each scoped to its own lookup key (email
+// for login, userId for an already-authenticated change), so no other call
+// site can accidentally receive it.
 export async function findUserForLogin(email: string): Promise<UserForLogin | null> {
   const result = await pool.query<{ id: string; password_hash: string | null }>(
     `SELECT id, password_hash FROM users WHERE email = $1`,
