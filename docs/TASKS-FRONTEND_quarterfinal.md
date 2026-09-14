@@ -986,11 +986,11 @@ Drag mechanics, jank analysis, and scale maths: this screen's tasks carry them i
 |---|---|---|---|
 | `2d` | all | `last_activity_at` | ✅ built (PR #161) |
 | **`Follow up`** | Applied | computed — see below | ✅ built (PR #161) |
-| `Doc` | any | count of `documents` | ⚠️ **not built** — `documents` table doesn't exist (F3-forward, no migration; this row's old "✅" was wrong) |
+| `Doc` | any | count of `documents` | ~~⚠️ **not built** — `documents` table doesn't exist (F3-forward, no migration; this row's old "✅" was wrong)~~ — done: **M03-17**, merged via PR #324 (2026-09-14) |
 | `Due Fri` | **Assess** | `assessment_due_at` | ✅ built (PR #161) |
 | `Tue 3pm` | **Interview** | `interview_at`, written by F5 | ✅ built (PR #161) |
 
-⚠️ **Undocumented tag found in the mockup (2026-09-08, not built):** a `Call log` tag appears on 2/9 example cards, absent from this table entirely. Traced to `application_events.type = 'call_logged'` (enum exists in `DATABASE_quarterfinal.md` §3.2) — but there's no API to count or create these events, and no F4 call-logging UI. Needs a task of its own once F4's call-logging surface exists.
+⚠️ **Undocumented tag found in the mockup (2026-09-08, not built):** a `Call log` tag appears on 2/9 example cards, absent from this table entirely. Traced to `application_events.type = 'call_logged'` (enum exists in `DATABASE_quarterfinal.md` §3.2) — but there's no API to count or create these events, and no F4 call-logging UI. ~~Needs a task of its own once F4's call-logging surface exists.~~ Done: **M03-17**, merged via PR #324 (2026-09-14), once F5-1's call-logging surface existed to derive it from.
 
 ### ⚠️ `Follow up` is a derived state, not a stored flag
 
@@ -1012,6 +1012,22 @@ AND NOT EXISTS (SELECT 1 FROM application_events
 🔧 **Responsive:** ⚠️ **Cap at 2 visible tags with a `+N` overflow at every size.** A 200px card cannot hold `Call log` + `Tue 3pm` plus an age tag.
 
 **References:** F2-3.4 · F4 (derived state) · Mockup 03
+
+---
+
+## M03-17 · Add `Doc` and `Call log` tags ✅ DONE — merged via PR #324 (2026-09-14) — found during a screen-by-screen pending-task review
+
+⚠️ **Added post-hoc.** Both gaps M03-09 left open: `documents` (F3) and `call_logged` events (F5-1) had both existed for days by the time this was scoped, but `cardTags.ts` was never revisited to use them — confirmed live in the code, not just stale docs.
+
+⚠️ **Scoped without a live Pencil connection** — drafted from this section's written notes rather than a fresh look at the mockup frame. If the live mockup shows a count in either label or different styling, that's a correction to make, not something this task confirmed against the design.
+
+🔧 `listApplications` gains two `EXISTS` subqueries (`documents`, `application_events` where `type='call_logged'`) alongside the existing follow-up-sent ones. No new migration — both source tables already existed. `ApplicationListItem` gains `hasDocuments`/`hasCallLog`, threaded through `BoardScreen` → `SortableApplicationCard`/`ApplicationCard`.
+
+🔧 Both tags are presence-only (`"Doc"`, not `"Doc 2"`) and `variant: "default"`, no `href` — plain, non-interactive, matching every tag here except `Follow up`.
+
+🔧 **Priority order** when more than 2 candidates compete (proposed in the issue, not corrected before approval): `Follow up`/`Sent · today` → interview/assessment date → `Call log` → `Doc` → age. Age stays last-resort. Live-verified: a card with interview date + call log + doc + age shows the interview tag and `Call log` visible, `+2` overflow — matching this order and the mockup's one concrete example (`Call log` + `Tue 3pm` as the two visible tags, age bumped to overflow).
+
+**References:** M03-09 (original gap) · F3-3.5 · F5-1 · Mockup 03 · screen-by-screen pending-task review (2026-09-14)
 
 ---
 
